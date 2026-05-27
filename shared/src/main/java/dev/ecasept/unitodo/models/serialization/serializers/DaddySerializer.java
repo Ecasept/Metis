@@ -21,11 +21,11 @@ public class DaddySerializer extends BaseSerializer {
     private final WrapperSerializer wrapperSerializer = new WrapperSerializer();
     private final StringSerializer stringSerializer = new StringSerializer();
     private final ObjectSerializer objectSerializer = new ObjectSerializer(this);
-    private final HashMap<Class<?>, Adapter<?>> adapters;
+//    private final HashMap<Class<?>, Adapter<?>> adapters;
 
     public DaddySerializer(ArrayList<Adapter<?>> adapters) {
-        this.adapters = adapters;
-        adapters.forEach(a -> a.getClass().getComponentType());
+//        this.adapters = adapters;
+//        adapters.forEach(a -> a.getClass().getComponentType());
     }
 
     public void serialize(Object o, Class<?> clazz, GrowableBuffer buf, boolean nullable, boolean[] nullableElements) {

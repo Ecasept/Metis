@@ -5,10 +5,10 @@ import java.util.UUID;
 
 public class Task {
     private final UUID uuid;
-    private TimestampedField<TaskState> state;
-    private TimestampedField<String> name;
-    private TimestampedField<String> description;
-    private TimestampedField<LocalDateTime> dueDate;
+    public TimestampedField<TaskState> state;
+    public TimestampedField<String> name;
+    public TimestampedField<String> description;
+    public TimestampedField<LocalDateTime> dueDate;
 
     public Task() {
         this.uuid = UUID.randomUUID();

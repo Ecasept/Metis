@@ -1,5 +1,7 @@
 package dev.ecasept.unitodo.utils;
 
+import dev.ecasept.unitodo.models.Task;
+
 public class Log {
         public static final LogLevel LOG_LEVEL = LogLevel.DEBUG;
         public static void d(String tag, String message) {
