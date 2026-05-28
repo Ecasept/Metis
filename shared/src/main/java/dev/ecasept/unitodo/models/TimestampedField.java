@@ -25,4 +25,8 @@ public class TimestampedField<V> {
         value = fun.apply(value);
         lastUpdated = LocalDateTime.now();
     }
+
+    public LocalDateTime getLastUpdated() {
+        return lastUpdated;
+    }
 }
