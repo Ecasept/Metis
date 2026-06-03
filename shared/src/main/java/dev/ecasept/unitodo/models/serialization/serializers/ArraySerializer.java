@@ -6,8 +6,6 @@ import dev.ecasept.unitodo.utils.Log;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
-import java.util.Arrays;
-import java.util.Deque;
 
 public class ArraySerializer extends BaseSerializer {
     private static final String TAG = "ArraySerializer";
@@ -43,14 +41,14 @@ public class ArraySerializer extends BaseSerializer {
     private <T> Object deserializePrimitiveArray(ByteBuffer data, Class<T> cmpType, int len) {
         Log.i(TAG, "Deserializing primitive array of length: " + len + " and component type: " + cmpType.getName());
         try {
-            if (cmpType == byte.class)    { byte[]   arr = new byte[len];   for (int i = 0; i < len; i++) arr[i] = data.get();         return (T) arr; }
-            if (cmpType == int.class)     { int[]    arr = new int[len];    for (int i = 0; i < len; i++) arr[i] = data.getInt();      return (T) arr; }
-            if (cmpType == long.class)    { long[]   arr = new long[len];   for (int i = 0; i < len; i++) arr[i] = data.getLong();     return (T) arr; }
-            if (cmpType == short.class)   { short[]  arr = new short[len];  for (int i = 0; i < len; i++) arr[i] = data.getShort();    return (T) arr; }
-            if (cmpType == float.class)   { float[]  arr = new float[len];  for (int i = 0; i < len; i++) arr[i] = data.getFloat();    return (T) arr; }
-            if (cmpType == double.class)  { double[] arr = new double[len]; for (int i = 0; i < len; i++) arr[i] = data.getDouble();   return (T) arr; }
-            if (cmpType == boolean.class) { boolean[] arr = new boolean[len]; for (int i = 0; i < len; i++) arr[i] = deserializeBoolean(data.get()); return (T) arr; }
-            if (cmpType == char.class)    { char[]   arr = new char[len];   for (int i = 0; i < len; i++) arr[i] = data.getChar();     return (T) arr; }
+            if (cmpType == byte.class)    { byte[]   arr = new byte[len];   for (int i = 0; i < len; i++) arr[i] = data.get();         return arr; }
+            if (cmpType == int.class)     { int[]    arr = new int[len];    for (int i = 0; i < len; i++) arr[i] = data.getInt();      return arr; }
+            if (cmpType == long.class)    { long[]   arr = new long[len];   for (int i = 0; i < len; i++) arr[i] = data.getLong();     return arr; }
+            if (cmpType == short.class)   { short[]  arr = new short[len];  for (int i = 0; i < len; i++) arr[i] = data.getShort();    return arr; }
+            if (cmpType == float.class)   { float[]  arr = new float[len];  for (int i = 0; i < len; i++) arr[i] = data.getFloat();    return arr; }
+            if (cmpType == double.class)  { double[] arr = new double[len]; for (int i = 0; i < len; i++) arr[i] = data.getDouble();   return arr; }
+            if (cmpType == boolean.class) { boolean[] arr = new boolean[len]; for (int i = 0; i < len; i++) arr[i] = deserializeBoolean(data.get()); return arr; }
+            if (cmpType == char.class)    { char[]   arr = new char[len];   for (int i = 0; i < len; i++) arr[i] = data.getChar();     return arr; }
             throw new IllegalStateException("Unknown primitive type: " + cmpType.getName());
         } catch (BufferUnderflowException e) {
             throw new SerializationException("Not enough data to read array of length " + len + " and component type " + cmpType.getName(), e);

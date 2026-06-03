@@ -39,49 +39,55 @@ public class ObjectSerializer extends BaseSerializer {
         return fieldCache.computeIfAbsent(clazz, c ->
                 Arrays.stream(c.getDeclaredFields())
                         .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.models.serialization.annotations.Field.class))
-                        .map(f -> {
-                            boolean[] nullableElements = getBooleans(c, f);
-                            if (nullableElements != null && nullableElements.length > 0) {
-                                if (!f.getType().isArray()) {
-                                    throw new IllegalArgumentException("Field '" + f.getName() + "' of class " + c.getName() + " has nullableElements specified but is not an array type");
-                                }
-                                Class<?> type = f.getType();
-                                int depth = 0;
-                                while (type.isArray()) {
-                                    depth++;
-                                    type = type.getComponentType();
-                                }
-                                if (nullableElements.length > depth) {
-                                    throw new IllegalArgumentException("Field '" + f.getName() + "' of class " + c.getName() + " has nullableElements length " + nullableElements.length + " but array depth is " + depth);
-                                }
-
-                                type = f.getType();
-                                for (int i = 0; i < nullableElements.length; i++) {
-                                    type = type.getComponentType();
-                                    if (nullableElements[i] && type.isPrimitive()) {
-                                        throw new IllegalArgumentException("Field '" + f.getName() + "' of class " + c.getName() + " declares nullableElements[" + i + "]=true but component type at that level is primitive " + type.getName());
-                                    }
-                                }
-                            }
-
+                        .peek(f -> {
+                            validateField(c, f);
                             f.setAccessible(true);
-                            return f;
                         })
                         .toArray(Field[]::new)
         );
     }
 
-    private static boolean[] getBooleans(Class<?> c, Field f) {
+    private void validateField(Class<?> c, java.lang.reflect.Field f) {
         var annotation = f.getAnnotation(dev.ecasept.unitodo.models.serialization.annotations.Field.class);
-        // nullable() must not be used on primitive-typed fields
+
         if (annotation.nullable() && f.getType().isPrimitive()) {
-            throw new IllegalArgumentException("Field '" + f.getName() + "' of class " + c.getName() + " is annotated as nullable but has primitive type " + f.getType().getName());
+            throw new IllegalArgumentException(
+                    strField(c, f) + " is annotated as nullable but has primitive type " + f.getType().getName()
+            );
         }
 
-        // If nullableElements is provided, validate against array depth and component types.
-        // Index 0 corresponds to the outermost array component, last index to the base component.
         boolean[] nullableElements = annotation.nullableElements();
-        return nullableElements;
+        if (nullableElements == null || nullableElements.length == 0) return;
+
+        if (!f.getType().isArray()) {
+            throw new IllegalArgumentException(
+                    strField(c, f) + " has nullableElements specified but is not an array type"
+            );
+        }
+
+        Class<?> type = f.getType();
+        int depth = 0;
+        while (type.isArray()) {
+            type = type.getComponentType();
+            depth++;
+        }
+
+        if (nullableElements.length > depth) {
+            throw new IllegalArgumentException(
+                    strField(c, f) + " has nullableElements length " + nullableElements.length + " but array depth is " + depth
+            );
+        }
+
+        if (nullableElements[nullableElements.length - 1] && type.isPrimitive()) {
+            throw new IllegalArgumentException(
+                    strField(c, f) + " declares nullableElements[" + (depth - 1)
+                            + "]=true but base component type is primitive " + type.getName()
+            );
+        }
+    }
+
+    private static String strField(Class<?> c, java.lang.reflect.Field f) {
+        return "Field '" + f.getName() + "' of class " + c.getName();
     }
 
     public void serialize(Object o, GrowableBuffer buf) {
@@ -113,7 +119,6 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(count, lengthPos, buf);
     }
 
-    @SuppressWarnings("unchecked")
     public <T> T deserialize(ByteBuffer data, Class<T> clazz) {
         ensureSerializable(clazz);
 
