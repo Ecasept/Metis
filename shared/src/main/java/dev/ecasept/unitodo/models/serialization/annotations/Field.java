@@ -20,7 +20,7 @@ public @interface Field {
      * and can be deserialized as null if the serialized data indicates a null value. */
     boolean nullable() default false;
     /**
-     * Whether nullable elements of an array can be null
+     * Whether nullable elements of an array can be null.
      */
     boolean[] nullableElements() default {};
 }
