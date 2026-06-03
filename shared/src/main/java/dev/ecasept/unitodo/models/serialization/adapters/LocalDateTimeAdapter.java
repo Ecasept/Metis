@@ -1,7 +1,6 @@
 package dev.ecasept.unitodo.models.serialization.adapters;
 
 import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.models.serialization.serializers.BaseSerializer;
 import dev.ecasept.unitodo.models.serialization.serializers.DaddySerializer;
 import dev.ecasept.unitodo.models.serialization.serializers.StringSerializer;
 
