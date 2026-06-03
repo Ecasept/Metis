@@ -2,7 +2,6 @@ package dev.ecasept.unitodo.models.serialization.serializers;
 
 import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
 import dev.ecasept.unitodo.models.serialization.SerializationException;
-import dev.ecasept.unitodo.models.serialization.TypeIdentifier;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;

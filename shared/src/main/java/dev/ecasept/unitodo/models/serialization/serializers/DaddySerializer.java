@@ -11,6 +11,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 
 
 public class DaddySerializer extends BaseSerializer {
@@ -18,14 +19,21 @@ public class DaddySerializer extends BaseSerializer {
 
     private final ArraySerializer arraySerializer = new ArraySerializer(this);
     private final PrimitiveSerializer primitiveSerializer = new PrimitiveSerializer();
-    private final WrapperSerializer wrapperSerializer = new WrapperSerializer();
     private final StringSerializer stringSerializer = new StringSerializer();
     private final ObjectSerializer objectSerializer = new ObjectSerializer(this);
-//    private final HashMap<Class<?>, Adapter<?>> adapters;
+    private final Map<Class<?>, ? extends Adapter<?>> adapters;
 
-    public DaddySerializer(ArrayList<Adapter<?>> adapters) {
-//        this.adapters = adapters;
-//        adapters.forEach(a -> a.getClass().getComponentType());
+    public DaddySerializer(HashMap<Class<?>, Class<? extends Adapter<?>>> adapters) {
+        this.adapters = adapters.entrySet().stream().collect(Collectors.toUnmodifiableMap(
+                Map.Entry::getKey,
+                e -> {
+                    var v = e.getValue();
+            try {
+                return v.getConstructor(DaddySerializer.class).newInstance(this);
+            } catch (Exception ex) {
+                throw new RuntimeException("Failed to instantiate adapter " + v.getName() + " for class " + e.getKey().getName(), ex);
+            }
+        }));
     }
 
     public void serialize(Object o, Class<?> clazz, GrowableBuffer buf, boolean nullable, boolean[] nullableElements) {
@@ -50,7 +58,7 @@ public class DaddySerializer extends BaseSerializer {
             primitiveSerializer.serialize(o, buf);
         } else if (isWrapper(clazz)) {
             buf.putByte((byte)0xFF);
-            wrapperSerializer.serialize(o, buf);
+            primitiveSerializer.serialize(o, buf);
         } else {
             buf.putByte((byte)0xFF);
             switch (o) {
@@ -60,6 +68,10 @@ public class DaddySerializer extends BaseSerializer {
                     if (o.getClass().isArray()) {
                         // Primitive array
                         arraySerializer.serializePrimitive(o, buf);
+                    } else if (adapters.containsKey(clazz)) {
+                        @SuppressWarnings("unchecked")
+                        var adapter = (Adapter<Object>) adapters.get(clazz);
+                        adapter.serialize(o, buf);
                     } else {
                         objectSerializer.serialize(o, buf);
                     }
@@ -92,13 +104,17 @@ public class DaddySerializer extends BaseSerializer {
             throw new SerializationException("Invalid null byte value: " + String.format("0x%02X", nullByte));
         }
         if (isWrapper(clazz)) {
-            return wrapperSerializer.deserialize(data, clazz);
+            return primitiveSerializer.deserialize(data, clazz);
         }
         if (clazz == String.class) {
             return clazz.cast(stringSerializer.deserialize(data));
         }
         if (clazz.isArray()) {
             return clazz.cast(arraySerializer.deserialize(data, clazz, nullableElements, arrDim));
+        }
+        if (adapters.containsKey(clazz)) {
+            var adapter = adapters.get(clazz);
+            return clazz.cast(adapter.deserialize(data));
         }
         return objectSerializer.deserialize(data, clazz);
     }
