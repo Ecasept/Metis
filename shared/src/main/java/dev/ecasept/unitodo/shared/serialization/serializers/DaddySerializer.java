@@ -1,9 +1,10 @@
-package dev.ecasept.unitodo.models.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.serializers;
 
-import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.models.serialization.SerializationException;
-import dev.ecasept.unitodo.models.serialization.adapters.Adapter;
-import dev.ecasept.unitodo.utils.Log;
+import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
+import dev.ecasept.unitodo.shared.serialization.SerializationException;
+import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
+import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -51,13 +52,20 @@ public class DaddySerializer extends BaseSerializer {
             clazz = o.getClass();
         }
         Log.i(TAG, "Serializing object of class: " + clazz.getName());
+        if (clazz == Void.class || clazz == void.class) {
+            return; // This allows us to serialize empty content, e.g. for empty GET requests
+        }
         if (clazz.isPrimitive()) {
             primitiveSerializer.serialize(o, buf);
         } else if (isWrapper(clazz)) {
-            buf.putByte((byte)0xFF);
+            if (nullable) {
+                buf.putByte((byte)0xFF);
+            }
             primitiveSerializer.serialize(o, buf);
         } else {
-            buf.putByte((byte)0xFF);
+            if (nullable) {
+                buf.putByte((byte)0xFF);
+            }
             switch (o) {
                 case String s -> stringSerializer.serialize(s, buf);
                 case Object[] arr -> arraySerializer.serialize(arr, buf, nullableElements, arrDim);
@@ -77,42 +85,47 @@ public class DaddySerializer extends BaseSerializer {
         }
     }
 
-    public <T> T deserialize(ByteBuffer data, Class<T> clazz, boolean nullable, boolean[] nullableElements) {
-        return deserialize(data, clazz, nullable, nullableElements, 0);
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements) {
+        return deserialize(data, type, nullable, nullableElements, 0);
     }
-    public <T> T deserialize(ByteBuffer data, Class<T> clazz, boolean nullable, boolean[] nullableElements, int arrDim) {
-        if (clazz == null) {
-            throw new IllegalArgumentException("Class to deserialize cannot be null");
-        }
-        Log.i(TAG, "Deserializing class: " + clazz.getName());
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements, int arrDim) {
 
-        if (clazz.isPrimitive()) {
-            return primitiveSerializer.deserialize(data, clazz);
+        Log.i(TAG, "Deserializing type: " + type.getTypeName());
+        if (type.isVoid()) {
+            return null; // This allows us to deserialize empty content, e.g. for empty GET requests
         }
 
-        byte nullByte = data.get();
-        if (nullByte == (byte) 0x00) {
-            if (!nullable) {
-                throw new SerializationException("Found null value for non-nullable type " + clazz.getName());
+        if (type.isPrimitive()) {
+            return type.cast(primitiveSerializer.deserialize(data, type.asClass()));
+        }
+
+        if (nullable) {
+            byte nullByte = data.get();
+            if (nullByte == (byte) 0x00) {
+                Log.i(TAG, "Deserialized null value for type: " + type.getTypeName());
+                return null;
+            } else if (nullByte != (byte) 0xFF) {
+                throw new SerializationException("Invalid null byte value: " + String.format("0x%02X", nullByte));
             }
-            Log.i(TAG, "Deserialized null value for class: " + clazz.getName());
-            return null;
-        } else if (nullByte != (byte) 0xFF) {
-            throw new SerializationException("Invalid null byte value: " + String.format("0x%02X", nullByte));
         }
-        if (isWrapper(clazz)) {
-            return primitiveSerializer.deserialize(data, clazz);
+        if (type.isWrapper()) {
+            return type.cast(primitiveSerializer.deserialize(data, type.asClass()));
         }
-        if (clazz == String.class) {
-            return clazz.cast(stringSerializer.deserialize(data));
+        if (type.isString()) {
+            return type.cast(stringSerializer.deserialize(data));
         }
-        if (clazz.isArray()) {
-            return clazz.cast(arraySerializer.deserialize(data, clazz, nullableElements, arrDim));
+        if (type.isArray()) {
+            return type.cast(arraySerializer.deserialize(data, type, nullableElements, arrDim));
         }
-        if (adapters.containsKey(clazz)) {
-            var adapter = adapters.get(clazz);
-            return clazz.cast(adapter.deserialize(data));
+        if (type.isClass()) {
+            if (adapters.containsKey(type.asClass())) {
+                var adapter = adapters.get(type.asClass());
+                return type.cast(adapter.deserialize(data));
+            }
         }
-        return objectSerializer.deserialize(data, clazz);
+        if (type.isWildcard() || type.isTypeVariable()) {
+            throw new IllegalArgumentException("Cannot deserialize wildcard or type variable types: " + type.getTypeName());
+        }
+        return objectSerializer.deserialize(data, type);
     }
 }

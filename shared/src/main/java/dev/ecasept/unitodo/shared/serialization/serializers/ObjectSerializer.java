@@ -1,9 +1,10 @@
-package dev.ecasept.unitodo.models.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.serializers;
 
-import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.models.serialization.SerializationException;
-import dev.ecasept.unitodo.models.serialization.annotations.Serializable;
-import dev.ecasept.unitodo.utils.Log;
+import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
+import dev.ecasept.unitodo.shared.serialization.SerializationException;
+import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
+import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.lang.reflect.Field;
 import java.nio.BufferUnderflowException;
@@ -35,10 +36,11 @@ public class ObjectSerializer extends BaseSerializer {
         }
     }
 
-    private Field[] getFields(Class<?> clazz) {
+    private <T> Field[] getFields(TypeContainer<T> type) {
+        Class<?> clazz = type.getRawClass();
         return fieldCache.computeIfAbsent(clazz, c ->
                 Arrays.stream(c.getDeclaredFields())
-                        .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.models.serialization.annotations.Field.class))
+                        .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.shared.serialization.annotations.Field.class))
                         .peek(f -> {
                             validateField(c, f);
                             f.setAccessible(true);
@@ -48,7 +50,7 @@ public class ObjectSerializer extends BaseSerializer {
     }
 
     private void validateField(Class<?> c, java.lang.reflect.Field f) {
-        var annotation = f.getAnnotation(dev.ecasept.unitodo.models.serialization.annotations.Field.class);
+        var annotation = f.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
 
         if (annotation.nullable() && f.getType().isPrimitive()) {
             throw new IllegalArgumentException(
@@ -99,10 +101,10 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(0, buf); // But default length for now
         int count = 0;
         HashSet<Integer> seenTags = new HashSet<>();
-        for (Field field : getFields(clazz)) {
+        for (Field field : getFields(new TypeContainer<>(clazz))) {
             Log.i(TAG, "Serializing field: " + field.getName() + " with type: " + field.getType().getName());
             try {
-                var annotation = field.getAnnotation(dev.ecasept.unitodo.models.serialization.annotations.Field.class);
+                var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
                 int tag = annotation.tag();
                 if (seenTags.contains(tag)) {
                     throw new SerializationException("Found duplicate tag " + tag + " while serializing object");
@@ -119,15 +121,16 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(count, lengthPos, buf);
     }
 
-    public <T> T deserialize(ByteBuffer data, Class<T> clazz) {
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type) {
+        Class<?> clazz = type.getRawClass();
         ensureSerializable(clazz);
 
         // We want an object
         HashMap<Integer, Field> requiredTags = new HashMap<>();
         HashMap<Integer, Field> optionalTags = new HashMap<>();
         HashSet <Integer> seenTags = new HashSet<>();
-        for (Field field : getFields(clazz)) {
-            var annotation = field.getAnnotation(dev.ecasept.unitodo.models.serialization.annotations.Field.class);
+        for (Field field : getFields(type)) {
+            var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
             if (annotation.optional()) {
                 optionalTags.put(annotation.tag(), field);
             } else {
@@ -144,7 +147,7 @@ public class ObjectSerializer extends BaseSerializer {
             throw new SerializationException("Negative field count " + count + " found while deserializing object of class " + clazz.getName());
         }
         Log.d(TAG, "count: " + count);
-        T o = instatiateSerializableObject(clazz);
+        T o = type.cast(instatiateSerializableObject(clazz));
         for (int i = 0; i < count; i++) {
             int tag;
             try {
@@ -163,8 +166,8 @@ public class ObjectSerializer extends BaseSerializer {
                 var field = foundMap.get(tag);
                 foundMap.remove(tag);
                 seenTags.add(tag);
-                var annotation = field.getAnnotation(dev.ecasept.unitodo.models.serialization.annotations.Field.class);
-                var val = daddySerializer.deserialize(data, field.getType(), annotation.nullable(), annotation.nullableElements());
+                var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
+                var val = daddySerializer.deserialize(data, type.getFieldType(field), annotation.nullable(), annotation.nullableElements());
                 try {
                     field.set(o, val);
                     Log.i(TAG, "Deserialized field: " + field.getName() + " with value: " + val);

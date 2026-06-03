@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.models.serialization;
+package dev.ecasept.unitodo.shared.serialization;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;

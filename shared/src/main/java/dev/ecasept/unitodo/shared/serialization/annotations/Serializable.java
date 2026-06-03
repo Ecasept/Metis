@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.models.serialization.annotations;
+package dev.ecasept.unitodo.shared.serialization.annotations;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

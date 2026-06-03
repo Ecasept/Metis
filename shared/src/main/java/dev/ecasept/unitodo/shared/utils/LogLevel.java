@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.utils;
+package dev.ecasept.unitodo.shared.utils;
 
 public enum LogLevel {
     ERROR,

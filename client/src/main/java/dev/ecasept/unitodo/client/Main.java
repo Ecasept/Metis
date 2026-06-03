@@ -1,9 +1,9 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.models.serialization.Serializer;
-import dev.ecasept.unitodo.models.serialization.annotations.Field;
-import dev.ecasept.unitodo.models.serialization.annotations.Serializable;
-import dev.ecasept.unitodo.models.serialization.adapters.LocalDateTimeAdapter;
+import dev.ecasept.unitodo.shared.serialization.Serializer;
+import dev.ecasept.unitodo.shared.serialization.annotations.Field;
+import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
+import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
 
 import java.time.LocalDateTime;
 

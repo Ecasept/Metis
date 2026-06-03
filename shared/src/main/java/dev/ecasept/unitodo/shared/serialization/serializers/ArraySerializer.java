@@ -1,8 +1,9 @@
-package dev.ecasept.unitodo.models.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.serializers;
 
-import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.models.serialization.SerializationException;
-import dev.ecasept.unitodo.utils.Log;
+import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
+import dev.ecasept.unitodo.shared.serialization.SerializationException;
+import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
@@ -55,21 +56,18 @@ public class ArraySerializer extends BaseSerializer {
         }
     }
 
-    public <T> Object deserialize(ByteBuffer data, Class<T> clazz, boolean[] nullableElements, int dimension) {
+    public <T> Object deserialize(ByteBuffer data, TypeContainer<T> clazz, boolean[] nullableElements, int dimension) {
         int len = deserializeLength(data);
-        Class<?> cmpType = clazz.getComponentType();
-        if (cmpType == null) {
-            throw new IllegalArgumentException("Tried to deserialize array for non-array type " + clazz.getName());
-        }
+        TypeContainer<?> cmpType = new TypeContainer<>(clazz.getComponentType());
         if (len < 0) {
             throw new IllegalArgumentException("Tried to deserialize array with negative length " + len);
         }
         if (cmpType.isPrimitive()) {
-            return deserializePrimitiveArray(data, cmpType, len);
+            return deserializePrimitiveArray(data, cmpType.asPrimitive(), len);
         }
         Log.i(TAG, "Deserializing array of length: " + len);
 
-        Object[] arr = (Object[]) java.lang.reflect.Array.newInstance(cmpType, len);
+        Object[] arr = (Object[]) java.lang.reflect.Array.newInstance(cmpType.getRawClass(), len);
         for (int i = 0; i < len; i++) {
             boolean nullableAt = dimension < nullableElements.length && nullableElements[dimension];
             arr[i] = daddySerializer.deserialize(data, cmpType, nullableAt, nullableElements, dimension + 1);

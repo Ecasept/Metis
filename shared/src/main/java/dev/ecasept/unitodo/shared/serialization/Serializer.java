@@ -1,7 +1,7 @@
-package dev.ecasept.unitodo.models.serialization;
+package dev.ecasept.unitodo.shared.serialization;
 
-import dev.ecasept.unitodo.models.serialization.adapters.Adapter;
-import dev.ecasept.unitodo.models.serialization.serializers.DaddySerializer;
+import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
+import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;import dev.ecasept.unitodo.shared.serialization.types.StoreType;import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -61,9 +61,9 @@ public class Serializer {
      * @param clazz The target class that the data should be deserialized into.
      * @return The deserialized object as the correct class
      */
-    public <T> T deserialize(byte[] data, Class<T> clazz) {
+    public <T, R extends StoreType<T>> T deserialize(byte[] data, R type) {
         var daddySerializer = new DaddySerializer(adapters);
         var buf = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN);
-        return daddySerializer.deserialize(buf, clazz, rootNullable, rootNullableElements);
+        return daddySerializer.deserialize(buf, new TypeContainer<>(type), rootNullable, rootNullableElements);
     }
 }

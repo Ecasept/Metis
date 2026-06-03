@@ -1,8 +1,8 @@
-package dev.ecasept.unitodo.models.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.serializers;
 
-import dev.ecasept.unitodo.models.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.models.serialization.SerializationException;
-import dev.ecasept.unitodo.utils.Log;
+import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
+import dev.ecasept.unitodo.shared.serialization.SerializationException;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
