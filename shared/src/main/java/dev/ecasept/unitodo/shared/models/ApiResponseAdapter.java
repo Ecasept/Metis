@@ -6,7 +6,6 @@ import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;
 import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
-import java.lang.reflect.Type;
 import java.nio.ByteBuffer;
 
 public class ApiResponseAdapter<T> extends Adapter<ApiResponse<T>> {

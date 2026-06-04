@@ -65,9 +65,7 @@ public class ObjectSerializer extends BaseSerializer {
         return recordComponentCache.computeIfAbsent(clazz, c ->
                 Arrays.stream(c.getRecordComponents())
                         .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.shared.serialization.annotations.Field.class))
-                        .peek(f -> {
-                            validateField(c, f);
-                        })
+                        .peek(f -> validateField(c, f))
                         .toArray(RecordComponent[]::new)
         );
     }

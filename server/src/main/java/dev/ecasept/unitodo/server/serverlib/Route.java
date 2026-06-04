@@ -3,16 +3,12 @@ package dev.ecasept.unitodo.server.serverlib;
 import com.sun.net.httpserver.HttpExchange;
 import dev.ecasept.unitodo.shared.models.ApiResponse;
 import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
-import dev.ecasept.unitodo.shared.serialization.RawData;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
-import dev.ecasept.unitodo.shared.serialization.adapters.RawDataAdapter;
-import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.time.LocalDateTime;
 import java.util.function.Function;
 
 public record Route<RequestType, ResponseType>(StoreType<RequestType> requestType, StoreType<ResponseType> responseType, Function<RequestType, Response<ResponseType>> func) {

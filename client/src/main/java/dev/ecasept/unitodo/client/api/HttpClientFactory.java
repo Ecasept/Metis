@@ -21,7 +21,7 @@ public class HttpClientFactory {
                 }
         };
 
-        SSLContext sslContext = null;
+        SSLContext sslContext;
         try {
             sslContext = SSLContext.getInstance("TLS");
         } catch (NoSuchAlgorithmException e) {

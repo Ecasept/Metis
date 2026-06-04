@@ -7,8 +7,6 @@ import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
-import java.net.http.HttpClient;
-
 public class Main {
     public static void main(String[] args) {
         var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);

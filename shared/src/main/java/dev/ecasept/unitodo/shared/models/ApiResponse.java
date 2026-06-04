@@ -1,7 +1,6 @@
 package dev.ecasept.unitodo.shared.models;
 
-import dev.ecasept.unitodo.shared.serialization.annotations.Field;
-import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;import java.util.function.Consumer;
+import java.util.function.Consumer;
 
 public class ApiResponse<T> {
         private final boolean success;

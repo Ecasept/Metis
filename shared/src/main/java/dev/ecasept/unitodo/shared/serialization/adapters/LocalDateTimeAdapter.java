@@ -1,7 +1,6 @@
 package dev.ecasept.unitodo.shared.serialization.adapters;
 
 import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
-import dev.ecasept.unitodo.shared.serialization.RawData;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;
 import dev.ecasept.unitodo.shared.serialization.serializers.StringSerializer;
