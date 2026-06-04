@@ -22,8 +22,8 @@ public record Route<RequestType, ResponseType, StoredRequestType extends StoreTy
                     .adapter(RawDataAdapter.class, RawData.class);
             var requestBody = s.deserialize(bytes, requestType);
             var response = func.apply(requestBody);
-            var rawResponseBody = s.serialize(response.body);
-            exchange.sendResponseHeaders(response.code, rawResponseBody.length);
+            var rawResponseBody = s.serialize(response.body());
+            exchange.sendResponseHeaders(response.code(), rawResponseBody.length);
             try(OutputStream os = exchange.getResponseBody()) {
                 os.write(rawResponseBody);
             }
