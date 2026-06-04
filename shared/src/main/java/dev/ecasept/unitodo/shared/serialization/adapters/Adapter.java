@@ -7,7 +7,7 @@ import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;
 import java.nio.ByteBuffer;
 
 public abstract class Adapter<T> extends BaseSerializer {
-        protected DaddySerializer daddySerializer;
+        protected final DaddySerializer daddySerializer;
         public Adapter(DaddySerializer daddySerializer) {
                 this.daddySerializer = daddySerializer;
         }

@@ -36,8 +36,7 @@ public class ObjectSerializer extends BaseSerializer {
         }
     }
 
-    private <T> Field[] getFields(TypeContainer<T> type) {
-        Class<?> clazz = type.getRawClass();
+    private Field[] getFields(Class<?> clazz) {
         return fieldCache.computeIfAbsent(clazz, c ->
                 Arrays.stream(c.getDeclaredFields())
                         .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.shared.serialization.annotations.Field.class))
@@ -101,7 +100,7 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(0, buf); // But default length for now
         int count = 0;
         HashSet<Integer> seenTags = new HashSet<>();
-        for (Field field : getFields(new TypeContainer<>(clazz))) {
+        for (Field field : getFields(new TypeContainer<?>(clazz))) {
             Log.i(TAG, "Serializing field: " + field.getName() + " with type: " + field.getType().getName());
             try {
                 var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
@@ -129,7 +128,7 @@ public class ObjectSerializer extends BaseSerializer {
         HashMap<Integer, Field> requiredTags = new HashMap<>();
         HashMap<Integer, Field> optionalTags = new HashMap<>();
         HashSet <Integer> seenTags = new HashSet<>();
-        for (Field field : getFields(type)) {
+        for (Field field : getFields(clazz)) {
             var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
             if (annotation.optional()) {
                 optionalTags.put(annotation.tag(), field);

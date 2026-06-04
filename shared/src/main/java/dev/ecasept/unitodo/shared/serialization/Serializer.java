@@ -1,15 +1,57 @@
 package dev.ecasept.unitodo.shared.serialization;
 
 import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
+import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;import dev.ecasept.unitodo.shared.serialization.types.StoreType;import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.HashMap;
 
+/*
+
+Sync Protocol:
+- Client sends:
+    - A list of items where the lastUpdate is after lastSync
+- Server checks lastSync of client
+- server creates a similiar list and sends it back to the client
+    - both execute this merge algorithm
+        - possible combinations: edited/deleted <-> edited/deleted/not present/present
+        - edited <-> edited
+            - smart merge
+        - edited <-> deleted
+            - the one with the most recent date wins
+        - edited <-> not present
+            - the edited wins
+        - deleted <-> deleted
+            - doesn't matter
+        - deleted <-> not present
+            - stay not present
+        - edited/deleted <-> present
+            - edite/deleted wins
+- if the server sees that the tombstone deletion period has passed, it additionally sends a list of all uuids (after the merge)
+    - the client unconditionally deletes any uuid not in that list
+
+ */
+
+
+
+
 
 /**
  * Custom binary serializer
+ * <p>
+ * The serializer features two main methods: {@link Serializer#serialize} and {@link Serializer#deserialize}.
+ * {@link Serializer#serialize} takes an object and converts it into a byte array, while {@link Serializer#deserialize} takes a byte array and a target class and tries to convert the byte array back into an object of the target class.
+ * <p>
+ * The serializer assumes the serialization/deserialization schema is known (and provided for deserialization),
+ * and therefore the specific object types won't be encoded into the byte array. This results in a more efficient
+ * serialization format.
+ * <p>
+ * The serializer also supports custom adapters, which can be registered for specific classes.
+ * An adapter can define custom serialization/deserialization logic for its target class.
+ * This is useful for classes that require special serialization logic (e.g. classes that have fields that should not be serialized),
+ * or classes not under your control that cannot be annotated for automatic serialization.
  */
 public class Serializer {
     private boolean rootNullable = false;
@@ -18,26 +60,34 @@ public class Serializer {
 
     /**
      * Determines whether the root object, i.e. the object that is being serialized itself, can be null itself.
-     * <br><br>
+     * <p>
      * What is allowed/can happen when the root object is null:
-     * <pre>
+     * <pre>{@code
      * s.serialize(null); // no errors
      * var out = s.deserialize(bytes, SomeClass.class); // `out` could be null
-     * </pre>
+     * }</pre>
      * @param rootNullable Whether the root is nullable or not
-     * @return <code>this</code>
+     * @return {@code this}
      */
     public Serializer setRootNullable(boolean rootNullable) {
         this.rootNullable = rootNullable;
         return this;
     }
+
+    /**
+     * Registers an adapter for a specific class. The adapter will be used to serialize and deserialize objects of the specified class.
+     * @param adapter The class of the adapter to register
+     * @param clazz The class that the adapter should be used for
+     * @return {@code this}
+     * @param <T> The actual type of the class that the adapter is used for.
+     */
     public <T> Serializer adapter(Class<? extends Adapter<T>> adapter, Class<T> clazz) {
         this.adapters.put(clazz, adapter);
         return this;
     }
 
     /**
-     * Works just like Field.nulllableElements, but for the root object
+     * Works just like {@link Field#nullableElements()}, but for the root object
      */
     public Serializer setRootNullableElements(boolean[] rootNullableElements) {
         this.rootNullableElements = rootNullableElements;
@@ -58,8 +108,12 @@ public class Serializer {
     /**
      * Tries to convert a binary representation of an object into its deserialized form.
      * @param data The binary representation that should be deserialized
-     * @param clazz The target class that the data should be deserialized into.
+     * @param type The type of the target class that the data should be deserialized into.
+     *             This needs to be passed using {@link StoreType} to preserve generic information
+     *             that would usually be lost through type erasure.
      * @return The deserialized object as the correct class
+     * @param <T> The type of the deserialized object
+     * @param <R> The type of the StoreType wrapper (which is usually a subclass of {@link StoreType}) around the deserialized object
      */
     public <T, R extends StoreType<T>> T deserialize(byte[] data, R type) {
         var daddySerializer = new DaddySerializer(adapters);
