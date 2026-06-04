@@ -16,6 +16,10 @@ public class AuthRequestManager {
     }
 
     public Response<ApiResponse<String>> loginRequest(UsernameAndPassword req) {
+        if (req.username().isEmpty() || req.password().pw().length == 0) {
+            req.password().shred();
+            return new Response<>(200, ApiResponse.error("Invalid username or credentials"));
+        }
         var user = dbManager.getUserByUsername(req.username());
         if (user.isPresent()) {
             boolean passwordValid;
@@ -38,6 +42,10 @@ public class AuthRequestManager {
         }
     }
     public Response<ApiResponse<String>> registerRequest(UsernameAndPassword req) {
+        if (req.username().isEmpty() || req.password().pw().length == 0) {
+            req.password().shred();
+            return new Response<>(200, ApiResponse.error("Username and password cannot be empty"));
+        }
         var user = dbManager.getUserByUsername(req.username());
         if (user.isPresent()) {
             return new Response<>(200, ApiResponse.error("Username already exists"));
