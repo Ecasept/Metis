@@ -4,6 +4,7 @@ import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
 import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
+import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 
 import java.time.LocalDateTime;
 
@@ -17,7 +18,7 @@ public class Main {
             System.out.printf("%02x ", b);
         }
         System.out.println();
-        System.out.println(s.deserialize(serialized, MockClass.class));
+        System.out.println(s.deserialize(serialized, new StoreType<MockClass>() {}));
     }
 }
 
@@ -26,7 +27,7 @@ public class Main {
 class MockClass {
     @Field(tag=1)
     private final int a = 1;
-    @Field(tag=2, nullable=true, nullableElements = {})
+    @Field(tag=2, nullable=true)
     public LocalDateTime time = LocalDateTime.now();
     @Field(tag=3, nullable=true)
     public int[] c = null;
