@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.models;
+package dev.ecasept.unitodo.shared.models;
 
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
@@ -9,6 +9,9 @@ import java.util.Arrays;
 
 @Serializable
 public record Password(@Field(tag = 1) char[] pw) {
+    public Password(String pw) {
+        this(pw.toCharArray());
+    }
     /**
      * Shreds the password by filling the char array with spaces. This removes it from memory.
      */

@@ -1,6 +1,5 @@
-package dev.ecasept.unitodo.server.api.auth.models;
+package dev.ecasept.unitodo.shared.models;
 
-import dev.ecasept.unitodo.models.Password;
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
 
