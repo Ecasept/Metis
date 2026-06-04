@@ -91,7 +91,7 @@ public class ObjectSerializer extends BaseSerializer {
         return "Field '" + f.getName() + "' of class " + c.getName();
     }
 
-    public void serialize(Object o, GrowableBuffer buf) {
+    public <T> void serialize(T o, GrowableBuffer buf) {
         Class<?> clazz = o.getClass();
         Log.i(TAG, "Serializing custom object: " + clazz.getName());
         ensureSerializable(clazz);
@@ -100,7 +100,7 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(0, buf); // But default length for now
         int count = 0;
         HashSet<Integer> seenTags = new HashSet<>();
-        for (Field field : getFields(new TypeContainer<?>(clazz))) {
+        for (Field field : getFields(clazz)) {
             Log.i(TAG, "Serializing field: " + field.getName() + " with type: " + field.getType().getName());
             try {
                 var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
