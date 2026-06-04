@@ -8,7 +8,7 @@ import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
 import java.time.LocalDateTime;
 
 public class Main {
-    public static void main(String[] args) throws IllegalAccessException {
+    public static void main(String[] args) {
         var s = new Serializer().adapter(LocalDateTimeAdapter.class, LocalDateTime.class);
         byte[] serialized = s.serialize(new MockClass());
         // print byte array as hex
