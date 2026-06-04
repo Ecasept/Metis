@@ -174,6 +174,14 @@ public class TypeContainer<T> {
     }
 
     /**
+     * Checks whether the type represented by this container is a parameterized type (e.g. {@code List<String>}, {@code Map<String, Integer>}, etc.).
+     * @return {@code true} if the type is a parameterized type, {@code false} otherwise.
+     */
+    public boolean isParameterized() {
+        return type instanceof ParameterizedType;
+    }
+
+    /**
      * Checks whether the type represented by this container is {@link String}.
      * @return {@code true} if the type is {@link String}, {@code false} otherwise.
      */
@@ -215,7 +223,16 @@ public class TypeContainer<T> {
      * @throws IllegalArgumentException When the field's type cannot be accurately resolved (e.g. if it's a type variable that cannot be resolved, or a wildcard).
      */
     public TypeContainer<?> getFieldType(Field field) {
-        Type fieldType = field.getGenericType();
+        return resolveType(field.getGenericType());
+    }
+
+    /**
+     * Does the same thing as {@link TypeContainer#getFieldType(Field)}, but for a {@link RecordComponent}
+     */
+    public TypeContainer<?> getRecordComponentType(RecordComponent recordComponent) {
+        return resolveType(recordComponent.getGenericType());
+    }
+    private TypeContainer<?> resolveType(Type fieldType) {
         switch (fieldType) {
             case Class<?> clazz -> {
                 return new TypeContainer<>(clazz);
@@ -244,5 +261,26 @@ public class TypeContainer<T> {
             }
             default -> throw new IllegalArgumentException("Unsupported field type: " + fieldType);
         }
+    }
+
+    /**
+     * Returns the generic type argument at the given index if the underlying type is a parameterized type.
+     * <p>
+     * Example:
+     * If the underlying type is {@code Map<String, Integer>}, then {@code getGenericArgument(0)} will return a {@code TypeContainer} representing {@link String}, and {@code getGenericArgument(1)} will return a {@code TypeContainer} representing {@link Integer}.
+     * @param index The index of the generic argument to return. This should be a non-negative integer less than the number of generic arguments of the underlying parameterized type.
+     * @return A new {@code TypeContainer} representing the generic argument at the given index.
+     * @throws IllegalArgumentException When the underlying type is not a parameterized type (you can check first using {@link TypeContainer#isParameterized()}), or when the index is out of bounds.
+     */
+    public TypeContainer<?> getGenericArgument(int index) {
+        if (type instanceof ParameterizedType paramType) {
+            Type[] typeArgs = paramType.getActualTypeArguments();
+            if (index < typeArgs.length) {
+                return new TypeContainer<>(typeArgs[index]);
+            } else {
+                throw new IllegalArgumentException("Index out of bounds: " + index + " for type " + type.getTypeName());
+            }
+        }
+        throw new IllegalArgumentException("Type " + type.getTypeName() + " is not parameterized");
     }
 }

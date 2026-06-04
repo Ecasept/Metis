@@ -1,8 +1,8 @@
 package dev.ecasept.unitodo.server.api.auth;
 
 import dev.ecasept.unitodo.server.Configuration;
-import dev.ecasept.unitodo.server.api.ApiResponse;
-import dev.ecasept.unitodo.server.api.auth.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.models.ApiResponse;
+import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
 import dev.ecasept.unitodo.server.db.DBManager;
 import dev.ecasept.unitodo.server.security.PasswordHasher;
 import dev.ecasept.unitodo.server.security.SignedTokenManager;

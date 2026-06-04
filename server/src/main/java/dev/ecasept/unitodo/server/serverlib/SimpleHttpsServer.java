@@ -27,7 +27,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 public class SimpleHttpsServer {
     private static final String TAG = "SimpleHttpsServer";
     private final HttpsServer server;
-    private final HashMap<RouteKey, Route<?, ?, ?, ?>> routes = new HashMap<>();
+    private final HashMap<RouteKey, Route<?, ?>> routes = new HashMap<>();
 
     public SimpleHttpsServer(String keystorePassword, String keystoreLocation) {
         char[] pw = keystorePassword.toCharArray();
@@ -108,17 +108,17 @@ public class SimpleHttpsServer {
             var key = new RouteKey(path, method);
             var route = routes.get(key);
             if (route == null) {
-                sendError(exchange, 404, "Nothing found at path " + path + " for method " + method);
+                sendError(exchange, 404, "The requested URL " + path + " was not found on this server.");
                 return;
             }
-            route.handle(exchange);
+            route.handle(exchange, this);
         } catch (Exception e) {
             Log.e(TAG, "Error handling request", e);
             sendError(exchange, 500, "Internal server error");
         }
     }
 
-    private void sendError(HttpExchange exchange, int responseCode, String msg) {
+    public void sendError(HttpExchange exchange, int responseCode, String msg) {
         byte[] bytes = msg.getBytes(StandardCharsets.UTF_8);
         try (exchange) {
             exchange.getResponseHeaders().set("Content-Type", "text/plain; charset=utf-8");

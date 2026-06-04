@@ -16,7 +16,7 @@ public class StringSerializer extends BaseSerializer {
         serializeLength(bytes.length, buf);
         buf.putBytes(bytes);
     }
-    public String deserialize(ByteBuffer data) {
+    public String deserialize(ByteBuffer data) throws SerializationException {
         int len = deserializeLength(data);
         byte[] bytes = new byte[len];
         try {

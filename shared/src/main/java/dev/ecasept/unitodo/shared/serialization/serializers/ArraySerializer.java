@@ -39,7 +39,7 @@ public class ArraySerializer extends BaseSerializer {
         throw new IllegalStateException("Unknown primitive type: " + cmpType.getName());
     }
 
-    private <T> Object deserializePrimitiveArray(ByteBuffer data, Class<T> cmpType, int len) {
+    private <T> Object deserializePrimitiveArray(ByteBuffer data, Class<T> cmpType, int len) throws SerializationException {
         Log.i(TAG, "Deserializing primitive array of length: " + len + " and component type: " + cmpType.getName());
         try {
             if (cmpType == byte.class)    { byte[]   arr = new byte[len];   for (int i = 0; i < len; i++) arr[i] = data.get();         return arr; }
@@ -56,7 +56,7 @@ public class ArraySerializer extends BaseSerializer {
         }
     }
 
-    public <T> Object deserialize(ByteBuffer data, TypeContainer<T> clazz, boolean[] nullableElements, int dimension) {
+    public <T> Object deserialize(ByteBuffer data, TypeContainer<T> clazz, boolean[] nullableElements, int dimension) throws SerializationException {
         int len = deserializeLength(data);
         TypeContainer<?> cmpType = new TypeContainer<>(clazz.getComponentType());
         if (len < 0) {

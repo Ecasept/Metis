@@ -1,6 +1,6 @@
 package dev.ecasept.unitodo.server.security;
 
-import dev.ecasept.unitodo.models.Password;
+import dev.ecasept.unitodo.shared.models.Password;
 import dev.ecasept.unitodo.server.Configuration;
 
 import javax.crypto.SecretKeyFactory;

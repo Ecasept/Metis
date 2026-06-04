@@ -49,7 +49,7 @@ public class PrimitiveSerializer extends BaseSerializer {
     }
 
     @SuppressWarnings("unchecked") // Java can't understand that e.g., the cast (T) Integer.valueOf(data.getInt()) only happens when clazz is Integer.class and T therefore is Integer
-    public <T> T deserialize(ByteBuffer data, Class<T> clazz) {
+    public <T> T deserialize(ByteBuffer data, Class<T> clazz) throws SerializationException {
         try {
             if (clazz == byte.class || clazz == Byte.class) {
                 byte value = data.get();

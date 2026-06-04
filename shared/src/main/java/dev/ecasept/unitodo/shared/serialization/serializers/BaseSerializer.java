@@ -33,7 +33,7 @@ public abstract class BaseSerializer {
         buf.putInt(pos, length);
     }
     /** Deserializes a value at the current position that indicates the length of some other data */
-    protected int deserializeLength(ByteBuffer buf) {
+    protected int deserializeLength(ByteBuffer buf) throws SerializationException {
         try {
             return buf.getInt();
         } catch (BufferUnderflowException e) {
@@ -55,7 +55,7 @@ public abstract class BaseSerializer {
         return o;
     }
 
-    protected boolean deserializeBoolean(byte b) {
+    protected boolean deserializeBoolean(byte b) throws SerializationException {
         if (b != 0 && b != (byte) 0xFF) {
             throw new SerializationException("Invalid byte value for boolean: " + String.format("0x%02X", b));
         }

@@ -1,11 +1,14 @@
 package dev.ecasept.unitodo.shared.serialization;
 
 import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
+import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
+import dev.ecasept.unitodo.shared.serialization.adapters.RawDataAdapter;
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;import dev.ecasept.unitodo.shared.serialization.types.StoreType;import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 
 /*
@@ -81,8 +84,9 @@ public class Serializer {
      * @return {@code this}
      * @param <T> The actual type of the class that the adapter is used for.
      */
-    public <T> Serializer adapter(Class<? extends Adapter<T>> adapter, Class<T> clazz) {
-        this.adapters.put(clazz, adapter);
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    public <T> Serializer adapter(Class<? extends Adapter> adapter, Class<T> clazz) {
+        this.adapters.put(clazz, (Class<? extends Adapter<?>>) adapter);
         return this;
     }
 
@@ -115,9 +119,13 @@ public class Serializer {
      * @param <T> The type of the deserialized object
      * @param <R> The type of the StoreType wrapper (which is usually a subclass of {@link StoreType}) around the deserialized object
      */
-    public <T, R extends StoreType<T>> T deserialize(byte[] data, R type) {
+    public <T, R extends StoreType<T>> T deserialize(byte[] data, R type) throws SerializationException {
         var daddySerializer = new DaddySerializer(adapters);
         var buf = ByteBuffer.wrap(data).order(ByteOrder.BIG_ENDIAN);
         return daddySerializer.deserialize(buf, new TypeContainer<>(type), rootNullable, rootNullableElements);
+    }
+
+    public static Serializer createDefault() {
+        return new Serializer().adapter(RawDataAdapter.class, RawData.class).adapter(LocalDateTimeAdapter.class, LocalDateTime.class);
     }
 }

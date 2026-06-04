@@ -85,10 +85,10 @@ public class DaddySerializer extends BaseSerializer {
         }
     }
 
-    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements) {
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements) throws SerializationException {
         return deserialize(data, type, nullable, nullableElements, 0);
     }
-    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements, int arrDim) {
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type, boolean nullable, boolean[] nullableElements, int arrDim) throws SerializationException {
 
         Log.i(TAG, "Deserializing type: " + type.getTypeName());
         if (type.isVoid()) {
@@ -117,10 +117,11 @@ public class DaddySerializer extends BaseSerializer {
         if (type.isArray()) {
             return type.cast(arraySerializer.deserialize(data, type, nullableElements, arrDim));
         }
-        if (type.isClass()) {
-            if (adapters.containsKey(type.asClass())) {
-                var adapter = adapters.get(type.asClass());
-                return type.cast(adapter.deserialize(data));
+        if (type.isClass() || type.isParameterized()) {
+            if (adapters.containsKey(type.getRawClass())) {
+                @SuppressWarnings("unchecked")
+                Adapter<T> adapter = (Adapter<T>) adapters.get(type.getRawClass());
+                return adapter.deserialize(data, type);
             }
         }
         if (type.isWildcard() || type.isTypeVariable()) {

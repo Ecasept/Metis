@@ -1,9 +1,9 @@
 package dev.ecasept.unitodo.server;
 
-import dev.ecasept.unitodo.server.api.auth.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
 import dev.ecasept.unitodo.shared.serialization.RawData;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
-import dev.ecasept.unitodo.server.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.ApiResponse;
 import dev.ecasept.unitodo.server.api.auth.AuthRequestManager;
 import dev.ecasept.unitodo.server.db.DBManager;
 import dev.ecasept.unitodo.server.serverlib.Response;
@@ -11,6 +11,7 @@ import dev.ecasept.unitodo.server.serverlib.SimpleHttpsServer;
 
 public class Main {
     public static void main(String[] args) {
+
         /*
         Routes:
         user auth:
@@ -26,7 +27,7 @@ public class Main {
         DBManager dbManager = new DBManager();
         AuthRequestManager authRequestManager = new AuthRequestManager(dbManager);
 
-        var server = new SimpleHttpsServer("password", "keystore.jks");
+        var server = new SimpleHttpsServer("changeit", "keystore.jks");
         server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (request) -> new Response<>(200, RawData.fromString("Hello, world!")));
         server.addRoute("/api/auth/login", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authRequestManager::loginRequest);
         server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authRequestManager::registerRequest);

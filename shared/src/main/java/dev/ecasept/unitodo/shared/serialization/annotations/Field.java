@@ -7,7 +7,7 @@ import java.lang.annotation.Target;
 
 /** Annotation to mark a field for serialization. */
 @Retention(RetentionPolicy.RUNTIME)
-@Target(ElementType.FIELD)
+@Target({ElementType.FIELD, ElementType.RECORD_COMPONENT})
 public @interface Field {
     /** The unique identifier for the field in the serialized data. */
     int tag();

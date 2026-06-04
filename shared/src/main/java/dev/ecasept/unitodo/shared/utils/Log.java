@@ -56,6 +56,17 @@ public class Log {
     }
 
     /**
+     * Logs an error message with the given tag and message. The message will only be printed if the current log level is {@link LogLevel#ERROR} or higher.
+     * @param tag The tag to associate with the log message (e.g. the class name or module name).
+     * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
+     */
+    public static void e(String tag, Object message) {
+        if (LogLevel.ERROR.isAtLeast(LOG_LEVEL)) {
+            System.err.println(Color.r("[" + tag + "] " + message.toString()));
+        }
+    }
+
+    /**
      * Formats a byte array as a string of hexadecimal values. Each byte will be represented as two hexadecimal digits, and bytes will be separated by spaces. The entire byte array will be enclosed in square brackets. For example, the byte array {0x01, 0x2A, 0xFF} would be formatted as "[01 2A FF]".
      * @param bytes The byte array to format as a string.
      * @return A string representation of the byte array in hexadecimal format.

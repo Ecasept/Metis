@@ -6,7 +6,7 @@ import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
 import dev.ecasept.unitodo.shared.utils.Log;
 
-import java.lang.reflect.Field;
+import java.lang.reflect.*;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
@@ -18,6 +18,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class ObjectSerializer extends BaseSerializer {
     private static final String TAG = "ObjectSerializer";
     private static final Map<Class<?>, Field[]> fieldCache = new ConcurrentHashMap<>();
+    private static final Map<Class<?>, RecordComponent[]> recordComponentCache = new ConcurrentHashMap<>();
 
     private final DaddySerializer daddySerializer;
 
@@ -27,12 +28,25 @@ public class ObjectSerializer extends BaseSerializer {
 
     static void ensureSerializable(Class<?> clazz) {
         if (!clazz.isAnnotationPresent(Serializable.class)) {
-            throw new IllegalArgumentException("Tried to serialize non-serializable class " + clazz.getName());
+            throw new IllegalArgumentException("Tried to (de)serialize non-serializable class " + clazz.getName());
         }
         try {
-            clazz.getDeclaredConstructor();
+            if (clazz.isRecord()) {
+                // Ensure that every record component is annotated with @Field and that the record has canonical constructor
+                for (RecordComponent component : clazz.getRecordComponents()) {
+                    if (!component.isAnnotationPresent(dev.ecasept.unitodo.shared.serialization.annotations.Field.class)) {
+                        throw new IllegalArgumentException("Record component " + component.getName() + " of record " + clazz.getName() + " is not annotated with @Field");
+                    }
+                    var annotation = component.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
+                    if (annotation.optional()) {
+                        throw new IllegalArgumentException("Record component " + component.getName() + " of record " + clazz.getName() + " is annotated as optional, which is not supported for record components");
+                    }
+                }
+            } else {
+                clazz.getDeclaredConstructor();
+            }
         } catch (NoSuchMethodException e) {
-            throw new IllegalArgumentException("Tried to serialize class without no-arg constructor " + clazz.getName());
+            throw new IllegalArgumentException("Tried to (de)serialize class without no-arg constructor " + clazz.getName());
         }
     }
 
@@ -47,26 +61,40 @@ public class ObjectSerializer extends BaseSerializer {
                         .toArray(Field[]::new)
         );
     }
+    private RecordComponent[] getRecordComponents(Class<?> clazz) {
+        return recordComponentCache.computeIfAbsent(clazz, c ->
+                Arrays.stream(c.getRecordComponents())
+                        .filter(f -> f.isAnnotationPresent(dev.ecasept.unitodo.shared.serialization.annotations.Field.class))
+                        .peek(f -> {
+                            validateField(c, f);
+                        })
+                        .toArray(RecordComponent[]::new)
+        );
+    }
 
-    private void validateField(Class<?> c, java.lang.reflect.Field f) {
+    private void validateField(Class<?> c, AnnotatedElement f) {
         var annotation = f.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
 
-        if (annotation.nullable() && f.getType().isPrimitive()) {
+        Class<?> type = switch (f) {
+            case Field field -> field.getType();
+            case RecordComponent component -> component.getType();
+            default -> throw new IllegalArgumentException("Unsupported element type: " + f.getClass());        };
+
+        if (annotation.nullable() && type.isPrimitive()) {
             throw new IllegalArgumentException(
-                    strField(c, f) + " is annotated as nullable but has primitive type " + f.getType().getName()
+                    strField(c, f) + " is annotated as nullable but has primitive type " + type.getName()
             );
         }
 
         boolean[] nullableElements = annotation.nullableElements();
         if (nullableElements == null || nullableElements.length == 0) return;
 
-        if (!f.getType().isArray()) {
+        if (!type.isArray()) {
             throw new IllegalArgumentException(
                     strField(c, f) + " has nullableElements specified but is not an array type"
             );
         }
 
-        Class<?> type = f.getType();
         int depth = 0;
         while (type.isArray()) {
             type = type.getComponentType();
@@ -87,14 +115,49 @@ public class ObjectSerializer extends BaseSerializer {
         }
     }
 
-    private static String strField(Class<?> c, java.lang.reflect.Field f) {
-        return "Field '" + f.getName() + "' of class " + c.getName();
+    private static String strField(Class<?> c, AnnotatedElement f) {
+        var name = switch (f) {
+            case Field field -> field.getName();
+            case RecordComponent component -> component.getName();
+            default -> throw new IllegalArgumentException("Unsupported element type: " + f.getClass());
+        };
+        return "Field '" + name + "' of class " + c.getName();
+    }
+
+    public <T> void serializeRecord(T o, GrowableBuffer buf) {
+        Class<?> clazz = o.getClass();
+
+        var components = getRecordComponents(clazz);
+        serializeLength(components.length, buf);
+
+        HashSet<Integer> seenTags = new HashSet<>();
+        for (RecordComponent component : components) {
+            Log.i(TAG, "Serializing record component: " + component.getName() + " with type: " + component.getType().getName());
+
+            try {
+                var annotation = component.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
+                int tag = annotation.tag();
+                if (seenTags.contains(tag)) {
+                    throw new IllegalArgumentException("Found duplicate tag " + tag + " while serializing record");
+                }
+                seenTags.add(tag);
+                buf.putInt(tag);
+                daddySerializer.serialize(component.getAccessor().invoke(o), component.getType(), buf, annotation.nullable(), annotation.nullableElements());
+            } catch (InvocationTargetException | IllegalAccessException e) {
+                throw new IllegalArgumentException("Failed to access component " + component.getName() + " of record " + clazz.getName(), e);
+            }
+
+        }
     }
 
     public <T> void serialize(T o, GrowableBuffer buf) {
         Class<?> clazz = o.getClass();
         Log.i(TAG, "Serializing custom object: " + clazz.getName());
         ensureSerializable(clazz);
+        if (clazz.isRecord()) {
+            serializeRecord(o, buf);
+            return;
+        }
 
         var lengthPos = buf.position();
         serializeLength(0, buf); // But default length for now
@@ -106,7 +169,7 @@ public class ObjectSerializer extends BaseSerializer {
                 var annotation = field.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
                 int tag = annotation.tag();
                 if (seenTags.contains(tag)) {
-                    throw new SerializationException("Found duplicate tag " + tag + " while serializing object");
+                    throw new IllegalArgumentException("Found duplicate tag " + tag + " while serializing object");
                 }
                 seenTags.add(tag);
                 buf.putInt(tag);
@@ -120,9 +183,94 @@ public class ObjectSerializer extends BaseSerializer {
         serializeLength(count, lengthPos, buf);
     }
 
-    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type) {
+    private <T> T deserializeRecord(ByteBuffer data, TypeContainer<T> type) throws SerializationException {
+        Class<?> clazz = type.getRawClass();
+        RecordComponent[] components = clazz.getRecordComponents();
+        int componentCount = components.length;
+
+        // Build maps for quick lookup
+        HashMap<Integer, RecordComponent> tagToComponent = new HashMap<>();
+        HashMap<Integer, Integer> tagToConstructorIndex = new HashMap<>();
+        HashSet<Integer> requiredTags = new HashSet<>();
+
+        for (int i = 0; i < componentCount; i++) {
+            RecordComponent comp = components[i];
+            var annotation = comp.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
+            int tag = annotation.tag();
+
+            tagToComponent.put(tag, comp);
+            tagToConstructorIndex.put(tag, i);
+            requiredTags.add(tag);
+        }
+
+        // Read count
+        int count;
+        try {
+            count = deserializeLength(data);
+        } catch (BufferUnderflowException e) {
+            throw new SerializationException("Unexpected end of data while trying to read field count for record of class " + clazz.getName(), e);
+        }
+
+        Object[] constructorArgs = new Object[componentCount];
+        HashSet<Integer> seenTags = new HashSet<>();
+
+        // go through all fields in the data and match them to record components via their tags
+        for (int i = 0; i < count; i++) {
+            int tag;
+            try {
+                tag = data.getInt();
+            } catch (BufferUnderflowException e) {
+                throw new SerializationException("Unexpected end of data while trying to read tag for component " + (i + 1) + " of record " + clazz.getName(), e);
+            }
+
+            if (tagToComponent.containsKey(tag)) {
+                RecordComponent component = tagToComponent.get(tag);
+                int index = tagToConstructorIndex.get(tag);
+
+                requiredTags.remove(tag);
+                seenTags.add(tag);
+
+                var annotation = component.getAnnotation(dev.ecasept.unitodo.shared.serialization.annotations.Field.class);
+
+                var componentType = type.getRecordComponentType(component);
+                Object val = daddySerializer.deserialize(data, componentType, annotation.nullable(), annotation.nullableElements());
+
+                constructorArgs[index] = val;
+                Log.i(TAG, "Deserialized record component: " + component.getName() + " at index [" + index + "] with value: " + val);
+
+            } else if (seenTags.contains(tag)) {
+                throw new SerializationException("Duplicate tag " + tag + " found while deserializing record " + clazz.getName());
+            } else {
+                throw new SerializationException("Unknown tag " + tag + " found while deserializing record " + clazz.getName());
+            }
+        }
+
+        if (!requiredTags.isEmpty()) {
+            throw new SerializationException("Some required tags were found missing during record deserialization: " + requiredTags);
+        }
+
+        // Instantiate record
+        try {
+            Class<?>[] paramTypes = Arrays.stream(components)
+                    .map(RecordComponent::getType)
+                    .toArray(Class[]::new);
+
+            @SuppressWarnings("unchecked")
+            Constructor<T> constructor = (Constructor<T>) clazz.getDeclaredConstructor(paramTypes);
+            constructor.setAccessible(true);
+
+            return constructor.newInstance(constructorArgs);
+        } catch (Exception e) {
+            throw new SerializationException("Failed to instantiate record " + clazz.getName() + " via its canonical constructor", e);
+        }
+    }
+
+    public <T> T deserialize(ByteBuffer data, TypeContainer<T> type) throws SerializationException {
         Class<?> clazz = type.getRawClass();
         ensureSerializable(clazz);
+        if (clazz.isRecord()) {
+            return deserializeRecord(data, type);
+        }
 
         // We want an object
         HashMap<Integer, Field> requiredTags = new HashMap<>();
