@@ -1,17 +1,37 @@
 package dev.ecasept.unitodo.server;
 
-//TIP To <b>Run</b> code, press <shortcut actionId="Run"/> or
-// click the <icon src="AllIcons.Actions.Execute"/> icon in the gutter.
+import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.serialization.RawData;
+import dev.ecasept.unitodo.shared.serialization.types.StoreType;
+import dev.ecasept.unitodo.shared.models.ApiResponse;
+import dev.ecasept.unitodo.server.api.auth.AuthRequestManager;
+import dev.ecasept.unitodo.server.db.DBManager;
+import dev.ecasept.unitodo.server.serverlib.Response;
+import dev.ecasept.unitodo.server.serverlib.SimpleHttpsServer;
+
 public class Main {
     public static void main(String[] args) {
-        //TIP Press <shortcut actionId="ShowIntentionActions"/> with your caret at the highlighted text
-        // to see how IntelliJ IDEA suggests fixing it.
-        System.out.printf("Hello and welcome!");
 
-        for (int i = 1; i <= 5; i++) {
-            //TIP Press <shortcut actionId="Debug"/> to start debugging your code. We have set one <icon src="AllIcons.Debugger.Db_set_breakpoint"/> breakpoint
-            // for you, but you can always add more by pressing <shortcut actionId="ToggleLineBreakpoint"/>.
-            System.out.println("i = " + i);
-        }
+        /*
+        Routes:
+        user auth:
+        POST /api/auth/login
+        POST /api/auth/register
+        DELETE /api/auth/register
+
+        sync:
+        /api/sync/synchronize
+
+         */
+
+        DBManager dbManager = new DBManager();
+        AuthRequestManager authRequestManager = new AuthRequestManager(dbManager);
+
+        var server = new SimpleHttpsServer("changeit", "keystore.jks");
+        server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (request) -> new Response<>(200, RawData.fromString("Hello, world!")));
+        server.addRoute("/api/auth/login", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authRequestManager::loginRequest);
+        server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authRequestManager::registerRequest);
+        server.addRoute("/api/auth/register", "DELETE", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<Void>>() {}, authRequestManager::deleteAccountRequest);
+        server.run(Configuration.PORT);
     }
 }

@@ -1,33 +1,28 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.models.serialization.Serializer;
-import dev.ecasept.unitodo.models.serialization.annotations.Field;
-import dev.ecasept.unitodo.models.serialization.annotations.Serializable;
-import dev.ecasept.unitodo.models.serialization.adapters.LocalDateTimeAdapter;
-
-import java.time.LocalDateTime;
+import dev.ecasept.unitodo.client.api.ApiClient;
+import dev.ecasept.unitodo.client.api.HttpClientFactory;
+import dev.ecasept.unitodo.shared.models.ApiResponse;
+import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
+import dev.ecasept.unitodo.shared.serialization.Serializer;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 public class Main {
-    public static void main(String[] args) throws IllegalAccessException {
-        var s = new Serializer().adapter(LocalDateTimeAdapter.class, LocalDateTime.class);
-        byte[] serialized = s.serialize(new MockClass());
-        // print byte array as hex
-        System.out.print("Serialized data: ");
-        for (byte b : serialized) {
-            System.out.printf("%02x ", b);
-        }
-        System.out.println();
-        System.out.println(s.deserialize(serialized, MockClass.class));
+    public static void main(String[] args) {
+        var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
+        var httpClient = HttpClientFactory.createDevClient();
+        var apiClient = new ApiClient(httpClient, "https://localhost:6767/api", serializer);
+
+        // Example
+        var res = apiClient.login("testuser", "password123");
+        res.on(
+                sessionToken -> {
+                    Log.i("Main", "Login successful! Session token: " + sessionToken);
+                    // Save session token
+                },
+                errorMessage -> {
+                    Log.e("Main", "Login failed: " + errorMessage);
+                }
+        );
     }
-}
-
-
-@Serializable
-class MockClass {
-    @Field(tag=1)
-    private final int a = 1;
-    @Field(tag=2, nullable=true, nullableElements = {})
-    public LocalDateTime time = LocalDateTime.now();
-    @Field(tag=3, nullable=true)
-    public int[] c = null;
 }
