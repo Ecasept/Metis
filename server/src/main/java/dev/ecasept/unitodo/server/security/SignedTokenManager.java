@@ -1,7 +1,5 @@
 package dev.ecasept.unitodo.server.security;
 
-import dev.ecasept.unitodo.server.Configuration;
-
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;

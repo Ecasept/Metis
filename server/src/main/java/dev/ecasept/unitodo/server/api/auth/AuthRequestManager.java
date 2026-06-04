@@ -8,10 +8,6 @@ import dev.ecasept.unitodo.server.security.PasswordHasher;
 import dev.ecasept.unitodo.server.security.SignedTokenManager;
 import dev.ecasept.unitodo.server.serverlib.Response;
 
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
-
 public class AuthRequestManager {
     private final DBManager dbManager;
 
