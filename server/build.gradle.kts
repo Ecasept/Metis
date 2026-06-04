@@ -10,3 +10,5 @@ application {
 dependencies {
     implementation(project(":shared"))
 }
+
+tasks.register("prepareKotlinBuildScriptModel"){}
