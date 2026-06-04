@@ -12,39 +12,54 @@ import java.util.Base64;
 
 public class SignedTokenManager {
     private static final String ALGORITHM = "HmacSHA256";
-    public static String generateToken(String payload) throws NoSuchAlgorithmException, InvalidKeyException {
-        String encodedPayload = Base64.getUrlEncoder().withoutPadding().encodeToString(payload.getBytes(StandardCharsets.UTF_8));
+    public static String generateToken(String payload, byte[] secret) {
+        try {
+            var encodedPayload = Base64.getUrlEncoder().withoutPadding().encode(payload.getBytes(StandardCharsets.UTF_8));
 
-        String signature = calculateHmac(encodedPayload);
+            var signature = calculateHmac(encodedPayload, secret);
+            signature = Base64.getUrlEncoder().withoutPadding().encode(signature);
 
-        return encodedPayload + "." + signature;
+            return new String(encodedPayload, StandardCharsets.UTF_8) + "." + new String(signature, StandardCharsets.UTF_8);
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new IllegalStateException("Failed to generate token due to configuration error", e);
+        }
     }
 
-    public static String verifyAndGetPayload(String token) throws NoSuchAlgorithmException, InvalidKeyException {
+    public static String verifyAndGetPayload(String token, byte[] secret) {
+        if (token == null) {
+            return null;
+        }
         String[] parts = token.split("\\.");
         if (parts.length != 2) {
             return null;
         }
 
-        String encodedPayload = parts[0];
-        String providedSignature = parts[1];
+        try {
+            byte[] encodedPayload = parts[0].getBytes(StandardCharsets.UTF_8);
+            byte[] providedSignature = parts[1].getBytes(StandardCharsets.UTF_8);
+            providedSignature = Base64.getUrlDecoder().decode(providedSignature);
 
-        String expectedSignature = calculateHmac(encodedPayload);
+            byte[] expectedSignature = calculateHmac(encodedPayload, secret);
 
-        if (!MessageDigest.isEqual(providedSignature.getBytes(StandardCharsets.UTF_8), expectedSignature.getBytes(StandardCharsets.UTF_8))) {
+            if (!MessageDigest.isEqual(providedSignature, expectedSignature)) {
+                return null;
+            }
+            byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPayload);
+            return new String(decodedBytes, StandardCharsets.UTF_8);
+        } catch (IllegalArgumentException e) {
+            // Catches invalid Base64 padding or invalid characters
             return null;
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            throw new IllegalStateException("Failed to verify token due to configuration error", e);
         }
-        byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPayload);
-        return new String(decodedBytes, StandardCharsets.UTF_8);
     }
 
-    private static String calculateHmac(String data) throws NoSuchAlgorithmException, InvalidKeyException {
+    public static byte[] calculateHmac(byte[] data, byte[] secret) throws NoSuchAlgorithmException, InvalidKeyException {
         Mac hmac = Mac.getInstance(ALGORITHM);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(Configuration.SECRET_KEY, ALGORITHM);
+        SecretKeySpec secretKeySpec = new SecretKeySpec(secret, ALGORITHM);
         hmac.init(secretKeySpec);
 
-        byte[] rawHmac = hmac.doFinal(data.getBytes(StandardCharsets.UTF_8));
-        return Base64.getUrlEncoder().withoutPadding().encodeToString(rawHmac);
+        return hmac.doFinal(data);
     }
 
 }

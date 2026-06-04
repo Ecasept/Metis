@@ -1,5 +1,6 @@
 package dev.ecasept.unitodo.server.api.auth;
 
+import dev.ecasept.unitodo.server.Configuration;
 import dev.ecasept.unitodo.server.api.ApiResponse;
 import dev.ecasept.unitodo.server.api.auth.models.UsernameAndPassword;
 import dev.ecasept.unitodo.server.db.DBManager;
@@ -24,18 +25,12 @@ public class AuthRequestManager {
             boolean passwordValid;
             try {
                 passwordValid = PasswordHasher.verifyPassword(req.password(), user.get().passwordHash());
-            } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-                throw new RuntimeException("Failed to verify password", e);
             } finally {
                 req.password().shred();
             }
             if (passwordValid) {
-                try {
-                    var token = SignedTokenManager.generateToken(user.get().username());
-                    return new Response<>(200, ApiResponse.success(token));
-                } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-                    throw new RuntimeException("Failed to generate token", e);
-                }
+                var token = SignedTokenManager.generateToken(user.get().username(), Configuration.SECRET_KEY);
+                return new Response<>(200, ApiResponse.success(token));
             } else {
                 return new Response<>(200, ApiResponse.error("Invalid username or credentials"));
             }
@@ -53,20 +48,12 @@ public class AuthRequestManager {
         }
 
         String passwordHash;
-        try {
-            passwordHash = PasswordHasher.hashPassword(req.password());
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException("Failed to hash password", e);
-        }
+        passwordHash = PasswordHasher.hashPassword(req.password());
         req.password().shred();
         dbManager.createUser(req.username(), passwordHash);
 
-        try {
-            var token = SignedTokenManager.generateToken(req.username());
-            return new Response<>(200, ApiResponse.success(token));
-        } catch (InvalidKeyException | NoSuchAlgorithmException e) {
-            throw new RuntimeException("Failed to generate token", e);
-        }
+        var token = SignedTokenManager.generateToken(req.username(), Configuration.SECRET_KEY);
+        return new Response<>(200, ApiResponse.success(token));
     }
     public Response<ApiResponse<Void>> deleteAccountRequest(UsernameAndPassword req) {
         var user = dbManager.getUserByUsername(req.username());
@@ -77,8 +64,6 @@ public class AuthRequestManager {
         boolean passwordValid;
         try {
             passwordValid = PasswordHasher.verifyPassword(req.password(), user.get().passwordHash());
-        } catch (NoSuchAlgorithmException | InvalidKeySpecException e) {
-            throw new RuntimeException("Failed to verify password", e);
         } finally {
             req.password().shred();
         }

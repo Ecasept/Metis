@@ -1,12 +1,20 @@
 package dev.ecasept.unitodo.server.security;
 
+import dev.ecasept.unitodo.models.Password;
+import dev.ecasept.unitodo.server.Configuration;
+
 import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
+import java.nio.CharBuffer;
+import java.nio.charset.StandardCharsets;
+import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
+import java.util.Arrays;
 import java.util.Base64;
+import java.nio.ByteBuffer;
 
 public class PasswordHasher {
     private static final String ALGORITHM = "PBKDF2WithHmacSHA512";
@@ -16,36 +24,64 @@ public class PasswordHasher {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    public static String hashPassword(dev.ecasept.unitodo.models.Password password) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        byte[] salt = new byte[SALT_LENGTH];
-        RANDOM.nextBytes(salt);
+    public static String hashPassword(Password password) {
+        try {
+            byte[] salt = new byte[SALT_LENGTH];
+            RANDOM.nextBytes(salt);
 
-        byte[] hash = pbkdf2(password, salt, ITERATIONS, KEY_LENGTH);
+            byte[] hash = hashPasswordWithPepper(password, salt);
 
-        String base64Salt = Base64.getEncoder().encodeToString(salt);
-        String base64Hash = Base64.getEncoder().encodeToString(hash);
+            String base64Salt = Base64.getEncoder().encodeToString(salt);
+            String base64Hash = Base64.getEncoder().encodeToString(hash);
 
-        return base64Salt + ":" + base64Hash;
-    }
-
-    public static boolean verifyPassword(dev.ecasept.unitodo.models.Password password, String storedPasswordHash) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        String[] parts = storedPasswordHash.split(":");
-        if (parts.length != 2) {
-            throw new IllegalArgumentException("Stored password hash form is invalid. Expected SALT:HASH");
+            return base64Salt + ":" + base64Hash;
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
+            throw new RuntimeException("Failed to hash password due to configuration error", e);
         }
-
-        byte[] salt = Base64.getDecoder().decode(parts[0]);
-        byte[] storedHash = Base64.getDecoder().decode(parts[1]);
-
-        byte[] computedHash = pbkdf2(password, salt, ITERATIONS, KEY_LENGTH);
-
-        return MessageDigest.isEqual(storedHash, computedHash);
     }
 
-    private static byte[] pbkdf2(dev.ecasept.unitodo.models.Password password, byte[] salt, int iterations, int keyLength) throws NoSuchAlgorithmException, InvalidKeySpecException {
-        PBEKeySpec spec = new PBEKeySpec(password.pw, salt, iterations, keyLength);
+    private static byte[] hashPasswordWithPepper(Password password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+        var bytePassword = password.toBytes();
+        byte[] entry = SignedTokenManager.calculateHmac(bytePassword, Configuration.PEPPER);
+        Arrays.fill(bytePassword, (byte) 0);
+
+        char[] entryChars = toChars(entry);
+        byte[] hash = pbkdf2(entryChars, salt, ITERATIONS, KEY_LENGTH);
+        Arrays.fill(entryChars, '\0');
+        return hash;
+    }
+
+    public static boolean verifyPassword(Password password, String storedPasswordHash) {
+        try {
+            String[] parts = storedPasswordHash.split(":");
+            if (parts.length != 2) {
+                throw new IllegalArgumentException("Stored password hash form is invalid. Expected SALT:HASH");
+            }
+
+            byte[] salt = Base64.getDecoder().decode(parts[0]);
+            byte[] storedHash = Base64.getDecoder().decode(parts[1]);
+
+            byte[] computedHash = hashPasswordWithPepper(password, salt);
+
+            return MessageDigest.isEqual(storedHash, computedHash);
+        } catch (NoSuchAlgorithmException | InvalidKeySpecException | InvalidKeyException e) {
+            throw new RuntimeException("Failed to verify password due to configuration error", e);
+        }
+    }
+
+    private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength) throws NoSuchAlgorithmException, InvalidKeySpecException {
+        PBEKeySpec spec = new PBEKeySpec(password, salt, iterations, keyLength);
         SecretKeyFactory skf = SecretKeyFactory.getInstance(ALGORITHM);
         return skf.generateSecret(spec).getEncoded();
     }
-}
 
+    private static char[] toChars(byte[] bytes) {
+        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
+        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(byteBuffer);
+
+        char[] chars = Arrays.copyOfRange(charBuffer.array(), charBuffer.position(), charBuffer.limit());
+        Arrays.fill(charBuffer.array(), '\0');
+
+        return chars;
+    }
+}

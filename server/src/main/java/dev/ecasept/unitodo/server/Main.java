@@ -9,15 +9,8 @@ import dev.ecasept.unitodo.server.db.DBManager;
 import dev.ecasept.unitodo.server.serverlib.Response;
 import dev.ecasept.unitodo.server.serverlib.SimpleHttpsServer;
 
-import java.io.IOException;
-import java.security.KeyManagementException;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
-import java.security.cert.CertificateException;
-
 public class Main {
-    public static void main(String[] args) throws UnrecoverableKeyException, CertificateException, IOException, KeyStoreException, NoSuchAlgorithmException, KeyManagementException {
+    public static void main(String[] args) {
         /*
         Routes:
         user auth:
@@ -32,8 +25,6 @@ public class Main {
 
         DBManager dbManager = new DBManager();
         AuthRequestManager authRequestManager = new AuthRequestManager(dbManager);
-
-
 
         var server = new SimpleHttpsServer("password", "keystore.jks");
         server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (request) -> new Response<>(200, RawData.fromString("Hello, world!")));
