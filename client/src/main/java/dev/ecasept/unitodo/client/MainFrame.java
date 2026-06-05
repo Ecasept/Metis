@@ -84,6 +84,8 @@ public class MainFrame extends JFrame {
     }
 
     public void setOverview() {
+        this.getContentPane().removeAll();
+
         // Frame vorbereiten
         this.setTitle("To-Do Liste");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -136,13 +138,25 @@ public class MainFrame extends JFrame {
 
 
         // Liste und ScrollPane für anzeige der Tasks
-        // DefaultListModel mit Titeln füllen
+        // DefaultListModel mit Titeln und Datum dazu füllen
         titles = new DefaultListModel<>();
         ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskPending, sortNextDueDate);
-        pendingTasks.forEach((Task t) -> {titles.addElement(t.getName());});
+        for (Task t : pendingTasks) {
+            String str = t.getName();
+            int len = str.length();
+            int temp = 60 - len;
+            for (int i = 0; i < temp; ++i) {
+                str = str + " ";
+            }
+            Optional<LocalDateTime> Opdate = t.getDueDate();
+            LocalDateTime date = Opdate.get();
+            str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
+            titles.addElement(str);
+        }
 
         // JList erstellen
         JList<String> listPending = new JList<>(titles);
+        listPending.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         listPending.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         scrollPaneTasks = new JScrollPane(listPending);
@@ -159,12 +173,27 @@ public class MainFrame extends JFrame {
         // Panels zu Frame hinzufügen und Frame sichtbar machen
         this.add(mainPanelLeft, BorderLayout.WEST);
         this.add(mainPanelRight, BorderLayout.CENTER);
+
+
+        this.getContentPane().revalidate();
+        this.getContentPane().repaint();
     }
 
     public void showPending() {
         titles.clear();
         ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskPending, sortNextDueDate);
-        pendingTasks.forEach((Task t) -> {titles.addElement(t.getName());});
+        pendingTasks.forEach((Task t) -> {
+            String str = t.getName();
+            int len = str.length();
+            int temp = 60 - len;
+            for (int i = 0; i < temp; ++i) {
+                str = str + " ";
+            }
+            Optional<LocalDateTime> Opdate = t.getDueDate();
+            LocalDateTime date = Opdate.get();
+            str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
+            titles.addElement(str);});
+
 
 
 
@@ -233,8 +262,33 @@ public class MainFrame extends JFrame {
         JTextArea descriptionArea = new JTextArea();
         mainPanel.add(descriptionArea);
 
-        JButton save = new JButton("Speichern");
-        this.add(save, BorderLayout.SOUTH);
+
+        // Buttons für speichern und abbrechen
+        JButton save = new JButton("speichern");
+        JButton cancel = new JButton("abbrechen");
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(0,2,0,0));
+        buttonPanel.add(save);
+        buttonPanel.add(cancel);
+        this.add(buttonPanel, BorderLayout.SOUTH);
+
+
+        // Listener für Buttons
+        ActionListener saveListener = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                System.out.println("Save!!!");
+            }
+        };
+        save.addActionListener(saveListener);
+
+        ActionListener cancelListener = new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setOverview();
+            }
+        };
+        cancel.addActionListener(cancelListener);
 
 
 

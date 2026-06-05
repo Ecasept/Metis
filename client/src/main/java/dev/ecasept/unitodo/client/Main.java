@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 
 public class Main {
     public static void main(String[] args) {
-        /*var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
+        var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
         var httpClient = HttpClientFactory.createDevClient();
         var apiClient = new ApiClient(httpClient, "https://localhost:6767/api", serializer);
 
@@ -31,7 +31,7 @@ public class Main {
                     Log.e("Main", "Login failed: " + errorMessage);
                 }
         );
-         */
+
 
         TaskManager manager = new TaskManager();
         manager.addTask((new Task("Info2 ÜB08", "Blatt erledigen", LocalDateTime.of(2026, 6, 10, 12, 0), TaskPriority.Mid)));
