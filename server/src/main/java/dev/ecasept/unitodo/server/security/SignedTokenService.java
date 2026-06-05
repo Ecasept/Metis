@@ -8,13 +8,12 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
 
-public class SignedTokenManager {
-    private static final String ALGORITHM = "HmacSHA256";
-    public static String generateToken(String payload, byte[] secret) {
+public class SignedTokenService {
+    public String generateToken(String payload, byte[] secret) {
         try {
             var encodedPayload = Base64.getUrlEncoder().withoutPadding().encode(payload.getBytes(StandardCharsets.UTF_8));
 
-            var signature = calculateHmac(encodedPayload, secret);
+            var signature = CryptoUtils.calculateHmac(encodedPayload, secret);
             signature = Base64.getUrlEncoder().withoutPadding().encode(signature);
 
             return new String(encodedPayload, StandardCharsets.UTF_8) + "." + new String(signature, StandardCharsets.UTF_8);
@@ -23,7 +22,7 @@ public class SignedTokenManager {
         }
     }
 
-    public static String verifyAndGetPayload(String token, byte[] secret) {
+    public String verifyAndGetPayload(String token, byte[] secret) {
         if (token == null) {
             return null;
         }
@@ -37,7 +36,7 @@ public class SignedTokenManager {
             byte[] providedSignature = parts[1].getBytes(StandardCharsets.UTF_8);
             providedSignature = Base64.getUrlDecoder().decode(providedSignature);
 
-            byte[] expectedSignature = calculateHmac(encodedPayload, secret);
+            byte[] expectedSignature = CryptoUtils.calculateHmac(encodedPayload, secret);
 
             if (!MessageDigest.isEqual(providedSignature, expectedSignature)) {
                 return null;
@@ -52,12 +51,6 @@ public class SignedTokenManager {
         }
     }
 
-    public static byte[] calculateHmac(byte[] data, byte[] secret) throws NoSuchAlgorithmException, InvalidKeyException {
-        Mac hmac = Mac.getInstance(ALGORITHM);
-        SecretKeySpec secretKeySpec = new SecretKeySpec(secret, ALGORITHM);
-        hmac.init(secretKeySpec);
 
-        return hmac.doFinal(data);
-    }
 
 }

@@ -21,7 +21,6 @@ import java.util.HashMap;
 import java.util.function.Function;
 
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
-import dev.ecasept.unitodo.server.Configuration;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 public class SimpleHttpsServer {
@@ -75,7 +74,7 @@ public class SimpleHttpsServer {
         try {
             server = HttpsServer.create(null, 0);
         } catch (IOException e) {
-            throw new RuntimeException("Error creating HttpsServer on port " + Configuration.PORT, e);
+            throw new RuntimeException("Error creating HttpsServer", e);
         }
         server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
             public void configure(HttpsParameters params) {
