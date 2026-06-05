@@ -12,3 +12,11 @@ dependencies {
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}
+
+tasks.jar {
+    manifest {
+        attributes["Main-Class"] = "dev.ecasept.unitodo.server.Main"
+    }
+
+    from(project(":shared").sourceSets.main.get().output)
+}
