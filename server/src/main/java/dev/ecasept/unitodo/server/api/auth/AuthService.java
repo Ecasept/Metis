@@ -3,16 +3,22 @@ package dev.ecasept.unitodo.server.api.auth;
 import dev.ecasept.unitodo.server.Configuration;
 import dev.ecasept.unitodo.shared.models.ApiResponse;
 import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
-import dev.ecasept.unitodo.server.db.DBManager;
-import dev.ecasept.unitodo.server.security.PasswordHasher;
-import dev.ecasept.unitodo.server.security.SignedTokenManager;
+import dev.ecasept.unitodo.server.db.DatabaseRepository;
+import dev.ecasept.unitodo.server.security.PasswordHasherService;
+import dev.ecasept.unitodo.server.security.SignedTokenService;
 import dev.ecasept.unitodo.server.serverlib.Response;
 
-public class AuthRequestManager {
-    private final DBManager dbManager;
+public class AuthService {
+    private final DatabaseRepository databaseRepository;
+    private final PasswordHasherService passwordHasherService;
+    private final SignedTokenService tokenService;
+    private final Configuration config;
 
-    public AuthRequestManager(DBManager dbManager) {
-        this.dbManager = dbManager;
+    public AuthService(DatabaseRepository databaseRepository, PasswordHasherService passwordHasherService, SignedTokenService tokenService, Configuration config) {
+        this.databaseRepository = databaseRepository;
+        this.passwordHasherService = passwordHasherService;
+        this.tokenService = tokenService;
+        this.config = config;
     }
 
     public Response<ApiResponse<String>> loginRequest(UsernameAndPassword req) {
@@ -20,16 +26,16 @@ public class AuthRequestManager {
             req.password().shred();
             return new Response<>(200, ApiResponse.error("Invalid username or credentials"));
         }
-        var user = dbManager.getUserByUsername(req.username());
+        var user = databaseRepository.getUserByUsername(req.username());
         if (user.isPresent()) {
             boolean passwordValid;
             try {
-                passwordValid = PasswordHasher.verifyPassword(req.password(), user.get().passwordHash());
+                passwordValid = passwordHasherService.verifyPassword(req.password(), user.get().passwordHash());
             } finally {
                 req.password().shred();
             }
             if (passwordValid) {
-                var token = SignedTokenManager.generateToken(user.get().username(), Configuration.SECRET_KEY);
+                var token = tokenService.generateToken(user.get().username(), config.SECRET_KEY());
                 return new Response<>(200, ApiResponse.success(token));
             } else {
                 return new Response<>(200, ApiResponse.error("Invalid username or credentials"));
@@ -46,33 +52,33 @@ public class AuthRequestManager {
             req.password().shred();
             return new Response<>(200, ApiResponse.error("Username and password cannot be empty"));
         }
-        var user = dbManager.getUserByUsername(req.username());
+        var user = databaseRepository.getUserByUsername(req.username());
         if (user.isPresent()) {
             return new Response<>(200, ApiResponse.error("Username already exists"));
         }
 
         String passwordHash;
-        passwordHash = PasswordHasher.hashPassword(req.password());
+        passwordHash = passwordHasherService.hashPassword(req.password());
         req.password().shred();
-        dbManager.createUser(req.username(), passwordHash);
+        databaseRepository.createUser(req.username(), passwordHash);
 
-        var token = SignedTokenManager.generateToken(req.username(), Configuration.SECRET_KEY);
+        var token = tokenService.generateToken(req.username(), config.SECRET_KEY());
         return new Response<>(200, ApiResponse.success(token));
     }
     public Response<ApiResponse<Void>> deleteAccountRequest(UsernameAndPassword req) {
-        var user = dbManager.getUserByUsername(req.username());
+        var user = databaseRepository.getUserByUsername(req.username());
         if (user.isEmpty()) {
             return new Response<>(200, ApiResponse.error("Invalid username or credentials"));
         }
 
         boolean passwordValid;
         try {
-            passwordValid = PasswordHasher.verifyPassword(req.password(), user.get().passwordHash());
+            passwordValid = passwordHasherService.verifyPassword(req.password(), user.get().passwordHash());
         } finally {
             req.password().shred();
         }
         if (passwordValid) {
-            dbManager.deleteUser(req.username());
+            databaseRepository.deleteUser(req.username());
             return new Response<>(200, ApiResponse.success(null));
         } else {
             return new Response<>(200, ApiResponse.error("Invalid username or credentials"));

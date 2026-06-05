@@ -2,7 +2,7 @@ package dev.ecasept.unitodo.server.db;
 
 import java.util.Optional;
 
-public class DBManager {
+public class DatabaseRepository {
     public void createUser(String username, String passwordHash) {
 
     }
