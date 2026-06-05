@@ -7,10 +7,11 @@ import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
+
 public class Main {
     public static void main(String[] args) {
         var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
-        var httpClient = HttpClientFactory.createDevClient();
+        var httpClient = HttpClientFactory.createClient();
         var apiClient = new ApiClient(httpClient, "https://localhost:6767/api", serializer);
 
         // Example

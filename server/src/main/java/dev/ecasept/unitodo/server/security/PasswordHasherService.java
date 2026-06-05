@@ -16,7 +16,7 @@ import java.util.Arrays;
 import java.util.Base64;
 import java.nio.ByteBuffer;
 
-public class PasswordHasher {
+public class PasswordHasherService {
     private static final String ALGORITHM = "PBKDF2WithHmacSHA512";
     private static final int ITERATIONS = 100_000;
     private static final int KEY_LENGTH = 512;
@@ -24,7 +24,13 @@ public class PasswordHasher {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    public static String hashPassword(Password password) {
+    private final byte[] pepper;
+
+    public PasswordHasherService(Configuration configuration) {
+        this.pepper = configuration.PEPPER();
+    }
+
+    public String hashPassword(Password password) {
         try {
             byte[] salt = new byte[SALT_LENGTH];
             RANDOM.nextBytes(salt);
@@ -40,9 +46,9 @@ public class PasswordHasher {
         }
     }
 
-    private static byte[] hashPasswordWithPepper(Password password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
+    private byte[] hashPasswordWithPepper(Password password, byte[] salt) throws NoSuchAlgorithmException, InvalidKeyException, InvalidKeySpecException {
         var bytePassword = password.toBytes();
-        byte[] entry = SignedTokenManager.calculateHmac(bytePassword, Configuration.PEPPER);
+        byte[] entry = CryptoUtils.calculateHmac(bytePassword, pepper);
         Arrays.fill(bytePassword, (byte) 0);
 
         char[] entryChars = toChars(entry);
@@ -51,7 +57,7 @@ public class PasswordHasher {
         return hash;
     }
 
-    public static boolean verifyPassword(Password password, String storedPasswordHash) {
+    public boolean verifyPassword(Password password, String storedPasswordHash) {
         try {
             String[] parts = storedPasswordHash.split(":");
             if (parts.length != 2) {
@@ -69,13 +75,13 @@ public class PasswordHasher {
         }
     }
 
-    private static byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength) throws NoSuchAlgorithmException, InvalidKeySpecException {
+    private byte[] pbkdf2(char[] password, byte[] salt, int iterations, int keyLength) throws NoSuchAlgorithmException, InvalidKeySpecException {
         PBEKeySpec spec = new PBEKeySpec(password, salt, iterations, keyLength);
         SecretKeyFactory skf = SecretKeyFactory.getInstance(ALGORITHM);
         return skf.generateSecret(spec).getEncoded();
     }
 
-    private static char[] toChars(byte[] bytes) {
+    private char[] toChars(byte[] bytes) {
         ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
         CharBuffer charBuffer = StandardCharsets.UTF_8.decode(byteBuffer);
 
