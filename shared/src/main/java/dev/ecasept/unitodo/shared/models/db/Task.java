@@ -38,7 +38,7 @@ public record Task(UUID uuid, TimestampedField<String> title, TimestampedField<S
                         dateParse(rs.getLong("priorityChanged"))
                 ),
                 new TimestampedField<>(
-                        LocalDateTime.parse(rs.getString("dueDate")),
+                        dateParse(rs.getLong("dueDate")),
                         dateParse(rs.getLong("dueDateChanged"))
                 ),
                 isDeleted,
