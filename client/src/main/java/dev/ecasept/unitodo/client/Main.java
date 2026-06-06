@@ -41,6 +41,7 @@ public class Main {
 //        putzen.setState(TaskState.Finished);
 //        manager.addTask(putzen);
 
+        /*
         try {
             db.upsertTask(Task.create("Info2 ÜB08", "Blatt erledigen", TaskState.Pending, TaskPriority.Mid, LocalDateTime.of(2026, 6, 10, 12, 0)));
             db.upsertTask(Task.create("Einkaufen", "4 Äpfel und 1 Brot", TaskState.Pending, TaskPriority.Low, LocalDateTime.of(2026, 7, 1, 12, 0)));
@@ -53,6 +54,7 @@ public class Main {
             Log.e("Main", "Failed to create tasks", e);
             return;
         }
+         */
 
 
 
