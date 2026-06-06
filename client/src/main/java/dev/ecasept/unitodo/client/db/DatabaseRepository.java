@@ -1,31 +1,30 @@
 package dev.ecasept.unitodo.client.db;
 
+import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.Task;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 
-import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.*;
-import java.util.function.Function;
 
 
 public class DatabaseRepository {
-    private final Function<String, PreparedStatement> prepareStatement;
+    private final DatabaseController controller;
 
     private long dateFormat(LocalDateTime time) {
         return time.toInstant(ZoneOffset.UTC).toEpochMilli();
     }
 
-    public DatabaseRepository(Function<String, PreparedStatement> prepareStatement) {
-        this.prepareStatement = prepareStatement;
+    public DatabaseRepository(DatabaseController controller) {
+        this.controller = controller;
     }
 
     public Optional<Task> getTask(String uuid) throws DatabaseException {
-        try (var statement = prepareStatement.apply("SELECT * FROM tasks WHERE uuid == ?")) {
+        try (var statement = controller.prepareStatement("SELECT * FROM tasks WHERE uuid == ?")) {
             statement.setString(1, uuid);
             try (var rs = statement.executeQuery()) {
                 if (!rs.next()) {
@@ -42,7 +41,7 @@ public class DatabaseRepository {
         var sb = new StringBuilder();
         sb.append("SELECT * from tasks WHERE uuid IN (");
         sb.repeat("?, ", uuids.size() - 1).append("?);");
-        try (var statement = prepareStatement.apply(sb.toString())) {
+        try (var statement = controller.prepareStatement(sb.toString())) {
             for (int i = 0; i < uuids.size(); i++) {
                 statement.setString(i, uuids.get(i).toString());
             }
@@ -59,7 +58,7 @@ public class DatabaseRepository {
 
     public ArrayList<Task> getTasks(TaskState state, SortOrder order) throws DatabaseException {
         var str = "SELECT * from tasks WHERE state = ? ORDER BY dueDate " + order.asSql() + ";";
-        try (var statement = prepareStatement.apply(str)) {
+        try (var statement = controller.prepareStatement(str)) {
             statement.setInt(1, state.toInt());
             var rs = statement.executeQuery();
             var tasks = new ArrayList<Task>();
@@ -98,7 +97,7 @@ public class DatabaseRepository {
             deletedAt = excluded.deletedAt;
         """;
 
-        try (var statement = prepareStatement.apply(str)) {
+        try (var statement = controller.prepareStatement(str)) {
             for (var task : tasks) {
                 statement.setString(1, task.uuid().toString());
                 statement.setString(2, task.title().get());
@@ -122,7 +121,7 @@ public class DatabaseRepository {
     }
     public boolean deleteTask(String uuid) throws DatabaseException {
         var str = "DELETE FROM tasks WHERE uuid == ?";
-        try (var statement = prepareStatement.apply(str)) {
+        try (var statement = controller.prepareStatement(str)) {
             statement.setString(1, uuid);
             return statement.executeUpdate() > 0;
         } catch (SQLException e) {
@@ -130,8 +129,8 @@ public class DatabaseRepository {
         }
     }
 
-    private String getConstant(String key) throws SQLException {
-        try (var statement = prepareStatement.apply("SELECT value FROM constants WHERE key == ?")) {
+    private String getConstant(String key) throws DatabaseException, SQLException {
+        try (var statement = controller.prepareStatement("SELECT value FROM constants WHERE key == ?")) {
             statement.setString(1, key);
             try (var rs = statement.executeQuery()) {
                 if (!rs.next()) {
@@ -141,12 +140,12 @@ public class DatabaseRepository {
             }
         }
     }
-    private void setConstant(String key, String value) throws SQLException {
+    private void setConstant(String key, String value) throws DatabaseException, SQLException {
         var str = """
         INSERT INTO constants (key, value) VALUES (?, ?)
         ON CONFLICT(key) DO UPDATE SET value = excluded.value
         """;
-        try (var statement = prepareStatement.apply(str)) {
+        try (var statement = controller.prepareStatement(str)) {
             statement.setString(1, key);
             statement.setString(2, value);
             statement.executeUpdate();
