@@ -11,33 +11,51 @@ import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 
-/*
 
+
+/*
 Sync Protocol:
 - Client sends:
     - A list of items where the lastUpdate is after lastSync
 - Server checks lastSync of client
 - server creates a similiar list and sends it back to the client
     - both execute this merge algorithm
-        - possible combinations: edited/deleted <-> edited/deleted/not present/present
-        - edited <-> edited
-            - smart merge
-        - edited <-> deleted
-            - the one with the most recent date wins
-        - edited <-> not present
-            - the edited wins
+        - possible combinations: edited/present/not present/deleted <-> edited/deleted
+        - present <-> edited
+            - edited overwrites
+        - present <-> deleted
+            - look at timestamp
+        - not present <-> edited
+            - edited wins
+        - not present <-> deleted
+            - stay not present
+        - deleted <-> edited
+            - look at timestamp
         - deleted <-> deleted
             - doesn't matter
-        - deleted <-> not present
-            - stay not present
-        - edited/deleted <-> present
-            - edite/deleted wins
+        - edited <-> edited
+            - merge
+        - edited <-> deleted
+            - look at timestamp
+
+        - This means this for the tombstone deletion edge case:
+            - for the server, we are in the not present case (and it therefore won't send anything over to the client)
+            - for the client, we could be in two cases:
+                - present
+                    - it won't be sent over to the server
+                - deleted
+                    - it stays not present in the server
+                - edited
+                    - the server will add it as a new item
+                - later on, we detect on the server that the client may have old tombstones
+                    so we send a list of all uuids we have. as the present and deleted cases do not add
+                    the uuid back to the server, the uuid will not be in the list and will be deleted by the client.
+                    However if the client has edited the item (we cannot be sure when, so we just resurrect the item to prevent data loss)
+                    it will be added back to the server, and it will be included on the list and therefore not deleted by the client
+
 - if the server sees that the tombstone deletion period has passed, it additionally sends a list of all uuids (after the merge)
     - the client unconditionally deletes any uuid not in that list
-
  */
-
-
 
 
 
