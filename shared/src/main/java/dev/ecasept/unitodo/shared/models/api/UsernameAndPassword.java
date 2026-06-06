@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.shared.models;
+package dev.ecasept.unitodo.shared.models.api;
 
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;

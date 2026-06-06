@@ -1,8 +1,11 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.models.Task;
-import dev.ecasept.unitodo.models.TaskManager;
-import dev.ecasept.unitodo.models.TaskState;
+import dev.ecasept.unitodo.client.db.DatabaseRepository;
+import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.db.SortOrder;
+import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.shared.models.db.TaskState;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
 import java.awt.*;
@@ -11,30 +14,9 @@ import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
-import java.time.LocalDate;
-import java.util.Comparator;
-import java.util.Optional;
-import java.util.function.Predicate;
-
 public class MainFrame extends JFrame {
 
-    private TaskManager manager;
-    // Lambda-Ausdrücke zum Filtern und sortieren der Tasks
-    private Predicate<Task> taskPending = (Task t) -> {return t.getState() == TaskState.Pending;
-    };
-    private Predicate<Task> taskFinished = (Task t) -> {return t.getState() == TaskState.Finished;
-    };
-    private Comparator<Task> sortNextDueDate =
-            (Task a, Task b) -> {
-        Optional<LocalDateTime> OpdateA = a.getDueDate();
-        Optional<LocalDateTime> OpdateB = b.getDueDate();
-        LocalDateTime dateA = OpdateA.get();
-        LocalDateTime dateB = OpdateB.get();
-        if (dateA.isBefore(dateB)){return -1;}
-        if (dateA.isAfter(dateB)){return 1;}
-        if (dateA.isEqual(dateB)){return 0;}
-        return 0;
-    };
+    private final DatabaseRepository db;
 
     // Elemente der GUI
     private JScrollPane scrollPaneTasks;
@@ -75,8 +57,8 @@ public class MainFrame extends JFrame {
 
 
 
-    public MainFrame(TaskManager manager) {
-        this.manager = manager;
+    public MainFrame(DatabaseRepository db) {
+        this.db = db;
 
         setOverview();
 
@@ -140,16 +122,21 @@ public class MainFrame extends JFrame {
         // Liste und ScrollPane für anzeige der Tasks
         // DefaultListModel mit Titeln und Datum dazu füllen
         titles = new DefaultListModel<>();
-        ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskPending, sortNextDueDate);
+        ArrayList<Task> pendingTasks;
+        try {
+            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return;
+        }
         for (Task t : pendingTasks) {
-            String str = t.getName();
+            String str = t.title().get();
             int len = str.length();
             int temp = 60 - len;
             for (int i = 0; i < temp; ++i) {
                 str = str + " ";
             }
-            Optional<LocalDateTime> Opdate = t.getDueDate();
-            LocalDateTime date = Opdate.get();
+            LocalDateTime date = t.dueDate().get();
             str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
             titles.addElement(str);
         }
@@ -181,16 +168,21 @@ public class MainFrame extends JFrame {
 
     public void showPending() {
         titles.clear();
-        ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskPending, sortNextDueDate);
+        ArrayList<Task> pendingTasks;
+        try {
+            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return;
+        }
         pendingTasks.forEach((Task t) -> {
-            String str = t.getName();
+            String str = t.title().get();
             int len = str.length();
             int temp = 60 - len;
             for (int i = 0; i < temp; ++i) {
                 str = str + " ";
             }
-            Optional<LocalDateTime> Opdate = t.getDueDate();
-            LocalDateTime date = Opdate.get();
+            LocalDateTime date = t.dueDate().get();
             str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
             titles.addElement(str);});
 
@@ -220,8 +212,14 @@ public class MainFrame extends JFrame {
 
     public void showFinished() {
         titles.clear();
-        ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskFinished, sortNextDueDate);
-        pendingTasks.forEach((Task t) -> {titles.addElement(t.getName());});
+        ArrayList<Task> pendingTasks;
+        try {
+             pendingTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return;
+        }
+        pendingTasks.forEach((Task t) -> {titles.addElement(t.title().get());});
 
         // JList erstellen
         JList<String> listFinished = new JList<>(titles);

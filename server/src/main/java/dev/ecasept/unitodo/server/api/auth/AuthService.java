@@ -1,8 +1,8 @@
 package dev.ecasept.unitodo.server.api.auth;
 
 import dev.ecasept.unitodo.server.Configuration;
-import dev.ecasept.unitodo.shared.models.ApiResponse;
-import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.UsernameAndPassword;
 import dev.ecasept.unitodo.server.db.DatabaseRepository;
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
 import dev.ecasept.unitodo.server.security.SignedTokenService;
@@ -54,6 +54,7 @@ public class AuthService {
         }
         var user = databaseRepository.getUserByUsername(req.username());
         if (user.isPresent()) {
+            req.password().shred();
             return new Response<>(200, ApiResponse.error("Username already exists"));
         }
 
