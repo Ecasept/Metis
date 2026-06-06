@@ -2,10 +2,10 @@ package dev.ecasept.unitodo.server;
 
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
 import dev.ecasept.unitodo.server.security.SignedTokenService;
-import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.models.api.UsernameAndPassword;
 import dev.ecasept.unitodo.shared.serialization.RawData;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
-import dev.ecasept.unitodo.shared.models.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
 import dev.ecasept.unitodo.server.api.auth.AuthService;
 import dev.ecasept.unitodo.server.db.DatabaseRepository;
 import dev.ecasept.unitodo.server.serverlib.Response;

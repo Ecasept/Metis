@@ -6,8 +6,8 @@ import dev.ecasept.unitodo.models.Task;
 import dev.ecasept.unitodo.models.TaskManager;
 import dev.ecasept.unitodo.models.TaskPriority;
 import dev.ecasept.unitodo.models.TaskState;
-import dev.ecasept.unitodo.shared.models.ApiResponse;
-import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
