@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.shared.models;
+package dev.ecasept.unitodo.shared.models.api;
 
 import java.util.function.Consumer;
 

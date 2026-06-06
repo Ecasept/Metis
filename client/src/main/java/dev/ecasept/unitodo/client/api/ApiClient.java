@@ -1,8 +1,8 @@
 package dev.ecasept.unitodo.client.api;
 
-import dev.ecasept.unitodo.shared.models.ApiResponse;
-import dev.ecasept.unitodo.shared.models.Password;
-import dev.ecasept.unitodo.shared.models.UsernameAndPassword;
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.Password;
+import dev.ecasept.unitodo.shared.models.api.UsernameAndPassword;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;

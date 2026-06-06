@@ -1,8 +1,8 @@
 package dev.ecasept.unitodo.server.serverlib;
 
 import com.sun.net.httpserver.HttpExchange;
-import dev.ecasept.unitodo.shared.models.ApiResponse;
-import dev.ecasept.unitodo.shared.models.ApiResponseAdapter;
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
