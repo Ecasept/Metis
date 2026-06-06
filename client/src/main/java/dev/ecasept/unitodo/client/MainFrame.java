@@ -195,6 +195,24 @@ public class MainFrame extends JFrame {
             titles.addElement(str);});
 
 
+        // JList erstellen
+        JList<String> listPending = new JList<>(titles);
+        listPending.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        listPending.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        scrollPaneTasks = new JScrollPane(listPending);
+
+
+        mainPanelRight.removeAll();
+        JLabel mainPanelRightLabel = new JLabel("Ausstehende Aufgaben");
+        mainPanelRight.add(mainPanelRightLabel);
+        mainPanelRight.add(scrollPaneTasks);
+
+
+        mainPanelRight.updateUI();
+        scrollPaneTasks.updateUI();
+
+
 
 
         scrollPaneTasks.updateUI();
@@ -205,8 +223,21 @@ public class MainFrame extends JFrame {
         ArrayList<Task> pendingTasks = manager.getFilteredSortedTasks(taskFinished, sortNextDueDate);
         pendingTasks.forEach((Task t) -> {titles.addElement(t.getName());});
 
+        // JList erstellen
+        JList<String> listFinished = new JList<>(titles);
+        listFinished.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        listFinished.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+
+        scrollPaneTasks = new JScrollPane(listFinished);
 
 
+        mainPanelRight.removeAll();
+        JLabel mainPanelRightLabel = new JLabel("Erledigte Aufgaben");
+        mainPanelRight.add(mainPanelRightLabel);
+        mainPanelRight.add(scrollPaneTasks);
+
+
+        mainPanelRight.updateUI();
         scrollPaneTasks.updateUI();
     }
 
