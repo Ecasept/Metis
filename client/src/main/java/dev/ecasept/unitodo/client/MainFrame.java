@@ -4,16 +4,23 @@ import dev.ecasept.unitodo.client.db.DatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
+import javax.swing.plaf.metal.MetalIconFactory;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.FocusEvent;
+import java.awt.event.FocusListener;
+import java.time.DateTimeException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
 
+@SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
 
     private final DatabaseRepository db;
@@ -60,6 +67,13 @@ public class MainFrame extends JFrame {
     public MainFrame(DatabaseRepository db) {
         this.db = db;
 
+        // Frame vorbereiten
+        this.setTitle("To-Do Liste");
+        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setSize(800, 450);
+        this.setBackground(Color.lightGray);
+        this.setLocationRelativeTo(null);
+
         setOverview();
 
         this.setVisible(true);
@@ -67,14 +81,6 @@ public class MainFrame extends JFrame {
 
     public void setOverview() {
         this.getContentPane().removeAll();
-
-        // Frame vorbereiten
-        this.setTitle("To-Do Liste");
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        this.setSize(800, 450);
-        this.setBackground(Color.lightGray);
-
-
 
         // Panels für Buttons in Seitenleiste erstellen
         // Panel für Buttons oben links
@@ -124,7 +130,7 @@ public class MainFrame extends JFrame {
         titles = new DefaultListModel<>();
         ArrayList<Task> pendingTasks;
         try {
-            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Ascending);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -170,7 +176,7 @@ public class MainFrame extends JFrame {
         titles.clear();
         ArrayList<Task> pendingTasks;
         try {
-            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Ascending);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -244,8 +250,6 @@ public class MainFrame extends JFrame {
         this.getContentPane().removeAll();
 
 
-
-
         // Hauptpanel erzeugen
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
@@ -255,16 +259,13 @@ public class MainFrame extends JFrame {
         mainPanel.add(newTask);
 
 
-        // Panel für Fälligkeitsdatum
+        // Panel für Titel
         JPanel panelOne = new JPanel();
         panelOne.setLayout(new BoxLayout(panelOne, BoxLayout.X_AXIS));
         panelOne.add(new JLabel("Titel:"));
-        JTextField textfield = new JTextField();
-        panelOne.add(textfield);
+        JTextField textfieldTitle = new JTextField();
+        panelOne.add(textfieldTitle);
         mainPanel.add(panelOne);
-
-
-
 
 
 
@@ -282,14 +283,34 @@ public class MainFrame extends JFrame {
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        JTextField textfieldTitle = new JTextField();
-        panelTwo.add(textfieldTitle);
+        String placeholder = "dd.mm.yyyy hh:mm";
+        JTextField textfieldDueDate = new JTextField(placeholder);
+        textfieldDueDate.setForeground(Color.GRAY);
+        textfieldDueDate.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                    textfieldDueDate.setText("");
+
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueDate.getText().equals(""))
+                    textfieldDueDate.setText(placeholder);
+
+            }
+        });
+
+        panelTwo.add(textfieldDueDate);
         mainPanel.add(panelTwo);
 
         // TextArea für Beschreibung
-        mainPanel.add(new JLabel("Beschreibung"));
-        JTextArea descriptionArea = new JTextArea();
-        mainPanel.add(descriptionArea);
+        mainPanel.add(new JLabel("Beschreibung:"));
+        JTextArea descriptionArea = new JTextArea(15, 30);
+        JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
+
 
 
         // Buttons für speichern und abbrechen
@@ -299,14 +320,57 @@ public class MainFrame extends JFrame {
         buttonPanel.setLayout(new GridLayout(0,2,0,0));
         buttonPanel.add(save);
         buttonPanel.add(cancel);
-        this.add(buttonPanel, BorderLayout.SOUTH);
+
 
 
         // Listener für Buttons
         ActionListener saveListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-                System.out.println("Save!!!");
+                // Prüfen, dass Title nicht leer und nicht zu lang ist
+                String title = textfieldTitle.getText();
+                if (title.length() == 0) {
+                    JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDer Titel darf nicht leer sein.");
+                    return;
+                } else if (title.length() > 50) {
+                    JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDer Titel darf höchstens 50 Zeichen lang sein.\nAktuell: " + title.length() + " Zeichen.");
+                    return;
+                }
+
+                // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
+                String dueDateString = textfieldDueDate.getText();
+                LocalDateTime dueDate = checkDueDate(dueDateString);
+                if (dueDate == null)
+                    return;
+
+                // Priorität auslesen
+                String selectedPriority = (String) priorityBox.getSelectedItem();
+
+                // Beschreibung auslesen
+                String description = descriptionArea.getText();
+
+                // Neuen Task in db speichern
+                try {
+                    if (selectedPriority.equals("niedrig")) {
+                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.Low, dueDate));
+                        setOverview();
+                        return;
+                    }
+                    if (selectedPriority.equals("mittel")) {
+                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.Mid, dueDate));
+                        setOverview();
+                        return;
+                    }
+                    if (selectedPriority.equals("hoch")) {
+                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.High, dueDate));
+                        setOverview();
+                        return;
+                    }
+                } catch (DatabaseException dbEx) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.");
+                    setOverview();
+                    return;
+                }
             }
         };
         save.addActionListener(saveListener);
@@ -321,9 +385,60 @@ public class MainFrame extends JFrame {
 
 
 
-
+        // Einzelene Panels zum gesamten Layout zusammenfügen
         this.add(mainPanel, BorderLayout.NORTH);
+        this.add(descriptionAreaScrollPane, BorderLayout.CENTER);
+        this.add(buttonPanel, BorderLayout.SOUTH);
+
         this.getContentPane().revalidate();
         this.getContentPane().repaint();
     }
+
+
+
+    public LocalDateTime checkDueDate(String dueDateString) {
+        // Prüfen ob keine Eingabe erfolgt ist
+        if (dueDateString.equals("dd.mm.yyyy hh:mm")) {
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum darf nicht leer sein.");
+            return null;
+        }
+
+        String[] dueDateArr = dueDateString.split("[.: ]");
+        if (dueDateArr.length != 5) {
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
+            return null;
+        }
+
+
+        int day = 0;
+        int month = 0;
+        int year = 0;
+        int hour = 0;
+        int minute = 0;
+
+
+        try {
+            day = Integer.parseInt(dueDateArr[0]);
+            month = Integer.parseInt(dueDateArr[1]);
+            year = Integer.parseInt(dueDateArr[2]);
+            hour = Integer.parseInt(dueDateArr[3]);
+            minute = Integer.parseInt(dueDateArr[4]);
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
+            return null;
+        }
+
+        LocalDateTime dueDate;
+        try {
+            dueDate = LocalDateTime.of(year, month, day, hour, minute);
+        } catch (DateTimeException dateEx) {
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie übergebenen Zahlen stellen kein gültiges Datum dar.");
+            return null;
+        }
+
+        return dueDate;
+    }
+
+
+
 }
