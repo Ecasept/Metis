@@ -11,11 +11,9 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import javax.swing.*;
 import javax.swing.plaf.metal.MetalIconFactory;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
-import java.awt.event.FocusEvent;
-import java.awt.event.FocusListener;
+import java.awt.event.*;
 import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -62,6 +60,39 @@ public class MainFrame extends JFrame {
     };
 
 
+    // Listener für Einfach- und Mehrfachklicks in der Liste der Tasks
+    private MouseListener listMouseListener = new MouseListener() {
+        @Override
+        public void mouseClicked(MouseEvent e) {
+            if (e.getClickCount() == 2) {
+
+            }
+        }
+
+        @Override
+        public void mousePressed(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseReleased(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseEntered(MouseEvent e) {
+
+        }
+
+        @Override
+        public void mouseExited(MouseEvent e) {
+
+        }
+    }
+
+
+
+
 
 
     public MainFrame(DatabaseRepository db) {
@@ -75,6 +106,7 @@ public class MainFrame extends JFrame {
         this.setLocationRelativeTo(null);
 
         setOverview();
+
 
         this.setVisible(true);
     }
@@ -151,6 +183,8 @@ public class MainFrame extends JFrame {
         JList<String> listPending = new JList<>(titles);
         listPending.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
         listPending.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        listPending.addMouseListener(listMouseListener);
+
 
         scrollPaneTasks = new JScrollPane(listPending);
 
@@ -190,7 +224,8 @@ public class MainFrame extends JFrame {
             }
             LocalDateTime date = t.dueDate().get();
             str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
-            titles.addElement(str);});
+            titles.addElement(str);
+        });
 
 
         // JList erstellen
@@ -432,7 +467,12 @@ public class MainFrame extends JFrame {
         try {
             dueDate = LocalDateTime.of(year, month, day, hour, minute);
         } catch (DateTimeException dateEx) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie übergebenen Zahlen stellen kein gültiges Datum dar.");
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie eingegebenen Zahlen stellen kein gültiges Datum dar.");
+            return null;
+        }
+
+        if (dueDate.isBefore(LocalDateTime.now())) {
+            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas gewählt Fälligkeitsdatum liegt in der Vergangenhet.");
             return null;
         }
 
