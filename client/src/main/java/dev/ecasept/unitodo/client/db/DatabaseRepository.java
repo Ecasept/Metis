@@ -56,6 +56,22 @@ public class DatabaseRepository {
         }
     }
 
+    public ArrayList<Task> searchTasks(String search) throws DatabaseException {
+        var string = "SELECT * from tasks WHERE title LIKE ? OR description LIKE ?";
+        try (var statement = controller.prepareStatement(string)) {
+            statement.setString(1, "%" + search + "%");
+            statement.setString(2, "%" + search + "%");
+            var rs = statement.executeQuery();
+            var tasks = new ArrayList<Task>();
+            while (rs.next()) {
+                tasks.add(Task.fromResultSet(rs));
+            }
+            return tasks;
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to search tasks in database", e);
+        }
+    }
+
     public ArrayList<Task> getTasks(TaskState state, SortOrder order) throws DatabaseException {
         var str = "SELECT * from tasks WHERE state = ? ORDER BY dueDate " + order.asSql() + ";";
         try (var statement = controller.prepareStatement(str)) {

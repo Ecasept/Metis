@@ -127,6 +127,9 @@ public class MainFrame extends JFrame {
         JButton newTaskItem = new JButton("Neue Aufgabe");
         mainMenuBar.add(newTaskItem);
 
+        AJSearchbar searchbar = new AJSearchbar(this::showSearched);
+        mainMenuBar.add(searchbar);
+
         this.add(mainMenuBar, BorderLayout.NORTH);
 
 
@@ -212,12 +215,68 @@ public class MainFrame extends JFrame {
         this.getContentPane().repaint();
     }
 
+    private void displayTasks(ArrayList<Task> tasks, String label, boolean showDate) {
+        titles.clear();
+
+        for (Task t : tasks) {
+            String str = t.title().get();
+            if (showDate) {
+                int len = str.length();
+                int temp = 60 - len;
+                for (int i = 0; i < temp; ++i) {
+                    str = str + " ";
+                }
+                LocalDateTime date = t.dueDate().get();
+                str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
+            }
+            titles.addElement(str);
+        }
+
+        // JList erstellen
+        JList<String> list = new JList<>(titles);
+        list.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
+        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        list.addListSelectionListener(new ListSelectionListener() {
+            @Override
+            public void valueChanged(ListSelectionEvent e) {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedIndex = list.getSelectedIndex();
+                    if (selectedIndex >= 0 && selectedIndex < tasks.size()) {
+                        Task selectedTask = tasks.get(selectedIndex);
+                        showChangeTask(selectedTask.uuid());
+                    }
+                }
+            }
+        });
+
+        scrollPaneTasks = new JScrollPane(list);
+
+        mainPanelRight.removeAll();
+        JLabel mainPanelRightLabel = new JLabel(label);
+        mainPanelRight.add(mainPanelRightLabel);
+        mainPanelRight.add(scrollPaneTasks);
+
+        mainPanelRight.updateUI();
+        scrollPaneTasks.updateUI();
+    }
+
+    public void showSearched(String searchString) {
+        ArrayList<Task> searchResults;
+        try {
+            searchResults = db.searchTasks(searchString);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Fehler bei der Suche:\n" + e.getMessage());
+            return;
+        }
+
+        displayTasks(searchResults, "Suchergebnisse: " + searchString, true);
+    }
+
     public void showPending() {
         // Variable für letzte Seite auf Pending stellen
         last = LAST_WAS_PENDING;
 
-
-        titles.clear();
         ArrayList<Task> pendingTasks;
         try {
             pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Ascending);
@@ -225,92 +284,23 @@ public class MainFrame extends JFrame {
             Log.e("Main", "error", e);
             return;
         }
-        pendingTasks.forEach((Task t) -> {
-            String str = t.title().get();
-            int len = str.length();
-            int temp = 60 - len;
-            for (int i = 0; i < temp; ++i) {
-                str = str + " ";
-            }
-            LocalDateTime date = t.dueDate().get();
-            str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
-            titles.addElement(str);
-        });
 
-
-        // JList erstellen
-        JList<String> listPending = new JList<>(titles);
-        listPending.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        listPending.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listPending.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedIndex = listPending.getSelectedIndex();
-                    Task selectedTask = pendingTasks.get(selectedIndex);
-                    showChangeTask(selectedTask.uuid());
-                }
-            }
-        });
-
-        scrollPaneTasks = new JScrollPane(listPending);
-
-
-        mainPanelRight.removeAll();
-        JLabel mainPanelRightLabel = new JLabel("Ausstehende Aufgaben");
-        mainPanelRight.add(mainPanelRightLabel);
-        mainPanelRight.add(scrollPaneTasks);
-
-
-        mainPanelRight.updateUI();
-        scrollPaneTasks.updateUI();
-
-
-
-
-        scrollPaneTasks.updateUI();
+        displayTasks(pendingTasks, "Ausstehende Aufgaben", true);
     }
 
     public void showFinished() {
         // Variable für letzte Seite auf Finished stellen
         last = LAST_WAS_FINISHED;
 
-        titles.clear();
-        ArrayList<Task> pendingTasks;
+        ArrayList<Task> finishedTasks;
         try {
-             pendingTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
+            finishedTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
         }
-        pendingTasks.forEach((Task t) -> {titles.addElement(t.title().get());});
 
-        // JList erstellen
-        JList<String> listFinished = new JList<>(titles);
-        listFinished.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        listFinished.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listFinished.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedIndex = listFinished.getSelectedIndex();
-                    Task selectedTask = pendingTasks.get(selectedIndex);
-                    showChangeTask(selectedTask.uuid());
-                }
-            }
-        });
-
-        scrollPaneTasks = new JScrollPane(listFinished);
-
-
-        mainPanelRight.removeAll();
-        JLabel mainPanelRightLabel = new JLabel("Erledigte Aufgaben");
-        mainPanelRight.add(mainPanelRightLabel);
-        mainPanelRight.add(scrollPaneTasks);
-
-
-        mainPanelRight.updateUI();
-        scrollPaneTasks.updateUI();
+        displayTasks(finishedTasks, "Erledigte Aufgaben", false);
     }
 
 
