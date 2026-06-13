@@ -8,11 +8,7 @@ import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.table.DefaultTableModel;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 
@@ -125,7 +121,7 @@ public class FrameUtils {
             Log.e("Main", "error", e);
             return new ArrayList<Task>();
         }
-        for (dev.ecasept.unitodo.shared.models.db.Task t : list) {
+        for (Task t : list) {
             LocalDateTime date = t.dueDate().get();
             int min = date.getMinute();
             String minStr;
@@ -142,10 +138,87 @@ public class FrameUtils {
         return list;
     }
 
+    /**
+     * Befüllt die übergebene ArrayList mit allen Tasks in absteigender Reihenfolge.
+     * Die DefaultListModel wird mit den Repräsentationen der einzelnen Tasks als Zeilen in der Tabelle gefüllt.
+     *
+     * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
+     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     */
+    public static ArrayList<Task> fillListAndTableModelAll(DefaultTableModel tableModel, DatabaseRepository db) {
+        ArrayList<Task> list;
+        try {
+            list = db.getTasks(TaskState.Pending, SortOrder.Ascending);
+            list.addAll(db.getTasks(TaskState.Finished, SortOrder.Descending));
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return new ArrayList<Task>();
+        }
+        for (Task t : list) {
+            LocalDateTime date = t.dueDate().get();
+            int min = date.getMinute();
+            String minStr;
+            if (min < 10) {
+                minStr = "0" + min;
+            } else {
+                minStr = "" + min;
+            }
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
+            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
+        }
 
+        return list;
+    }
+
+    /**
+     * Befüllt die übergebene DefaultTableModel mit allen Tasks, die dem Suchstring entsprechen.
+     *
+     * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks gefüllt wird.
+     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param searchString Der Suchbegriff
+     */
+    public static ArrayList<Task> fillListAndTableModelSearched(DefaultTableModel tableModel, DatabaseRepository db, String searchString) {
+        ArrayList<Task> list;
+        try {
+            ArrayList<Task> allSearch = db.searchTasks(searchString);
+
+            ArrayList<Task> pendingTasks = new ArrayList<>();
+            ArrayList<Task> finishedTasks = new ArrayList<>();
+
+            for (Task t : allSearch) {
+                if (t.state().get() == TaskState.Pending) {
+                    pendingTasks.add(t);
+                } else {
+                    finishedTasks.add(t);
+                }
+            }
+
+            pendingTasks.sort((t1, t2) -> t1.dueDate().get().compareTo(t2.dueDate().get()));
+            finishedTasks.sort((t1, t2) -> t2.dueDate().get().compareTo(t1.dueDate().get()));
+
+            list = new ArrayList<>(pendingTasks);
+            list.addAll(finishedTasks);
+
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return new ArrayList<Task>();
+        }
+        for (Task t : list) {
+            LocalDateTime date = t.dueDate().get();
+            int min = date.getMinute();
+            String minStr;
+            if (min < 10) {
+                minStr = "0" + min;
+            } else {
+                minStr = "" + min;
+            }
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
+            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
+        }
+
+        return list;
+    }
 
 }
-
-
-
-

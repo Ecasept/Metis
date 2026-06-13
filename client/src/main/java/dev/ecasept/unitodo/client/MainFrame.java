@@ -2,25 +2,19 @@ package dev.ecasept.unitodo.client;
 
 import dev.ecasept.unitodo.client.db.DatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.Task;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.ListSelectionListener;
-import javax.swing.plaf.metal.MetalIconFactory;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.time.DateTimeException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.UUID;
 
 @SuppressWarnings("LanguageDetectionInspection")
@@ -31,6 +25,7 @@ public class MainFrame extends JFrame {
     // Aktuelle Ansicht (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
     private static final int LAST_WAS_PENDING = 2;
+    private static final int LAST_WAS_ALL = 3;
     private int last;
 
     // Elemente der GUI
@@ -57,6 +52,12 @@ public class MainFrame extends JFrame {
     private ArrayList<Task> currentlyShownTasks;
 
     // Listener für die Button
+    private ActionListener showAllListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            showAll();
+        }
+    };
     private ActionListener showPendingListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -92,7 +93,7 @@ public class MainFrame extends JFrame {
 
     public MainFrame(DatabaseRepository db) {
         this.db = db;
-        last = LAST_WAS_PENDING;
+        last = LAST_WAS_ALL;
 
         // Frame vorbereiten
         this.setTitle("To-Do Liste");
@@ -123,8 +124,10 @@ public class MainFrame extends JFrame {
 
         // Ansicht Menü
         JMenu viewMenu = new JMenu("Ansicht");
+        JMenuItem allTasksItem = new JMenuItem("Alle Aufgaben");
         JMenuItem pendingTasksItem = new JMenuItem("Ausstehende Aufgaben");
-        JMenuItem finishedTasksItem = new JMenuItem("Erledigte Aufgabe");
+        JMenuItem finishedTasksItem = new JMenuItem("Erledigte Aufgaben");
+        viewMenu.add(allTasksItem);
         viewMenu.add(pendingTasksItem);
         viewMenu.add(finishedTasksItem);
         mainMenuBar.add(viewMenu);
@@ -137,13 +140,14 @@ public class MainFrame extends JFrame {
         JButton newTaskItem = new JButton("Neue Aufgabe");
         mainMenuBar.add(newTaskItem);
 
-//        AJSearchbar searchbar = new AJSearchbar(this::showSearched);
-//        mainMenuBar.add(searchbar);
+        AJSearchbar searchbar = new AJSearchbar(this::showSearched);
+        mainMenuBar.add(searchbar);
 
         this.add(mainMenuBar, BorderLayout.NORTH);
 
 
         // Listener für Menü
+        allTasksItem.addActionListener(showAllListener);
         pendingTasksItem.addActionListener(showPendingListener);
         finishedTasksItem.addActionListener(showFinishedListener);
         newTaskItem.addActionListener(newTaskListener);
@@ -165,11 +169,10 @@ public class MainFrame extends JFrame {
 
         if (last == LAST_WAS_PENDING) {
             currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, db);
-
-
-
-        } else {
+        } else if (last == LAST_WAS_FINISHED) {
             currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, db);
+        } else {
+            currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, db);
         }
 
         // JTable erstellen und in ScrollPane einbetten
@@ -193,8 +196,10 @@ public class MainFrame extends JFrame {
         upperPanel.setLayout(new BorderLayout());
         if (last == LAST_WAS_PENDING) {
             mainPanelRightLabel = new JLabel("Ausstehende Aufgaben");
-        } else {
+        } else if (last == LAST_WAS_FINISHED) {
             mainPanelRightLabel = new JLabel("Erledigte Aufgaben");
+        } else {
+            mainPanelRightLabel = new JLabel("Alle Aufgaben");
         }
         mainPanelRightLabel.setFont(new Font("Arial", Font.BOLD, 15));
         mainPanelRightLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -209,6 +214,28 @@ public class MainFrame extends JFrame {
 
         this.getContentPane().revalidate();
         this.getContentPane().repaint();
+    }
+
+    public void showAll() {
+        last = LAST_WAS_ALL;
+
+        if (taskTable.isEditing()) {
+            taskTable.getCellEditor().stopCellEditing();
+        }
+
+        tableModel.setRowCount(0);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, db);
+        mainPanelRightLabel.setText("Alle Aufgaben");
+    }
+
+    public void showSearched(String searchString) {
+        if (taskTable.isEditing()) {
+            taskTable.getCellEditor().stopCellEditing();
+        }
+
+        tableModel.setRowCount(0);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, db, searchString);
+        mainPanelRightLabel.setText("Suchergebnisse: " + searchString);
     }
 
     public void showPending() {
@@ -830,9 +857,10 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (last == LAST_WAS_PENDING) {
+            if (last == LAST_WAS_ALL) {
+                showAll();
+            } else if (last == LAST_WAS_PENDING) {
                 showPending();
-
             } else {
                 showFinished();
             }
@@ -850,7 +878,11 @@ public class MainFrame extends JFrame {
                task.state().set(TaskState.Finished);
                try {
                    db.upsertTask(task);
-                   showPending();
+                   if (last == LAST_WAS_ALL) {
+                       showAll();
+                   } else {
+                       showPending();
+                   }
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    return;
@@ -859,7 +891,11 @@ public class MainFrame extends JFrame {
                task.state().set(TaskState.Pending);
                try {
                    db.upsertTask(task);
-                   showFinished();
+                   if (last == LAST_WAS_ALL) {
+                       showAll();
+                   } else {
+                       showFinished();
+                   }
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    return;

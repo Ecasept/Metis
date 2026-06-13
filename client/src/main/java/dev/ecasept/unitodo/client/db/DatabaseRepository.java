@@ -87,6 +87,20 @@ public class DatabaseRepository {
         }
     }
 
+    public ArrayList<Task> getTasks(SortOrder order) throws DatabaseException {
+        var str = "SELECT * from tasks ORDER BY dueDate " + order.asSql() + ";";
+        try (var statement = controller.prepareStatement(str)) {
+            var rs = statement.executeQuery();
+            var tasks = new ArrayList<Task>();
+            while (rs.next()) {
+                tasks.add(Task.fromResultSet(rs));
+            }
+            return tasks;
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to get tasks from database", e);
+        }
+    }
+
     public void upsertTask(Task task) throws DatabaseException {
         upsertTasks(List.of(task));
     }
