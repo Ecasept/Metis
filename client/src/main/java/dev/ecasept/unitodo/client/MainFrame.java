@@ -137,8 +137,8 @@ public class MainFrame extends JFrame {
         JButton newTaskItem = new JButton("Neue Aufgabe");
         mainMenuBar.add(newTaskItem);
 
-        AJSearchbar searchbar = new AJSearchbar(this::showSearched);
-        mainMenuBar.add(searchbar);
+//        AJSearchbar searchbar = new AJSearchbar(this::showSearched);
+//        mainMenuBar.add(searchbar);
 
         this.add(mainMenuBar, BorderLayout.NORTH);
 
