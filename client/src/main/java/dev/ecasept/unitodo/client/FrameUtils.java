@@ -1,0 +1,151 @@
+package dev.ecasept.unitodo.client;
+
+import dev.ecasept.unitodo.client.db.DatabaseRepository;
+import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.db.SortOrder;
+import dev.ecasept.unitodo.shared.models.db.TaskState;
+import dev.ecasept.unitodo.shared.utils.Log;
+
+import javax.swing.*;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ChangeListener;
+import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+
+public class FrameUtils {
+
+
+
+    public static JTable getConfiguredTable(DefaultTableModel model) {
+        JTable taskTable = new JTable(model);
+
+
+
+
+        // Renderer und Editor setzen
+        taskTable.setDefaultRenderer(Object.class, new TaskTableCellRenderer());
+
+        // Einstellungen für Anzeige des JTable
+        taskTable.setShowVerticalLines(false);
+        taskTable.setRowHeight(40);
+        taskTable.getColumnModel().getColumn(0).setPreferredWidth(90);
+        taskTable.getColumnModel().getColumn(0).setMaxWidth(90);
+        taskTable.getColumnModel().getColumn(0).setMaxWidth(90);
+        taskTable.getColumnModel().getColumn(0).setResizable(false);
+
+
+
+        taskTable.getColumnModel().getColumn(2).setPreferredWidth(100);
+        taskTable.getColumnModel().getColumn(2).setMaxWidth(100);
+        taskTable.getColumnModel().getColumn(2).setMaxWidth(100);
+        taskTable.getColumnModel().getColumn(2).setResizable(false);
+
+        taskTable.getColumnModel().getColumn(3).setPreferredWidth(80);
+        taskTable.getColumnModel().getColumn(3).setMaxWidth(80);
+        taskTable.getColumnModel().getColumn(3).setMaxWidth(80);
+        taskTable.getColumnModel().getColumn(3).setResizable(false);
+
+        taskTable.getColumnModel().getColumn(4).setPreferredWidth(50);
+        taskTable.getColumnModel().getColumn(4).setMaxWidth(50);
+        taskTable.getColumnModel().getColumn(4).setMaxWidth(50);
+        taskTable.getColumnModel().getColumn(4).setResizable(false);
+
+        taskTable.getColumnModel().getColumn(5).setPreferredWidth(50);
+        taskTable.getColumnModel().getColumn(5).setMaxWidth(50);
+        taskTable.getColumnModel().getColumn(5).setMaxWidth(50);
+        taskTable.getColumnModel().getColumn(5).setResizable(false);
+
+
+
+        taskTable.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        taskTable.setColumnSelectionAllowed(false);
+        taskTable.setRowSelectionAllowed(false);
+
+
+
+
+        return taskTable;
+    }
+
+
+    /**
+     * Befüllt die übergebene ArrayList mit allen Tasks mit Status Pending in aufsteigener Reihenfolge.
+     * Die DefaultListModel wird mit den Repräsentationen der einzelnen Tasks als Zeilen in der Tabelle gefüllt.
+     *
+     *
+     *
+     * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
+     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     */
+    public static ArrayList<Task> fillListAndTableModelPending(DefaultTableModel tableModel, DatabaseRepository db) {
+        ArrayList<Task> list;
+        try {
+            list = db.getTasks(TaskState.Pending, SortOrder.Ascending);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return new ArrayList<Task>();
+        }
+        for (Task t : list) {
+            LocalDateTime date = t.dueDate().get();
+            int min = date.getMinute();
+            String minStr;
+            if (min < 10) {
+                minStr = "0" + min;
+            } else {
+                minStr = "" + min;
+            }
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            tableModel.addRow(new Object[]{"Ausstehend", t.title().get(), str, t.priority().get(), "", "", });
+            // tableModel.addRow(new Object[]{t});
+        }
+
+        return list;
+    }
+
+
+
+    /**
+     * Befüllt die übergebene ArrayList mit allen Tasks mit Status Finishes in absteigender Reihenfolge.
+     * Die DefaultListModel wird mit den Repräsentationen der einzelnen Tasks als Zeilen in der Tabelle gefüllt.
+     *
+     *
+     *
+     * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
+     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     */
+    public static ArrayList<Task> fillListAndTableModelFinished(DefaultTableModel tableModel, DatabaseRepository db) {
+        ArrayList<Task> list;
+        try {
+            list = db.getTasks(TaskState.Finished, SortOrder.Descending);
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return new ArrayList<Task>();
+        }
+        for (dev.ecasept.unitodo.shared.models.db.Task t : list) {
+            LocalDateTime date = t.dueDate().get();
+            int min = date.getMinute();
+            String minStr;
+            if (min < 10) {
+                minStr = "0" + min;
+            } else {
+                minStr = "" + min;
+            }
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            tableModel.addRow(new Object[]{"Erledigt", t.title().get(), str, t.priority().get(), "", ""});
+            // tableModel.addRow(new Object[]{t});
+        }
+
+        return list;
+    }
+
+
+
+}
+
+
+
+

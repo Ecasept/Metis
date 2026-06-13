@@ -12,6 +12,7 @@ import javax.swing.*;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.ListSelectionListener;
 import javax.swing.plaf.metal.MetalIconFactory;
+import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.time.DateTimeException;
@@ -45,6 +46,15 @@ public class MainFrame extends JFrame {
     private JButton showPending;
     private JButton showFinished;
     private JButton newTask;
+
+    // Lables für Übersicht
+    JLabel mainPanelRightLabel;
+
+    // Zentrale JTable für die dargestellten Tasks
+    private JTable taskTable;
+    private DefaultTableModel tableModel;
+    private String[] rows = {"Status", "Titel", "Fälligkeitsdatum", "Priorität", "", ""};
+    private ArrayList<Task> currentlyShownTasks;
 
     // Listener für die Button
     private ActionListener showPendingListener = new ActionListener() {
@@ -143,67 +153,53 @@ public class MainFrame extends JFrame {
 
 
 
-        // Liste und ScrollPane für anzeige der Tasks
-        // DefaultListModel mit Titeln und Datum dazu füllen
-        titles = new DefaultListModel<>();
-        ArrayList<Task> pendingTasks;
+        // JTable und ScrollPane für anzeige der Tasks
+        // DefaultTableModel mit Titeln und Datum dazu füllen
+        tableModel = new DefaultTableModel(rows, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return column != 2 && column != 3;
+            }
+        };
+
+
         if (last == LAST_WAS_PENDING) {
-            try {
-                pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Ascending);
-            } catch (DatabaseException e) {
-                Log.e("Main", "error", e);
-                return;
-            }
-            for (Task t : pendingTasks) {
-                String str = t.title().get();
-                int len = str.length();
-                int temp = 60 - len;
-                for (int i = 0; i < temp; ++i) {
-                    str = str + " ";
-                }
-                LocalDateTime date = t.dueDate().get();
-                str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
-                titles.addElement(str);
-            }
+            currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, db);
+
+
+
         } else {
-            try {
-                pendingTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
-            } catch (DatabaseException e) {
-                Log.e("Main", "error", e);
-                return;
-            }
-            pendingTasks.forEach((Task t) -> {titles.addElement(t.title().get());});
+            currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, db);
         }
 
-        // JList erstellen
-        JList<String> listPending = new JList<>(titles);
-        listPending.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        listPending.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        listPending.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedIndex = listPending.getSelectedIndex();
-                    Task selectedTask = pendingTasks.get(selectedIndex);
-                    showChangeTask(selectedTask.uuid());
-                }
-            }
-        });
+        // JTable erstellen und in ScrollPane einbetten
+        taskTable = FrameUtils.getConfiguredTable(tableModel);
+        taskTable.setDefaultEditor(Object.class, new TaskTableEditor(this));
+        scrollPaneTasks = new JScrollPane(taskTable);
 
 
-        scrollPaneTasks = new JScrollPane(listPending);
+
+
+
+
+
+
 
 
         // Panel rechts im Bild
         mainPanelRight = new JPanel();
         mainPanelRight.setLayout(new BoxLayout(mainPanelRight, BoxLayout.Y_AXIS));
-        JLabel mainPanelRightLabel;
+        JPanel upperPanel = new JPanel();
+        upperPanel.setLayout(new BorderLayout());
         if (last == LAST_WAS_PENDING) {
             mainPanelRightLabel = new JLabel("Ausstehende Aufgaben");
         } else {
             mainPanelRightLabel = new JLabel("Erledigte Aufgaben");
         }
-        mainPanelRight.add(mainPanelRightLabel);
+        mainPanelRightLabel.setFont(new Font("Arial", Font.BOLD, 15));
+        mainPanelRightLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        upperPanel.add(mainPanelRightLabel, BorderLayout.CENTER);
+        mainPanelRight.add(upperPanel);
         mainPanelRight.add(scrollPaneTasks);
 
 
@@ -215,92 +211,36 @@ public class MainFrame extends JFrame {
         this.getContentPane().repaint();
     }
 
-    private void displayTasks(ArrayList<Task> tasks, String label, boolean showDate) {
-        titles.clear();
-
-        for (Task t : tasks) {
-            String str = t.title().get();
-            if (showDate) {
-                int len = str.length();
-                int temp = 60 - len;
-                for (int i = 0; i < temp; ++i) {
-                    str = str + " ";
-                }
-                LocalDateTime date = t.dueDate().get();
-                str = str + date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
-            }
-            titles.addElement(str);
-        }
-
-        // JList erstellen
-        JList<String> list = new JList<>(titles);
-        list.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 12));
-        list.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        list.addListSelectionListener(new ListSelectionListener() {
-            @Override
-            public void valueChanged(ListSelectionEvent e) {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedIndex = list.getSelectedIndex();
-                    if (selectedIndex >= 0 && selectedIndex < tasks.size()) {
-                        Task selectedTask = tasks.get(selectedIndex);
-                        showChangeTask(selectedTask.uuid());
-                    }
-                }
-            }
-        });
-
-        scrollPaneTasks = new JScrollPane(list);
-
-        mainPanelRight.removeAll();
-        JLabel mainPanelRightLabel = new JLabel(label);
-        mainPanelRight.add(mainPanelRightLabel);
-        mainPanelRight.add(scrollPaneTasks);
-
-        mainPanelRight.updateUI();
-        scrollPaneTasks.updateUI();
-    }
-
-    public void showSearched(String searchString) {
-        ArrayList<Task> searchResults;
-        try {
-            searchResults = db.searchTasks(searchString);
-        } catch (DatabaseException e) {
-            Log.e("Main", "error", e);
-            JOptionPane.showMessageDialog(null, "Fehler bei der Suche:\n" + e.getMessage());
-            return;
-        }
-
-        displayTasks(searchResults, "Suchergebnisse: " + searchString, true);
-    }
-
     public void showPending() {
         // Variable für letzte Seite auf Pending stellen
         last = LAST_WAS_PENDING;
 
-        ArrayList<Task> pendingTasks;
-        try {
-            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Ascending);
-        } catch (DatabaseException e) {
-            Log.e("Main", "error", e);
-            return;
+        if (taskTable.isEditing()) {
+            taskTable.getCellEditor().stopCellEditing(); // oder .cancelCellEditing();
         }
 
-        displayTasks(pendingTasks, "Ausstehende Aufgaben", true);
+        tableModel.setRowCount(0);
+
+
+
+        currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, db);
+
+        mainPanelRightLabel.setText("Ausstehende Aufgaben");
     }
 
     public void showFinished() {
         // Variable für letzte Seite auf Finished stellen
         last = LAST_WAS_FINISHED;
 
-        ArrayList<Task> finishedTasks;
-        try {
-            finishedTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
-        } catch (DatabaseException e) {
-            Log.e("Main", "error", e);
-            return;
+        if (taskTable.isEditing()) {
+            taskTable.getCellEditor().stopCellEditing(); // oder .cancelCellEditing();
         }
 
-        displayTasks(finishedTasks, "Erledigte Aufgaben", false);
+        tableModel.setRowCount(0);
+
+
+        currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, db);
+        mainPanelRightLabel.setText("Erledigte Aufgaben");
     }
 
 
@@ -314,15 +254,21 @@ public class MainFrame extends JFrame {
 
         // Überschrift und Textfield für Titel
         JLabel newTask = new JLabel("Neue Aufgabe anlegen");
-        mainPanel.add(newTask);
+        newTask.setHorizontalAlignment(SwingConstants.CENTER);
+        newTask.setFont(new Font("Arial", Font.BOLD, 15));
+        JPanel upperPanel = new JPanel();
+        upperPanel.setLayout(new BorderLayout());
+        upperPanel.add(newTask, BorderLayout.CENTER);
+        mainPanel.add(upperPanel);
 
 
         // Panel für Titel
         JPanel panelOne = new JPanel();
-        panelOne.setLayout(new BoxLayout(panelOne, BoxLayout.X_AXIS));
-        panelOne.add(new JLabel("Titel:"));
+        panelOne.setLayout(new BorderLayout());
+        JLabel titleLabel = new JLabel("Titel:");
+        panelOne.add(titleLabel, BorderLayout.WEST);
         JTextField textfieldTitle = new JTextField();
-        panelOne.add(textfieldTitle);
+        panelOne.add(textfieldTitle, BorderLayout.CENTER);
         mainPanel.add(panelOne);
 
 
@@ -332,7 +278,7 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel();
         String[] priorityList = {"niedrig", "mittel", "hoch"};
         JComboBox<String> priorityBox = new JComboBox<>(priorityList);
-        panel.add(new JLabel("Priorität"), BorderLayout.WEST);
+        panel.add(new JLabel("Priorität:"), BorderLayout.WEST);
         panel.add(priorityBox, BorderLayout.EAST);
         mainPanel.add(panel);
 
@@ -365,7 +311,9 @@ public class MainFrame extends JFrame {
         mainPanel.add(panelTwo);
 
         // TextArea für Beschreibung
-        mainPanel.add(new JLabel("Beschreibung:"));
+        JPanel middlePanel = new JPanel();
+        middlePanel.add(new JLabel("Beschreibung:"));
+        mainPanel.add(middlePanel);
         JTextArea descriptionArea = new JTextArea(15, 30);
         JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
 
@@ -520,75 +468,19 @@ public class MainFrame extends JFrame {
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
 
-        // Buttons für Löschen und TaskState ändern
-        JButton changeTaskStateButton = new JButton();
-        if (task.state().get().equals(TaskState.Pending))
-            changeTaskStateButton.setText("Erledigt");
-        if (task.state().get().equals(TaskState.Finished))
-            changeTaskStateButton.setText("Ausstehend");
 
-        changeTaskStateButton.setBackground(new Color(0, 150, 0));
-
-        JButton deleteTaskButton = new JButton("Löschen");
-        deleteTaskButton.setBackground(new Color(230, 0, 0));
-        JPanel upperButtonsPanel = new JPanel();
-        upperButtonsPanel.setLayout(new GridLayout(1,2));
-        upperButtonsPanel.add(changeTaskStateButton);
-        upperButtonsPanel.add(deleteTaskButton);
-        mainPanel.add(upperButtonsPanel);
-
-
-        // Listener für Buttons zum Löschen und TaskState ändern
-        changeTaskStateButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                    if (task.state().get().equals(TaskState.Pending)) {
-                        task.state().set(TaskState.Finished);
-                        try {
-                            db.upsertTask(task);
-                        } catch (DatabaseException ex) {
-                            Log.e("Main", "error", ex);
-                            return;
-                        }
-                    } else if (task.state().get().equals(TaskState.Finished)) {
-                        task.state().set(TaskState.Pending);
-                        try {
-                            db.upsertTask(task);
-                        } catch (DatabaseException ex) {
-                            Log.e("Main", "error", ex);
-                            return;
-                        }
-                    }
-
-                    setOverview();
-
-            }
-        });
-
-        deleteTaskButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                try {
-                    int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
-                    if (x == JOptionPane.YES_OPTION) {
-                        db.deleteTask(uuid.toString());
-                    } else {
-                        return;
-                    }
-                } catch (DatabaseException ex) {
-                    Log.e("Main", "error", ex);
-                    return;
-                }
-
-                setOverview();
-            }
-        });
 
 
 
         // Überschrift und Textfield für Titel
         JLabel newTask = new JLabel("Aufgabe bearbeiten");
-        mainPanel.add(newTask);
+        newTask.setHorizontalAlignment(SwingConstants.CENTER);
+        newTask.setFont(new Font("Arial", Font.BOLD, 15));
+        JPanel upperPanel = new JPanel();
+        upperPanel.setLayout(new BorderLayout());
+        upperPanel.add(newTask, BorderLayout.CENTER);
+        mainPanel.add(upperPanel);
+
 
 
         // Panel für Titel
@@ -660,11 +552,16 @@ public class MainFrame extends JFrame {
         panelTwo.add(textfieldDueDate);
         mainPanel.add(panelTwo);
 
+
         // TextArea für Beschreibung
-        mainPanel.add(new JLabel("Beschreibung:"));
+        JPanel middlePanel = new JPanel();
+        middlePanel.add(new JLabel("Beschreibung:"));
+        mainPanel.add(middlePanel);
         JTextArea descriptionArea = new JTextArea(15, 30);
         descriptionArea.setText(task.description().get());
         JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
+
+
 
 
 
@@ -761,5 +658,222 @@ public class MainFrame extends JFrame {
         this.getContentPane().repaint();
     }
 
+
+    public void showOnlyTask(UUID uuid) {
+        this.getContentPane().removeAll();
+
+        // Taskobjekt aus DB auslesen
+        Task task;
+        try {
+            task = this.db.getTask(uuid.toString()).get();
+        } catch (DatabaseException e) {
+            Log.e("Main", "error", e);
+            return;
+        }
+
+
+        // Hauptpanel erzeugen
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+
+
+
+
+
+        // Überschrift und Textfield für Titel
+        JLabel newTask = new JLabel("Aufgabe anzeigen");
+        newTask.setHorizontalAlignment(SwingConstants.CENTER);
+        newTask.setFont(new Font("Arial", Font.BOLD, 15));
+        JPanel upperPanel = new JPanel();
+        upperPanel.setLayout(new BorderLayout());
+        upperPanel.add(newTask, BorderLayout.CENTER);
+        mainPanel.add(upperPanel);
+
+
+
+        // Panel für Titel
+        JPanel panelOne = new JPanel();
+        panelOne.setLayout(new BoxLayout(panelOne, BoxLayout.X_AXIS));
+        panelOne.add(new JLabel("Titel:"));
+        JTextField textfieldTitle = new JTextField();
+        textfieldTitle.setText(task.title().get());
+        textfieldTitle.setEditable(false);
+        panelOne.add(textfieldTitle);
+        mainPanel.add(panelOne);
+
+
+
+
+        // Panel für Priorität und TaskState
+        JPanel panel = new JPanel(new GridLayout(1,2));
+        String[] priorityList = {"niedrig", "mittel", "hoch"};
+        JTextField priorityField = new JTextField();
+        if (task.priority().get().equals(TaskPriority.Low)) {
+            priorityField.setText("niedrig");
+        } else if (task.priority().get().equals(TaskPriority.Mid)) {
+            priorityField.setText("mittel");
+        } else if (task.priority().get().equals(TaskPriority.High)) {
+            priorityField.setText("hoch");
+        }
+        priorityField.setEditable(false);
+        JPanel subPanel1 = new JPanel(new FlowLayout());
+        subPanel1.add(new JLabel("Priorität"));
+        subPanel1.add(priorityField);
+        panel.add(subPanel1);
+        JLabel taskStateLabel = new JLabel("Status:");
+        JTextField taskStateField = new JTextField();
+        if (task.state().get().equals(TaskState.Pending)) {
+            taskStateField.setText("Ausstehend");
+        }
+        if (task.state().get().equals(TaskState.Finished)) {
+            taskStateField.setText("Erledigt");
+        }
+
+        taskStateField.setEditable(false);
+        JPanel subPanel2 = new JPanel();
+        subPanel2.add(taskStateLabel);
+        subPanel2.add(taskStateField);
+        panel.add(subPanel2);
+        mainPanel.add(panel);
+
+
+        // Panel für Fälligkeitsdatum
+        JPanel panelTwo = new JPanel();
+        panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
+        panelTwo.add(new JLabel("Fälligkeitsdatum:"));
+        String placeholder = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
+        JTextField textfieldDueDate = new JTextField(placeholder);
+        textfieldDueDate.setEditable(false);
+        textfieldDueDate.setForeground(Color.GRAY);
+        textfieldDueDate.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                    textfieldDueDate.setText("");
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueDate.getText().equals(""))
+                    textfieldDueDate.setText("dd.mm.yyyy hh:mm");
+
+            }
+        });
+
+        panelTwo.add(textfieldDueDate);
+        mainPanel.add(panelTwo);
+
+        // TextArea für Beschreibung
+        JPanel middlePanel = new JPanel();
+        middlePanel.add(new JLabel("Beschreibung:"));
+        mainPanel.add(middlePanel);
+        JTextArea descriptionArea = new JTextArea(15, 30);
+        descriptionArea.setText(task.description().get());
+        descriptionArea.setEditable(false);
+        JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
+
+
+
+        // Buttons für speichern und abbrechen
+        JButton okButton = new JButton("Ok");
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new GridLayout(0,1,0,0));
+        buttonPanel.add(okButton);
+        okButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setOverview();
+            }
+        });
+
+
+
+
+
+
+        // Einzelene Panels zum gesamten Layout zusammenfügen
+        this.add(mainPanel, BorderLayout.NORTH);
+        this.add(descriptionAreaScrollPane, BorderLayout.CENTER);
+        this.add(buttonPanel, BorderLayout.SOUTH);
+
+        this.getContentPane().revalidate();
+        this.getContentPane().repaint();
+    }
+
+
+    // Methoden für Benutzeraktionen in der JTable die die Tasks anzeigt
+    public void editTaskClicked(int row) {
+        if (!currentlyShownTasks.isEmpty()) {
+            UUID uuid = currentlyShownTasks.get(row).uuid();
+            showChangeTask(uuid);
+        }
+    }
+
+    public void deleteTaskClicked(int row) {
+        System.out.println("Löschen von Zeile " + row);
+
+        if (!currentlyShownTasks.isEmpty()) {
+            UUID uuid = currentlyShownTasks.get(row).uuid();
+
+
+            try {
+                int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
+                if (x == JOptionPane.YES_OPTION) {
+                    db.deleteTask(uuid.toString());
+                    tableModel.removeRow(row);
+                    currentlyShownTasks.remove(row);
+                } else {
+                    return;
+                }
+            } catch (DatabaseException ex) {
+                Log.e("Main", "error", ex);
+                return;
+            }
+
+            if (last == LAST_WAS_PENDING) {
+                showPending();
+
+            } else {
+                showFinished();
+            }
+        }
+    }
+
+    public void changeStateTaskClicked(int row) {
+       System.out.println("Status ändern von Zeile " + row);
+
+       if (!currentlyShownTasks.isEmpty()) {
+           Task task = currentlyShownTasks.get(row);
+
+
+           if (task.state().get().equals(TaskState.Pending)) {
+               task.state().set(TaskState.Finished);
+               try {
+                   db.upsertTask(task);
+                   showPending();
+               } catch (DatabaseException ex) {
+                   Log.e("Main", "error", ex);
+                   return;
+               }
+           } else if (task.state().get().equals(TaskState.Finished)) {
+               task.state().set(TaskState.Pending);
+               try {
+                   db.upsertTask(task);
+                   showFinished();
+               } catch (DatabaseException ex) {
+                   Log.e("Main", "error", ex);
+                   return;
+               }
+           }
+       }
+
+    }
+
+    public void showTaskClicked(int row) {
+        if (!currentlyShownTasks.isEmpty()) {
+            UUID uuid = currentlyShownTasks.get(row).uuid();
+            showOnlyTask(uuid);
+        }
+    }
 
 }
