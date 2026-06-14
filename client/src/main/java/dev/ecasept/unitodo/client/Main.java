@@ -24,19 +24,15 @@ public class Main {
             Log.e("Main", "Failed to open database", e);
             return;
         }
-        try {
+
+        try (databaseController) {
             var queryBuilder = new QueryBuilder(databaseController);
             var db = new ClientDatabaseRepository(queryBuilder);
 
             MainFrame frame = new MainFrame(db);
 
-        } catch (Exception e) {
-            try {
-                databaseController.close();
-            } catch (Exception closeException) {
-                e.addSuppressed(closeException);
-            }
-             Log.e("Main", "An error occurred", e);
+        } catch (DatabaseException e) {
+            Log.e("Main", "An error occurred while running the application", e);
         }
     }
 }
