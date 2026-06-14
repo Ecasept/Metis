@@ -1,5 +1,6 @@
 package dev.ecasept.unitodo.shared.db;
 
+import dev.ecasept.unitodo.shared.utils.Log;
 import org.sqlite.SQLiteConfig;
 
 import java.sql.Connection;
@@ -9,6 +10,7 @@ import java.sql.SQLException;
 
 public class DatabaseController implements AutoCloseable {
     private final Connection connection;
+    private static final String TAG = "DatabaseController";
 
     public DatabaseController(ClassLoader classLoader, String url) throws DatabaseException {
         try {
@@ -30,6 +32,7 @@ public class DatabaseController implements AutoCloseable {
 
     public PreparedStatement prepareStatement(String sql) throws DatabaseException {
         try {
+            Log.i(TAG, "Preparing SQL statement: " + sql);
             return connection.prepareStatement(sql);
         } catch (SQLException e) {
             throw new DatabaseException("Failed to prepare SQL statement: " + sql, e);
