@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS tasks (
-    uuid TEXT NOT NULL UNIQUE PRIMARY KEY,
+    uuid TEXT NOT NULL UNIQUE,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     state INTEGER NOT NULL,
@@ -13,10 +13,21 @@ CREATE TABLE IF NOT EXISTS tasks (
     dueDateChanged INTEGER NOT NULL,
 
     isDeleted TEXT NOT NULL,
-    deletedAt INTEGER
+    deletedChanged INTEGER NOT NULL,
+    userId TEXT NOT NULL,
+
+    FOREIGN KEY (userId) REFERENCES users(uuid) ON DELETE CASCADE,
+
+    PRIMARY KEY (uuid, userId)
 );
 
 CREATE TABLE IF NOT EXISTS constants (
     key TEXT NOT NULL UNIQUE PRIMARY KEY,
     value TEXT NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS users (
+    uuid TEXT NOT NULL UNIQUE PRIMARY KEY,
+    username TEXT NOT NULL UNIQUE,
+    passwordHash TEXT NOT NULL
 );

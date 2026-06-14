@@ -1,9 +1,9 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.db.DatabaseRepository;
+import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.SortOrder;
-import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
 
@@ -16,7 +16,7 @@ import java.util.ArrayList;
 
 public class MainFrame extends JFrame {
 
-    private final DatabaseRepository db;
+    private final ClientDatabaseRepository db;
 
     // Elemente der GUI
     private JScrollPane scrollPaneTasks;
@@ -57,7 +57,7 @@ public class MainFrame extends JFrame {
 
 
 
-    public MainFrame(DatabaseRepository db) {
+    public MainFrame(ClientDatabaseRepository db) {
         this.db = db;
 
         setOverview();
@@ -122,14 +122,14 @@ public class MainFrame extends JFrame {
         // Liste und ScrollPane für anzeige der Tasks
         // DefaultListModel mit Titeln und Datum dazu füllen
         titles = new DefaultListModel<>();
-        ArrayList<Task> pendingTasks;
+        ArrayList<ClientTask> pendingTasks;
         try {
-            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+            pendingTasks = db.getTasks(TaskState.Pending, new SortOrder.Descending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
         }
-        for (Task t : pendingTasks) {
+        for (ClientTask t : pendingTasks) {
             String str = t.title().get();
             int len = str.length();
             int temp = 60 - len;
@@ -168,14 +168,14 @@ public class MainFrame extends JFrame {
 
     public void showPending() {
         titles.clear();
-        ArrayList<Task> pendingTasks;
+        ArrayList<ClientTask> pendingTasks;
         try {
-            pendingTasks = db.getTasks(TaskState.Pending, SortOrder.Descending);
+            pendingTasks = db.getTasks(TaskState.Pending, new SortOrder.Descending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
         }
-        pendingTasks.forEach((Task t) -> {
+        pendingTasks.forEach((ClientTask t) -> {
             String str = t.title().get();
             int len = str.length();
             int temp = 60 - len;
@@ -194,14 +194,14 @@ public class MainFrame extends JFrame {
 
     public void showFinished() {
         titles.clear();
-        ArrayList<Task> pendingTasks;
+        ArrayList<ClientTask> pendingTasks;
         try {
-             pendingTasks = db.getTasks(TaskState.Finished, SortOrder.Descending);
+             pendingTasks = db.getTasks(TaskState.Finished, new SortOrder.Descending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
         }
-        pendingTasks.forEach((Task t) -> {titles.addElement(t.title().get());});
+        pendingTasks.forEach((ClientTask t) -> {titles.addElement(t.title().get());});
 
 
 

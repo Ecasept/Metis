@@ -1,5 +1,7 @@
 package dev.ecasept.unitodo.shared.models.api;
 
+import dev.ecasept.unitodo.shared.utils.ThrowableFunction;
+
 import java.util.function.Consumer;
 
 public class ApiResponse<T> {
@@ -21,24 +23,18 @@ public class ApiResponse<T> {
             return new ApiResponse<>(false, errorMessage, null);
         }
 
-        public ApiResponse<T> on(Consumer<T> onSuccess, Consumer<String> onError) {
+        public <R, E extends Throwable> R on(ThrowableFunction<T, R, E> onSuccess, ThrowableFunction<String, R, E> onError) throws E {
+            if (success) {
+                return onSuccess.apply(data);
+            } else {
+                return onError.apply(error);
+            }
+        }
+        public void on(Consumer<T> onSuccess, Consumer<String> onError) {
             if (success) {
                 onSuccess.accept(data);
             } else {
                 onError.accept(error);
             }
-            return this;
-        }
-        public ApiResponse<T> onSuccess(Consumer<T> onSuccess) {
-            if (success) {
-                onSuccess.accept(data);
-            }
-            return this;
-        }
-        public ApiResponse<T> onError(Consumer<String> onError) {
-            if (!success) {
-                onError.accept(error);
-            }
-            return this;
         }
 }

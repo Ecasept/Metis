@@ -6,19 +6,24 @@ import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.Period;
+import java.time.temporal.ChronoUnit;
+import java.time.temporal.TemporalAmount;
 import java.util.HashMap;
 import java.util.Map;
 
-public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION) {
+public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, TemporalAmount TOMBSTONE_TTL) {
     private static final String TAG = "Configuration";
     public static final int DEFAULT_PORT = 6767;
     public static final String DEFAULT_SECRET_KEY = "testing123";
     public static final String DEFAULT_PEPPER = "pepper123";
     public static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
     public static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
+    public static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
+    public static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofMonths(1);
 
-    public Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation) {
-         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation);
+    public Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl) {
+         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl);
     }
 
 
@@ -35,20 +40,24 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
         try {
             env = Configuration.loadEnv(envPath);
         } catch (IOException e) {
-            Log.w(TAG, "Failed to load configuration from .env file, using defaults");
-            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION);
+            Log.w(TAG, "Failed to load configuration from .env file, using defaults", e);
+            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION, DEFAULT_DB_URL, DEFAULT_TOMBSTONE_TTL);
         }
         ensureEnv(env, "PORT", String.valueOf(DEFAULT_PORT));
         ensureEnv(env, "SECRET_KEY", DEFAULT_SECRET_KEY);
         ensureEnv(env, "PEPPER", DEFAULT_PEPPER);
         ensureEnv(env, "KEYSTORE_PASSWORD", DEFAULT_KEYSTORE_PASSWORD);
         ensureEnv(env, "KEYSTORE_LOCATION", DEFAULT_KEYSTORE_LOCATION);
+        ensureEnv(env, "DB_URL", DEFAULT_DB_URL);
+        ensureEnv(env, "TOMBSTONE_TTL", String.valueOf(DEFAULT_TOMBSTONE_TTL.get(ChronoUnit.DAYS)));
         return new Configuration(
                 Integer.parseInt(env.get("PORT")),
                 env.get("SECRET_KEY"),
                 env.get("PEPPER"),
                 env.get("KEYSTORE_PASSWORD"),
-                env.get("KEYSTORE_LOCATION")
+                env.get("KEYSTORE_LOCATION"),
+                env.get("DB_URL"),
+                Period.ofDays(Integer.parseInt(env.get("TOMBSTONE_TTL")))
         );
     }
 
