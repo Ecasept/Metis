@@ -12,8 +12,8 @@ public class SqlRunner {
     public SqlRunner(Connection connection) {
         this.connection = connection;
     }
-    public void runSql(String path) throws DatabaseException {
-        try (InputStream is = SqlRunner.class.getClassLoader().getResourceAsStream(path)) {
+    public void runSql(ClassLoader classLoader, String path) throws DatabaseException {
+        try (InputStream is = classLoader.getResourceAsStream(path)) {
             if (is == null) {
                 throw new IllegalArgumentException("SQL file not found at path: " + path);
             }
