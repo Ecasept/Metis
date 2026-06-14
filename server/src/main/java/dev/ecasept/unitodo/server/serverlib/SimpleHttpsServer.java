@@ -18,8 +18,10 @@ import java.nio.charset.StandardCharsets;
 import java.security.*;
 import java.security.cert.CertificateException;
 import java.util.HashMap;
-import java.util.function.Function;
 
+import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
+import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.utils.Log;
 
@@ -27,6 +29,7 @@ public class SimpleHttpsServer {
     private static final String TAG = "SimpleHttpsServer";
     private final HttpsServer server;
     private final HashMap<RouteKey, Route<?, ?>> routes = new HashMap<>();
+    private final Serializer defaultSerializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
 
     public SimpleHttpsServer(String keystorePassword, String keystoreLocation) {
         char[] pw = keystorePassword.toCharArray();
@@ -99,7 +102,7 @@ public class SimpleHttpsServer {
             Log.i(TAG, "Received request for URI: " + uri);
             var path = uri.getPath();
             if (path == null || path.isEmpty()) {
-                sendError(exchange, 400, "Invalid path");
+                sendApiError(exchange, 400, "Bad Request: Invalid or missing request path", defaultSerializer);
                 return;
             }
             path = normalizePath(path);
@@ -107,13 +110,33 @@ public class SimpleHttpsServer {
             var key = new RouteKey(path, method);
             var route = routes.get(key);
             if (route == null) {
-                sendError(exchange, 404, "The requested URL " + path + " was not found on this server.");
+                    sendApiError(exchange, 404, "The requested URL " + path + " was not found on this server.", defaultSerializer);
                 return;
             }
             route.handle(exchange, this);
         } catch (Exception e) {
             Log.e(TAG, "Error handling request", e);
+            sendApiError(exchange, 500, "Internal server error", defaultSerializer);
+        }
+    }
+
+    public void sendApiError(HttpExchange exchange, int responseCode, String errorMsg, Serializer serializer) {
+        var response = ApiResponse.error(errorMsg);
+        byte[] rawResponseBody;
+        try {
+            rawResponseBody = serializer.serialize(response);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to serialize API error response", e);
             sendError(exchange, 500, "Internal server error");
+            return;
+        }
+        try {
+            exchange.sendResponseHeaders(responseCode, rawResponseBody.length);
+            try (OutputStream os = exchange.getResponseBody()) {
+                os.write(rawResponseBody);
+            }
+        } catch (IOException e) {
+            Log.e(TAG, "Failed to send API error response", e);
         }
     }
 
@@ -131,7 +154,7 @@ public class SimpleHttpsServer {
     }
 
 
-    public <RequestType, ResponseType, StoredRequestType extends StoreType<RequestType>, StoredResponseType extends StoreType<ResponseType>> void addRoute(String route, String method, StoredRequestType requestType, StoredResponseType responseType, Function<RequestType, Response<ResponseType>> func) {
+    public <RequestType, ResponseType, StoredRequestType extends StoreType<RequestType>, StoredResponseType extends StoreType<ResponseType>> void addRoute(String route, String method, StoredRequestType requestType, StoredResponseType responseType, RouteHandler<RequestType, ResponseType> func) {
         routes.put(new RouteKey(route, method), new Route<>(requestType, responseType, func));
     }
 
