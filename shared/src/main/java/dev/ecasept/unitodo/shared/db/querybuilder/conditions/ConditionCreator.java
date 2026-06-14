@@ -28,8 +28,8 @@ public class ConditionCreator {
         addNewCondition(new EqualsCondition<>(column, value));
         return this;
     }
-    public <T> ConditionCreator like(String column, String pattern) {
-        addNewCondition(new LikeCondition(column, pattern));
+    public <T> ConditionCreator contains(String column, String pattern) {
+        addNewCondition(new LikeCondition(column, "%" + pattern + "%"));
         return this;
     }
     public <T> ConditionCreator eqAny(String column, List<T> values) {

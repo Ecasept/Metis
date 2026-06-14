@@ -156,8 +156,8 @@ public class ClientDatabaseRepository {
                 .from("tasks")
                 .filter(it -> it
                         .or(
-                                c -> c.like("title", query),
-                                c -> c.like("description", query)
+                                c -> c.contains("title", query),
+                                c -> c.contains("description", query)
                         )
                 )
                 .prepare()) {
