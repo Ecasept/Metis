@@ -12,6 +12,9 @@ import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+
 public class Main {
     public static void main(String[] args) {
         var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
@@ -26,16 +29,21 @@ public class Main {
             return;
         }
 
-        try (databaseController) {
-            var queryBuilder = new QueryBuilder(databaseController);
-            var db = new ClientDatabaseRepository(queryBuilder);
-            var synchronizer = new Synchronizer(db, apiClient);
-            var dataManager = new DataManager(db, apiClient, synchronizer);
+        var queryBuilder = new QueryBuilder(databaseController);
+        var db = new ClientDatabaseRepository(queryBuilder);
+        var synchronizer = new Synchronizer(db, apiClient);
+        var dataManager = new DataManager(db, apiClient, synchronizer);
 
-            MainFrame frame = new MainFrame(db);
-
-        } catch (DatabaseException e) {
-            Log.e("Main", "An error occurred while running the application", e);
-        }
+        MainFrame frame = new MainFrame(db);
+        frame.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosed(WindowEvent e) {
+                try {
+                    databaseController.close();
+                } catch (DatabaseException ex) {
+                    Log.e("Main", "Failed to close database", ex);
+                }
+            }
+        });
     }
 }
