@@ -3,7 +3,6 @@ package dev.ecasept.unitodo.client;
 import dev.ecasept.unitodo.client.api.ApiClient;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
-import dev.ecasept.unitodo.client.sync.SyncState;
 import dev.ecasept.unitodo.client.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
@@ -20,7 +19,6 @@ public class DataManager {
     private final ApiClient apiClient;
     private final Synchronizer synchronizer;
     private final HashMap<UUID, ClientTask> unsynced = new HashMap<>();
-    private SyncState state = SyncState.NeedsFullSync;
     private LocalDateTime cachedLastSyncTime = null;
 
     private LocalDateTime getLastSyncTime() throws DatabaseException {
@@ -42,57 +40,34 @@ public class DataManager {
 
     public void login(String username, String password) throws ApiException, DatabaseException {
         var sessionToken = apiClient.login(username, password);
-        apiClient.setSessionToken(sessionToken);
         db.setSessionToken(sessionToken);
+        apiClient.setSessionToken(sessionToken);
     }
     public void register(String username, String password) throws ApiException, DatabaseException {
         var sessionToken = apiClient.register(username, password);
-        apiClient.setSessionToken(sessionToken);
         db.setSessionToken(sessionToken);
+        apiClient.setSessionToken(sessionToken);
     }
     public void logout() throws DatabaseException {
-        apiClient.setSessionToken(null);
         db.deleteSessionToken();
+        apiClient.setSessionToken(null);
     }
     public void deleteAccount(String password) throws ApiException, DatabaseException {
         apiClient.deleteAccount(password);
-        apiClient.setSessionToken(null);
-        db.deleteSessionToken();
+        logout();
     }
 
     /**
-     * Synchronizes all tasks that have been modified since the last synchronization time, and updates the last synchronization time to now.
-     * Sidesteps the unsynced cache, so make sure to always update the db even if you also update the unsynced cache.
      * @throws DatabaseException If any database access fails
      */
-    private void synchronizeAll() throws DatabaseException {
+    private void sync() throws DatabaseException {
         var lastSyncTime = getLastSyncTime();
-        var tasks = db.getTasksModifiedSince(lastSyncTime);
-        try {
-            synchronizer.synchronize(tasks, lastSyncTime);
-            setLastSyncTime(LocalDateTime.now());
-            state = SyncState.Synced;
-        } catch (ApiException e) {
-            Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
-            state = SyncState.NeedsFullSync;
-        }
-    }
-
-    /**
-     * Only syncs the unsynced task cache, avoiding a database query to fetch all modified tasks.
-     * Should only be used when the unsynced cache is guaranteed to contain all modified tasks, i.e. when {@link DataManager#state} is {@link SyncState#Synced} or {@link SyncState#Dirty}.
-     * @throws DatabaseException If any database access fails
-     */
-    private void syncUnsynced() throws DatabaseException {
-        var lastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.MIN);
         try {
             synchronizer.synchronize(unsynced.values().toArray(new ClientTask[0]), lastSyncTime);
-            unsynced.clear();
-            state = SyncState.Synced;
             setLastSyncTime(LocalDateTime.now());
+            unsynced.clear();
         } catch (ApiException e) {
             Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
-            state = SyncState.Dirty;
         }
     }
 
@@ -109,17 +84,8 @@ public class DataManager {
      */
     public void upsertTask(ClientTask task) throws DatabaseException {
         db.upsertTask(task);
-        switch (state) {
-            case Synced, Dirty -> {
-                // Only sync this task and others in the unsynced cache
-                unsynced.put(task.uuid(), task);
-                syncUnsynced();
-            }
-            case NeedsFullSync -> {
-                // There might be some changes in the db (e.g. from a previous session) that need to be synchronized, so do a full sync
-                synchronizeAll();
-            }
-        }
+        unsynced.put(task.uuid(), task);
+        sync();
     }
 
     /**
@@ -131,5 +97,23 @@ public class DataManager {
     public void deleteTask(ClientTask task) throws DatabaseException {
         var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), new TimestampedField<>(true));
         upsertTask(deletedTask);
+    }
+
+
+    public void initialize() throws DatabaseException {
+        // Check for unsynced tasks in the database
+        var lastSyncTime = getLastSyncTime();
+        var modifiedTasks = db.getTasksModifiedSince(lastSyncTime);
+        if (!modifiedTasks.isEmpty()) {
+            Log.i(TAG, "Found " + modifiedTasks.size() + " unsynced tasks in the database, will synchronize on next sync");
+            for (var task : modifiedTasks) {
+                unsynced.put(task.uuid(), task);
+            }
+        }
+        // Cache session token
+        var sessionToken = db.getSessionToken();
+        apiClient.setSessionToken(sessionToken.orElse(null));
+        // Sync with server to get any changes that might have happened while the client was offline
+        sync();
     }
 }

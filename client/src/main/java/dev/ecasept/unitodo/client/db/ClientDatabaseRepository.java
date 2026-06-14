@@ -128,7 +128,7 @@ public class ClientDatabaseRepository {
         }
     }
 
-    public ClientTask[] getTasksModifiedSince(LocalDateTime lastSyncTime) throws DatabaseException {
+    public ArrayList<ClientTask> getTasksModifiedSince(LocalDateTime lastSyncTime) throws DatabaseException {
         long lastSync = DateFormat.toLong(lastSyncTime);
         try (var query = db
                 .select()
@@ -144,7 +144,7 @@ public class ClientDatabaseRepository {
                         )
                 )
                 .prepare()) {
-            return query.executeMulti(ClientTask::fromResultSet).toArray(new ClientTask[0]);
+            return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
             throw new DatabaseException("Failed to get modified tasks from database", e);
         }
