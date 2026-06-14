@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.shared.serialization;
 
 import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
 import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
+import dev.ecasept.unitodo.shared.serialization.adapters.OptionalAdapter;
 import dev.ecasept.unitodo.shared.serialization.adapters.RawDataAdapter;
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;import dev.ecasept.unitodo.shared.serialization.types.StoreType;import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
@@ -10,53 +11,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.util.HashMap;
-
-
-
-/*
-Sync Protocol:
-- Client sends:
-    - A list of items where the lastUpdate is after lastSync
-- Server checks lastSync of client
-- server creates a similiar list and sends it back to the client
-    - both execute this merge algorithm
-        - possible combinations: edited/present/not present/deleted <-> edited/deleted
-        - present <-> edited
-            - edited overwrites
-        - present <-> deleted
-            - look at timestamp
-        - not present <-> edited
-            - edited wins
-        - not present <-> deleted
-            - stay not present
-        - deleted <-> edited
-            - look at timestamp
-        - deleted <-> deleted
-            - doesn't matter
-        - edited <-> edited
-            - merge
-        - edited <-> deleted
-            - look at timestamp
-
-        - This means this for the tombstone deletion edge case:
-            - for the server, we are in the not present case (and it therefore won't send anything over to the client)
-            - for the client, we could be in two cases:
-                - present
-                    - it won't be sent over to the server
-                - deleted
-                    - it stays not present in the server
-                - edited
-                    - the server will add it as a new item
-                - later on, we detect on the server that the client may have old tombstones
-                    so we send a list of all uuids we have. as the present and deleted cases do not add
-                    the uuid back to the server, the uuid will not be in the list and will be deleted by the client.
-                    However if the client has edited the item (we cannot be sure when, so we just resurrect the item to prevent data loss)
-                    it will be added back to the server, and it will be included on the list and therefore not deleted by the client
-
-- if the server sees that the tombstone deletion period has passed, it additionally sends a list of all uuids (after the merge)
-    - the client unconditionally deletes any uuid not in that list
- */
-
+import java.util.Optional;
 
 
 /**
@@ -117,7 +72,7 @@ public class Serializer {
     }
 
     /**
-     * Converts an object that belongs to a serializable class into a binary recoverable representation of it.
+     * Converts an object that belongs to a serializable class into a recoverable binary representation of it.
      * @param o The object to be serialized
      * @return The serialized bytes
      */
@@ -144,6 +99,6 @@ public class Serializer {
     }
 
     public static Serializer createDefault() {
-        return new Serializer().adapter(RawDataAdapter.class, RawData.class).adapter(LocalDateTimeAdapter.class, LocalDateTime.class);
+        return new Serializer().adapter(RawDataAdapter.class, RawData.class).adapter(LocalDateTimeAdapter.class, LocalDateTime.class).adapter(OptionalAdapter.class, Optional.class);
     }
 }
