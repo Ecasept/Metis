@@ -14,7 +14,7 @@ public class GreaterThanOrEqualsCondition<T> implements Condition {
         this.operand = operand;
     }
     public String asParameterizedSql() {
-        return "(" + BuilderUtils.quoteIdentifier(column) + " >= ? )";
+        return "(" + BuilderUtils.quoteIdentifier(column) + " >= ?)";
     }
     public int fillParameters(PreparedStatement statement, int i) throws DatabaseException {
         try {

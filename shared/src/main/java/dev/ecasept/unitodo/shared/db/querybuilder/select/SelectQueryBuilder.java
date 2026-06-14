@@ -43,7 +43,7 @@ public class SelectQueryBuilder {
         var sb = new StringBuilder();
         sb.append("SELECT");
         if (columns.isEmpty()) {
-            sb.append("*");
+            sb.append(" * ");
         } else {
             sb.append(columns.stream().map(BuilderUtils::quoteIdentifier).collect(Collectors.joining(", ")));
         }
