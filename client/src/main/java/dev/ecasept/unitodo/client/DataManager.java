@@ -21,6 +21,10 @@ public class DataManager {
     private final HashMap<UUID, ClientTask> unsynced = new HashMap<>();
     private LocalDateTime cachedLastSyncTime = null;
 
+    public boolean isLoggedIn() throws DatabaseException {
+        return db.getSessionToken().isPresent();
+    }
+
     private LocalDateTime getLastSyncTime() throws DatabaseException {
         if (cachedLastSyncTime == null) {
             cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.MIN);
