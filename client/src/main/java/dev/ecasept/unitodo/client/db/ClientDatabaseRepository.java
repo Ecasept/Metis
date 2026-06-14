@@ -150,6 +150,23 @@ public class ClientDatabaseRepository {
         }
     }
 
+    public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
+        try (var q = db
+                .select()
+                .from("tasks")
+                .filter(it -> it
+                        .or(
+                                c -> c.like("title", query),
+                                c -> c.like("description", query)
+                        )
+                )
+                .prepare()) {
+            return q.executeMulti(ClientTask::fromResultSet);
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to search tasks in database", e);
+        }
+    }
+
 
 
     public <T> T transaction(TransactionFunction<T> function) throws DatabaseException, SQLException {

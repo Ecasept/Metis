@@ -28,6 +28,10 @@ public class ConditionCreator {
         addNewCondition(new EqualsCondition<>(column, value));
         return this;
     }
+    public <T> ConditionCreator like(String column, String pattern) {
+        addNewCondition(new LikeCondition(column, pattern));
+        return this;
+    }
     public <T> ConditionCreator eqAny(String column, List<T> values) {
         addNewCondition(new InCondition<>(column, values));
         return this;

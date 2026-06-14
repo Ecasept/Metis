@@ -33,19 +33,6 @@ public class Main {
             var queryBuilder = new QueryBuilder(databaseController);
             var db = new ClientDatabaseRepository(queryBuilder);
 
-            try {
-                db.upsertTask(ClientTask.create("Info2 ÜB08", "Blatt erledigen", TaskState.Pending, TaskPriority.Mid, LocalDateTime.of(2026, 6, 10, 12, 0)));
-                db.upsertTask(ClientTask.create("Einkaufen", "4 Äpfel und 1 Brot", TaskState.Pending, TaskPriority.Low, LocalDateTime.of(2026, 7, 1, 12, 0)));
-                db.upsertTask(ClientTask.create("Sport machen", "Laufen gehen", TaskState.Pending, TaskPriority.High, LocalDateTime.of(2026, 5, 5, 12, 0)));
-                db.upsertTask(ClientTask.create("Info ÜB06", "Blatt erledigen", TaskState.Pending, TaskPriority.Mid, LocalDateTime.of(2026, 6, 1, 12, 0)));
-                db.upsertTask(ClientTask.create("Wäsche waschen", "Alles in die Waschmaschine", TaskState.Pending, TaskPriority.Mid, LocalDateTime.of(2025, 6, 30, 12, 0)));
-                ClientTask putzen = ClientTask.create("Putzen", "So richtig ordentlich inkl. Bad", TaskState.Finished, TaskPriority.Mid, LocalDateTime.of(2025, 6, 30, 12, 0));
-                db.upsertTask(putzen);
-            } catch (DatabaseException e) {
-                Log.e("Main", "Failed to create tasks", e);
-                return;
-            }
-
             MainFrame frame = new MainFrame(db);
 
         } catch (Exception e) {
