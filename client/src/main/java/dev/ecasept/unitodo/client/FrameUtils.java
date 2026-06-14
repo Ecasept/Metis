@@ -1,9 +1,8 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.db.DatabaseRepository;
-import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.SortOrder;
+import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
 
@@ -77,15 +76,15 @@ public class FrameUtils {
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
      * @param db Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<Task> fillListAndTableModelPending(DefaultTableModel tableModel, DatabaseRepository db) {
-        ArrayList<Task> list;
+    public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+        ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, SortOrder.Ascending);
+            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
-            return new ArrayList<Task>();
+            return new ArrayList<ClientTask>();
         }
-        for (Task t : list) {
+        for (ClientTask t : list) {
             LocalDateTime date = t.dueDate().get();
             int min = date.getMinute();
             String minStr;
@@ -113,15 +112,15 @@ public class FrameUtils {
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
      * @param db Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<Task> fillListAndTableModelFinished(DefaultTableModel tableModel, DatabaseRepository db) {
-        ArrayList<Task> list;
+    public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+        ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Finished, SortOrder.Descending);
+            list = db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
-            return new ArrayList<Task>();
+            return new ArrayList<ClientTask>();
         }
-        for (Task t : list) {
+        for (ClientTask t : list) {
             LocalDateTime date = t.dueDate().get();
             int min = date.getMinute();
             String minStr;
@@ -145,16 +144,16 @@ public class FrameUtils {
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
      * @param db Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<Task> fillListAndTableModelAll(DefaultTableModel tableModel, DatabaseRepository db) {
-        ArrayList<Task> list;
+    public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+        ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, SortOrder.Ascending);
-            list.addAll(db.getTasks(TaskState.Finished, SortOrder.Descending));
+            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
+            list.addAll(db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate")));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
-            return new ArrayList<Task>();
+            return new ArrayList<ClientTask>();
         }
-        for (Task t : list) {
+        for (ClientTask t : list) {
             LocalDateTime date = t.dueDate().get();
             int min = date.getMinute();
             String minStr;
@@ -178,15 +177,15 @@ public class FrameUtils {
      * @param db Datenbankinstanz aus der die Daten gelesen werden
      * @param searchString Der Suchbegriff
      */
-    public static ArrayList<Task> fillListAndTableModelSearched(DefaultTableModel tableModel, DatabaseRepository db, String searchString) {
-        ArrayList<Task> list;
+    public static ArrayList<ClientTask> fillListAndTableModelSearched(DefaultTableModel tableModel, ClientDatabaseRepository db, String searchString) {
+        ArrayList<ClientTask> list;
         try {
-            ArrayList<Task> allSearch = db.searchTasks(searchString);
+            ArrayList<ClientTask> allSearch = db.searchTasks(searchString);
 
-            ArrayList<Task> pendingTasks = new ArrayList<>();
-            ArrayList<Task> finishedTasks = new ArrayList<>();
+            ArrayList<ClientTask> pendingTasks = new ArrayList<>();
+            ArrayList<ClientTask> finishedTasks = new ArrayList<>();
 
-            for (Task t : allSearch) {
+            for (ClientTask t : allSearch) {
                 if (t.state().get() == TaskState.Pending) {
                     pendingTasks.add(t);
                 } else {
@@ -202,9 +201,9 @@ public class FrameUtils {
 
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
-            return new ArrayList<Task>();
+            return new ArrayList<ClientTask>();
         }
-        for (Task t : list) {
+        for (ClientTask t : list) {
             LocalDateTime date = t.dueDate().get();
             int min = date.getMinute();
             String minStr;

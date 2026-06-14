@@ -8,7 +8,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 @Serializable
-public record Password(@Field(tag = 1) char[] pw) {
+public record Password(@Field(tag = 1) char[] pw) implements AutoCloseable {
     public Password(String pw) {
         this(pw.toCharArray());
     }
@@ -30,5 +30,10 @@ public record Password(@Field(tag = 1) char[] pw) {
         byteBuffer.get(bytes);
         Arrays.fill(byteBuffer.array(), (byte) 0);
         return bytes;
+    }
+
+    @Override
+    public void close() {
+        shred();
     }
 }

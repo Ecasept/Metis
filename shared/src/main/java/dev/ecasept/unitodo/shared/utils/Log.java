@@ -31,6 +31,20 @@ public class Log {
     }
 
     /**
+     * Logs a warning message with the given tag, message and throwable. The message will only be printed if the current log level is {@link LogLevel#WARNING} or higher. The throwable's stack trace will also be printed to standard output.
+     * @param tag The tag to associate with the log message (e.g. the class name or module name).
+     * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
+     * @param t The throwable to log. The stack trace of this throwable will be printed to standard error along with the message.
+     */
+    public static void w(String tag, Object message, Throwable t) {
+        if (LogLevel.WARNING.isAtLeast(LOG_LEVEL)) {
+            System.out.println(Color.y("[" + tag + "] " + message.toString()));
+            System.out.println(Color.y("Warning: " + t.getClass().getName() + ": " + t.getMessage()));
+            t.printStackTrace(System.out);
+        }
+    }
+
+    /**
      * Logs an info message with the given tag and message. The message will only be printed if the current log level is {@link LogLevel#INFO} or higher.
      * @param tag The tag to associate with the log message (e.g. the class name or module name).
      * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.

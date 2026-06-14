@@ -1,3 +1,15 @@
 package dev.ecasept.unitodo.server.db;
 
-public record User (String username, String passwordHash) {}
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.UUID;
+
+public record User (UUID userId, String username, String passwordHash) {
+    public static User fromResultSet(ResultSet rs) throws SQLException {
+        return new User(
+                UUID.fromString(rs.getString("user_id")),
+                rs.getString("username"),
+                rs.getString("password_hash")
+        );
+    }
+}

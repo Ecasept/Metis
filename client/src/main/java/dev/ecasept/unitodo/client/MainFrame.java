@@ -1,8 +1,9 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.db.DatabaseRepository;
+import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.models.db.Task;
+import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
@@ -20,7 +21,7 @@ import java.util.UUID;
 @SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
 
-    private final DatabaseRepository db;
+    private final ClientDatabaseRepository db;
 
     // Aktuelle Ansicht (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
@@ -49,7 +50,7 @@ public class MainFrame extends JFrame {
     private JTable taskTable;
     private DefaultTableModel tableModel;
     private String[] rows = {"Status", "Titel", "Fälligkeitsdatum", "Priorität", "", ""};
-    private ArrayList<Task> currentlyShownTasks;
+    private ArrayList<ClientTask> currentlyShownTasks;
 
     // Listener für die Button
     private ActionListener showAllListener = new ActionListener() {
@@ -91,7 +92,7 @@ public class MainFrame extends JFrame {
 
 
 
-    public MainFrame(DatabaseRepository db) {
+    public MainFrame(ClientDatabaseRepository db) {
         this.db = db;
         last = LAST_WAS_ALL;
 
@@ -385,17 +386,17 @@ public class MainFrame extends JFrame {
                 // Neuen Task in db speichern
                 try {
                     if (selectedPriority.equals("niedrig")) {
-                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.Low, dueDate));
+                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Low, dueDate));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("mittel")) {
-                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.Mid, dueDate));
+                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Mid, dueDate));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("hoch")) {
-                        db.upsertTask(Task.create(title, description, TaskState.Pending, TaskPriority.High, dueDate));
+                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.High, dueDate));
                         setOverview();
                         return;
                     }
@@ -482,7 +483,7 @@ public class MainFrame extends JFrame {
         this.getContentPane().removeAll();
 
         // Taskobjekt aus DB auslesen
-        Task task;
+        ClientTask task;
         try {
             task = this.db.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
@@ -690,7 +691,7 @@ public class MainFrame extends JFrame {
         this.getContentPane().removeAll();
 
         // Taskobjekt aus DB auslesen
-        Task task;
+        ClientTask task;
         try {
             task = this.db.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
@@ -846,7 +847,7 @@ public class MainFrame extends JFrame {
             try {
                 int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
                 if (x == JOptionPane.YES_OPTION) {
-                    db.deleteTask(uuid.toString());
+                    db.deleteTask(uuid);
                     tableModel.removeRow(row);
                     currentlyShownTasks.remove(row);
                 } else {
@@ -871,7 +872,7 @@ public class MainFrame extends JFrame {
        System.out.println("Status ändern von Zeile " + row);
 
        if (!currentlyShownTasks.isEmpty()) {
-           Task task = currentlyShownTasks.get(row);
+           ClientTask task = currentlyShownTasks.get(row);
 
 
            if (task.state().get().equals(TaskState.Pending)) {

@@ -1,8 +1,10 @@
 package dev.ecasept.unitodo.client.api;
 
-import dev.ecasept.unitodo.shared.models.api.ApiResponse;
-import dev.ecasept.unitodo.shared.models.api.Password;
-import dev.ecasept.unitodo.shared.models.api.UsernameAndPassword;
+import dev.ecasept.unitodo.client.api.exception.ApiException;
+import dev.ecasept.unitodo.client.api.exception.ApiSerializationException;
+import dev.ecasept.unitodo.client.api.exception.ApiNetworkException;
+import dev.ecasept.unitodo.client.api.exception.ApiServerErrorException;
+import dev.ecasept.unitodo.shared.models.api.*;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
@@ -12,6 +14,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.util.List;
 import java.util.function.UnaryOperator;
 
 public class ApiClient {
@@ -25,51 +28,67 @@ public class ApiClient {
         this.serializer = serializer;
     }
 
-    public ApiResponse<String> login(String username, String password) {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
-        return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, requestBody));
-    }
-    public ApiResponse<String> register(String username, String password) {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
-        return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, requestBody));
-    }
-    public ApiResponse<Void> deleteAccount(String username, String password) {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
-        return dispatch(() -> sendDelete("/auth/register", new StoreType<>() {}, requestBody));
+    private String sessionToken;
+    public void setSessionToken(String token) {
+        this.sessionToken = token;
     }
 
-    private <T> ApiResponse<T> dispatch(ApiCall<ApiResponse<T>> apiCall) {
+    public String login(String username, String password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, new Password(password));
+        return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, requestBody, false));
+    }
+    public String register(String username, String password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, new Password(password));
+        return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, requestBody, false));
+    }
+    public void deleteAccount(String password) throws ApiException {
+        try (var requestBody = new Password(password)) {
+            dispatch(() -> sendPost("/users/delete", new StoreType<>() {}, requestBody, true));
+        }
+    }
+    public SyncResponse sync(SyncRequest request) throws ApiException {
+        return dispatch(() -> sendPost("/data/sync", new StoreType<>() {}, request, true));
+    }
+
+    private <T> T dispatch(ApiCall<ApiResponse<T>> apiCall) throws ApiException {
         try {
-            return apiCall.get();
-        } catch (HttpRequestException e) {
-            Log.e(TAG, "HTTP request failed: " + e.getMessage(), e);
-            return ApiResponse.error("Failed to connect to server: " + e.getMessage());
+            return apiCall.get().on(
+                    data -> data,
+                    error -> {
+                        Log.e(TAG, "API call failed: " + error);
+                        throw new ApiServerErrorException("API call failed: " + error);
+                    }
+            );
         } catch (SerializationException e) {
-            Log.e(TAG, "Failed to parse server response: " + e.getMessage(), e);
-            return ApiResponse.error("Failed to parse server response: " + e.getMessage());
+            throw new ApiSerializationException("Failed to serialize/deserialize API data", e);
         }
     }
 
-    private <RequestType, ResponseType> ResponseType sendPost(String endpoint, StoreType<ResponseType> responseType, RequestType requestBody) throws HttpRequestException, SerializationException {
-        return sendRequest(endpoint, responseType, req -> req.POST(HttpRequest.BodyPublishers.ofByteArray(serializer.serialize(requestBody))));
-    }
-    private <RequestType, ResponseType> ResponseType sendDelete(String endpoint, StoreType<ResponseType> responseType, RequestType requestBody) throws HttpRequestException, SerializationException {
-        return sendRequest(endpoint, responseType, req -> req.method("DELETE", HttpRequest.BodyPublishers.ofByteArray(serializer.serialize(requestBody))));
+    private <RequestType, ResponseType> ResponseType sendPost(String endpoint, StoreType<ResponseType> responseType, RequestType requestBody, boolean authorized) throws SerializationException, ApiNetworkException {
+        return sendRequest(endpoint, responseType, req -> req.POST(HttpRequest.BodyPublishers.ofByteArray(serializer.serialize(requestBody))), authorized);
     }
 
-    private <ResponseType> ResponseType sendRequest(String endpoint, StoreType<ResponseType> responseType, UnaryOperator<HttpRequest.Builder> method) throws HttpRequestException, SerializationException {
-        HttpRequest request = method.apply(HttpRequest.newBuilder()
-                .uri(java.net.URI.create(baseUrl + endpoint)))
-                .build();
+    private <ResponseType> ResponseType sendRequest(String endpoint, StoreType<ResponseType> responseType, UnaryOperator<HttpRequest.Builder> method, boolean authorized) throws ApiNetworkException, SerializationException {
+        var builder = method.apply(HttpRequest.newBuilder()
+                .uri(java.net.URI.create(baseUrl + endpoint)));
+        if (authorized && sessionToken != null) {
+            builder.header("Authorization", "Bearer " + sessionToken);
+        }
+        var request = builder.build();
         HttpResponse<byte[]> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
         } catch (IOException | InterruptedException e) {
-            throw new HttpRequestException("Failed to send request to " + endpoint, e);
+            throw new ApiNetworkException("Failed to send request to " + endpoint, e);
         }
-        if (response.statusCode() < 200 || response.statusCode() >= 300) {
-            throw new HttpRequestException("Received non-200 response: " + response.statusCode() + " with body: " + new String(response.body()));
+
+        try {
+            return serializer.deserialize(response.body(), responseType);
+        } catch (SerializationException e) {
+            if (response.statusCode() < 200 || response.statusCode() >= 300) {
+                throw new ApiNetworkException("Server returned non-200 status code: " + response.statusCode() + " and raw body could not be parsed.", e);
+            }
+            throw e;
         }
-        return serializer.deserialize(response.body(), responseType);
     }
 }

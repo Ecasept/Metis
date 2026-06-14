@@ -1,12 +1,11 @@
 package dev.ecasept.unitodo.server.security;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.Base64;
+import java.util.Optional;
 
 public class SignedTokenService {
     public String generateToken(String payload, byte[] secret) {
@@ -22,13 +21,13 @@ public class SignedTokenService {
         }
     }
 
-    public String verifyAndGetPayload(String token, byte[] secret) {
+    public Optional<String> verifyAndGetPayload(String token, byte[] secret) {
         if (token == null) {
-            return null;
+            return Optional.empty();
         }
         String[] parts = token.split("\\.");
         if (parts.length != 2) {
-            return null;
+            return Optional.empty();
         }
 
         try {
@@ -39,13 +38,13 @@ public class SignedTokenService {
             byte[] expectedSignature = CryptoUtils.calculateHmac(encodedPayload, secret);
 
             if (!MessageDigest.isEqual(providedSignature, expectedSignature)) {
-                return null;
+                return Optional.empty();
             }
             byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPayload);
-            return new String(decodedBytes, StandardCharsets.UTF_8);
+            return Optional.of(new String(decodedBytes, StandardCharsets.UTF_8));
         } catch (IllegalArgumentException e) {
             // Catches invalid Base64 padding or invalid characters
-            return null;
+            return Optional.empty();
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             throw new IllegalStateException("Failed to verify token due to configuration error", e);
         }

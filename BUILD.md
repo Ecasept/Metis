@@ -6,7 +6,7 @@ It is split into two projects, `server` and `client`, plus a `shared` project fo
 ## Running the server
 The server requires two files for configuration:
 - a keystore file, which contains the SSL certificate used for HTTPS
-- a `.env` file, containing configuration parameters (not strictly necessary as the server provides insecure defaults). The `.env` file should be placed inside of the current working directory of the server, which is usually the directory that you execute the `.jar` file from, or the `server` project directory if you use gradle to execute the server.
+- a `.env` file, containing configuration parameters (not strictly necessary as the server provides insecure defaults). The `.env` file should be placed inside the current working directory of the server, which is usually the directory that you execute the `.jar` file from, or the `server` project directory if you use gradle to execute the server.
 
 The server can be run using `./gradlew :server:run`.
 It is also possible to create an executable `.jar` with all dependencies included using `./gradlew :server:jar`
@@ -25,6 +25,8 @@ You should include a few keys in your config:
 - `PORT`: the port to run your server on
 - `KEYSTORE_PASSWORD`: the password for your keystore file. If you generated it using the above command, this needs to be set to `changeit`.
 - `KEYSTORE_LOCATION`: the location of the keystore file relative to the current working directory of the server.
+- `DB_URL`: the location of your sqlite database, e.g. `jdbc:sqlite:database.db`. The database file will be created if it does not exist.
+- `TOMBSTONE_TTL`: the time in days that a tombstone (a marker for a deleted item) should be kept in the database before it is permanently deleted. Clients whose last sync was before the tombstone was created, and sync again after it was deleted won't be aware of its existence and will require a full sync to reconcile their state with the server.
 
 ## Running the client
 The client does not require any configuration whatsoever.
