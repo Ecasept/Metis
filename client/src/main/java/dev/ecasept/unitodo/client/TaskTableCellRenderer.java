@@ -1,15 +1,16 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.Icons.DeleteIcon;
-import dev.ecasept.unitodo.client.Icons.EditIcon;
 import dev.ecasept.unitodo.client.Icons.PriorityIcon;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
 public class TaskTableCellRenderer implements TableCellRenderer {
+
+    private static final String TAG = "TaskTableCellRenderer";
 
 
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
@@ -68,7 +69,12 @@ public class TaskTableCellRenderer implements TableCellRenderer {
         if (column == 4) {
             JButton button = new JButton((String) value);
             button.setOpaque(true);
-            button.setIcon(new EditIcon(Color.BLACK, 15));
+            var imgUrl = TaskTableCellRenderer.class.getClassLoader().getResource("edit.png");
+            if (imgUrl != null) {
+                button.setIcon(new ImageIcon(imgUrl));
+            } else {
+                Log.e(TAG, "Failed to load edit icon");
+            }
             return button;
         }
 
@@ -77,7 +83,12 @@ public class TaskTableCellRenderer implements TableCellRenderer {
         if (column == 5) {
             JButton button = new JButton((String) value);
             button.setOpaque(true);
-            button.setIcon(new DeleteIcon(Color.BLACK, 15));
+            var imgUrl = TaskTableCellRenderer.class.getClassLoader().getResource("delete.png");
+            if (imgUrl != null) {
+                button.setIcon(new ImageIcon(imgUrl));
+            } else {
+                Log.e(TAG, "Failed to load delete icon");
+            }
             return button;
         }
 
@@ -87,6 +98,5 @@ public class TaskTableCellRenderer implements TableCellRenderer {
         JLabel label = new JLabel();
         label.setOpaque(true);
         return label;
-
     }
 }

@@ -1,12 +1,8 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.Icons.DeleteIcon;
-import dev.ecasept.unitodo.client.Icons.EditIcon;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
-import javax.swing.event.CellEditorListener;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ChangeListener;
 import javax.swing.table.TableCellEditor;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -22,6 +18,7 @@ public class TaskTableEditor extends AbstractCellEditor implements TableCellEdit
     private JButton titleButton;
     private int currentColumn;
 
+    private static final String TAG = "TaskTableEditor";
 
     public TaskTableEditor(MainFrame frame) {
         this.frame = frame;
@@ -90,13 +87,23 @@ public class TaskTableEditor extends AbstractCellEditor implements TableCellEdit
         }
 
         if (column == 4) {
-            button.setIcon(new EditIcon(Color.BLACK, 15));
+            var imgUrl = TaskTableEditor.class.getClassLoader().getResource("edit.png");
+            if (imgUrl != null) {
+                button.setIcon(new ImageIcon(imgUrl));
+            } else {
+                Log.e(TAG, "Failed to load edit icon");
+            }
             button.setText("X");
             return button;
         }
 
         if (column == 5) {
-            button.setIcon(new DeleteIcon(Color.BLACK, 15));
+            var imgUrl = TaskTableEditor.class.getClassLoader().getResource("delete.png");
+            if (imgUrl != null) {
+                button.setIcon(new ImageIcon(imgUrl));
+            } else {
+                Log.e(TAG, "Failed to load delete icon");
+            }
             button.setText("X");
             return button;
         }
