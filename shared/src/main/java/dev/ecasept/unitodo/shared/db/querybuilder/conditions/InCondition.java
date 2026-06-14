@@ -17,7 +17,7 @@ public class InCondition<T> implements Condition {
     }
 
     public String asParameterizedSql() {
-        return "(" + BuilderUtils.quoteIdentifier(column) + " IN (" + "?, ".repeat(options.size() - 1) + "?)";
+        return "(" + BuilderUtils.quoteIdentifier(column) + " IN (" + "?, ".repeat(options.size() - 1) + "?))";
     }
 
     public int fillParameters(PreparedStatement statement, int i) throws DatabaseException {
