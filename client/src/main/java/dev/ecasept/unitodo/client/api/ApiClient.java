@@ -14,7 +14,7 @@ import java.io.IOException;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.util.List;
+import java.util.Optional;
 import java.util.function.UnaryOperator;
 
 public class ApiClient {
@@ -29,6 +29,9 @@ public class ApiClient {
     }
 
     private String sessionToken;
+    private Optional<String> getSessionToken() {
+        return Optional.ofNullable(sessionToken);
+    }
     public void setSessionToken(String token) {
         this.sessionToken = token;
     }
@@ -71,8 +74,9 @@ public class ApiClient {
     private <ResponseType> ResponseType sendRequest(String endpoint, StoreType<ResponseType> responseType, UnaryOperator<HttpRequest.Builder> method, boolean authorized) throws ApiNetworkException, SerializationException {
         var builder = method.apply(HttpRequest.newBuilder()
                 .uri(java.net.URI.create(baseUrl + endpoint)));
-        if (authorized && sessionToken != null) {
-            builder.header("Authorization", "Bearer " + sessionToken);
+        var sessionToken = getSessionToken();
+        if (authorized && sessionToken.isPresent()) {
+            builder.header("Authorization", "Bearer " + sessionToken.get());
         }
         var request = builder.build();
         HttpResponse<byte[]> response;
