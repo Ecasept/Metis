@@ -10,4 +10,4 @@ build
 # Configuration files
 **/keystore.jks
 **/.env
-**/data.db
+**/*.db
