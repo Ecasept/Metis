@@ -8,13 +8,8 @@ import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
 import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
-import dev.ecasept.unitodo.shared.models.db.ClientTask;
-import dev.ecasept.unitodo.shared.models.db.TaskPriority;
-import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.utils.Log;
-
-import java.time.LocalDateTime;
 
 public class Main {
     public static void main(String[] args) {
