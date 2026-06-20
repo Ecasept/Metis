@@ -1,12 +1,27 @@
 package dev.ecasept.unitodo.shared.utils;
 
 
+import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.function.UnaryOperator;
+
 /**
  * A simple logging utility that supports different log levels and colored output.
  */
 public class Log {
     /** The current log level. Only messages at this level or higher will be printed. */
     public static final LogLevel LOG_LEVEL = LogLevel.DEBUG;
+
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+
+    private static void log(String tag, String message, UnaryOperator<String> colorer, String levelName) {
+        String sb = "[" + LocalTime.now().format(TIME_FORMAT) + "] " +
+                "[" + levelName + "] " +
+                "[" + tag + "] " +
+                message;
+
+        System.out.println(colorer.apply(sb));
+    }
 
     /**
      * Logs a debug message with the given tag and message. The message will only be printed if the current log level is {@link LogLevel#DEBUG} or higher.
@@ -15,7 +30,7 @@ public class Log {
      */
     public static void d(String tag, Object message) {
         if (LogLevel.DEBUG.isAtLeast(LOG_LEVEL)) {
-            System.out.println(Color.g("[" + tag + "] " + message.toString()));
+            log(tag, message.toString(), Color::g, "DEBUG");
         }
     }
 
@@ -26,7 +41,7 @@ public class Log {
      */
     public static void w(String tag, Object message) {
         if (LogLevel.WARNING.isAtLeast(LOG_LEVEL)) {
-            System.out.println(Color.y("[" + tag + "] " + message.toString()));
+            log(tag, message.toString(), Color::y, "WARNING");
         }
     }
 
@@ -38,8 +53,8 @@ public class Log {
      */
     public static void w(String tag, Object message, Throwable t) {
         if (LogLevel.WARNING.isAtLeast(LOG_LEVEL)) {
-            System.out.println(Color.y("[" + tag + "] " + message.toString()));
-            System.out.println(Color.y("Warning: " + t.getClass().getName() + ": " + t.getMessage()));
+            log(tag, message.toString(), Color::y, "WARNING");
+            System.out.println(Color.y("Cause: " + t.getClass().getName() + ": " + t.getMessage()));
             t.printStackTrace(System.out);
         }
     }
@@ -51,7 +66,7 @@ public class Log {
      */
     public static void i(String tag, Object message) {
         if (LogLevel.INFO.isAtLeast(LOG_LEVEL)) {
-            System.out.println(Color.lb("[" + tag + "] " + message.toString()));
+            log(tag, message.toString(), Color::lb, "INFO");
         }
     }
 
@@ -63,8 +78,8 @@ public class Log {
      */
     public static void e(String tag, Object message, Throwable t) {
         if (LogLevel.ERROR.isAtLeast(LOG_LEVEL)) {
-            System.err.println(Color.r("[" + tag + "] " + message.toString()));
-            System.err.println(Color.r("Error: " + t.getClass().getName() + ": " + t.getMessage()));
+            log(tag, message.toString(), Color::r, "ERROR");
+            System.err.println(Color.r("Cause: " + t.getClass().getName() + ": " + t.getMessage()));
             t.printStackTrace(System.err);
         }
     }
@@ -76,7 +91,7 @@ public class Log {
      */
     public static void e(String tag, Object message) {
         if (LogLevel.ERROR.isAtLeast(LOG_LEVEL)) {
-            System.err.println(Color.r("[" + tag + "] " + message.toString()));
+            log(tag, message.toString(), Color::r, "ERROR");
         }
     }
 
