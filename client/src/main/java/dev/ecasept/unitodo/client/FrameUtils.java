@@ -74,14 +74,15 @@ public class FrameUtils {
      *
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
+            list = dataManager.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
@@ -95,7 +96,6 @@ public class FrameUtils {
             }
             String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
             tableModel.addRow(new Object[]{"Ausstehend", t.title().get(), str, t.priority().get(), "", "", });
-            // tableModel.addRow(new Object[]{t});
         }
 
         return list;
@@ -110,14 +110,15 @@ public class FrameUtils {
      *
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"));
+            list = dataManager.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
@@ -131,7 +132,6 @@ public class FrameUtils {
             }
             String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
             tableModel.addRow(new Object[]{"Erledigt", t.title().get(), str, t.priority().get(), "", ""});
-            // tableModel.addRow(new Object[]{t});
         }
 
         return list;
@@ -142,13 +142,13 @@ public class FrameUtils {
      * Die DefaultListModel wird mit den Repräsentationen der einzelnen Tasks als Zeilen in der Tabelle gefüllt.
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
-            list.addAll(db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate")));
+            list = dataManager.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
+            list.addAll(dataManager.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate")));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
@@ -174,13 +174,13 @@ public class FrameUtils {
      * Befüllt die übergebene DefaultTableModel mit allen Tasks, die dem Suchstring entsprechen.
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks gefüllt wird.
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      * @param searchString Der Suchbegriff
      */
-    public static ArrayList<ClientTask> fillListAndTableModelSearched(DefaultTableModel tableModel, ClientDatabaseRepository db, String searchString) {
+    public static ArrayList<ClientTask> fillListAndTableModelSearched(DefaultTableModel tableModel, DataManager dataManager, String searchString) {
         ArrayList<ClientTask> list;
         try {
-            ArrayList<ClientTask> allSearch = db.searchTasks(searchString);
+            ArrayList<ClientTask> allSearch = dataManager.searchTasks(searchString);
 
             ArrayList<ClientTask> pendingTasks = new ArrayList<>();
             ArrayList<ClientTask> finishedTasks = new ArrayList<>();
@@ -201,6 +201,7 @@ public class FrameUtils {
 
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {

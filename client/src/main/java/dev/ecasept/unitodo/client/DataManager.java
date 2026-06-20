@@ -5,13 +5,16 @@ import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.client.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
+import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.models.db.TimestampedField;
 import dev.ecasept.unitodo.shared.utils.Log;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.UUID;
+import java.time.ZoneOffset;
+import java.util.*;
 
 public class DataManager {
     private static final String TAG = "DataManager";
@@ -27,7 +30,7 @@ public class DataManager {
 
     private LocalDateTime getLastSyncTime() throws DatabaseException {
         if (cachedLastSyncTime == null) {
-            cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.MIN);
+            cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC));
         }
         return cachedLastSyncTime;
     }
@@ -120,4 +123,38 @@ public class DataManager {
         // Sync with server to get any changes that might have happened while the client was offline
         sync();
     }
+
+
+
+
+
+    public Optional<ClientTask> getTask(String uuid) throws DatabaseException {
+        return db.getTask(uuid);
+    }
+
+    public ArrayList<ClientTask> getTasks(List<UUID> uuids) throws DatabaseException {
+        return db.getTasks(uuids);
+    }
+
+    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
+        return db.getTasks(state, order);
+    }
+
+
+
+
+
+
+    public void deleteTasks(List<UUID> uuids) throws DatabaseException {
+        db.deleteTasks(uuids);
+    }
+
+    public ArrayList<ClientTask> getTasksModifiedSince(LocalDateTime lastSyncTime) throws DatabaseException {
+        return db.getTasksModifiedSince(lastSyncTime);
+    }
+
+    public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
+        return db.searchTasks(query);
+    }
 }
+
