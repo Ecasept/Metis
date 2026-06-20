@@ -410,17 +410,17 @@ public class MainFrame extends JFrame {
                 // Neuen Task in db speichern
                 try {
                     if (selectedPriority.equals("niedrig")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Low, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("mittel")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Mid, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("hoch")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.High, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate));
                         setOverview();
                         return;
                     }
@@ -564,10 +564,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().equals(TaskState.Pending)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().equals(TaskState.Finished)) {
+        if (task.state().get().isFinished()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -774,10 +774,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().equals(TaskState.Pending)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().equals(TaskState.Finished)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -900,8 +900,8 @@ public class MainFrame extends JFrame {
            ClientTask task = currentlyShownTasks.get(row);
 
 
-           if (task.state().get().equals(TaskState.Pending)) {
-               task.state().set(TaskState.Finished);
+           if (task.state().get().isPending()) {
+               task.state().set(new TaskState.Finished(LocalDateTime.now()));
                try {
                    dataManger.upsertTask(task);
                    if (last == LAST_WAS_ALL) {
@@ -916,8 +916,8 @@ public class MainFrame extends JFrame {
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
                }
-           } else if (task.state().get().equals(TaskState.Finished)) {
-               task.state().set(TaskState.Pending);
+           } else if (task.state().get().isFinished()) {
+               task.state().set(new TaskState.Pending());
                try {
                    dataManger.upsertTask(task);
                    if (last == LAST_WAS_ALL) {

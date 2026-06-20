@@ -27,8 +27,9 @@ public class ServerSynchronizer {
         var state = pickNewer(a.state(), b.state());
         var priority = pickNewer(a.priority(), b.priority());
         var dueDate = pickNewer(a.dueDate(), b.dueDate());
+        var dueTime = pickNewer(a.dueTime(), b.dueTime());
         var isDeleted = pickNewer(a.isDeleted(), b.isDeleted());
-        return new ServerTask(a.uuid(), title, description, state, priority, dueDate, isDeleted, a.userId());
+        return new ServerTask(a.uuid(), title, description, state, priority, dueDate, dueTime, isDeleted, a.userId());
     }
 
     public List<ServerTask> synchronize(Map<UUID, ServerTask> cur, Map<UUID, ClientTask> other, UUID userId) {

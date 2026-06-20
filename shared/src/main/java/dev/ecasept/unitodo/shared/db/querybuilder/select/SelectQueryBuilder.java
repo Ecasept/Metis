@@ -8,6 +8,7 @@ import dev.ecasept.unitodo.shared.db.querybuilder.conditions.Condition;
 import dev.ecasept.unitodo.shared.db.querybuilder.conditions.ConditionCreator;
 
 import java.sql.PreparedStatement;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
 import java.util.function.UnaryOperator;
@@ -63,7 +64,11 @@ public class SelectQueryBuilder {
             sb.append(" WHERE ").append(condition.asParameterizedSql());
         }
         if (sortOrder != null) {
-            sb.append(" ORDER BY ").append(BuilderUtils.quoteIdentifier(sortOrder.column())).append(" ").append(sortOrder.orderAsSql());
+            sb.append(" ORDER BY ");
+            var sortColumns = Arrays.stream(sortOrder.getColumns())
+                    .map(BuilderUtils::quoteIdentifier)
+                    .collect(Collectors.joining(", "));
+            sb.append(sortColumns).append(" ").append(sortOrder.orderAsSql());
         }
         return sb.toString();
     }

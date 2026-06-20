@@ -79,7 +79,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -115,7 +115,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false);
+            list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -147,8 +147,8 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
-            list.addAll(dataManager.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false));
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
+            list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
@@ -163,7 +163,7 @@ public class FrameUtils {
                 minStr = "" + min;
             }
             String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
+            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
             tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
         }
 
@@ -186,7 +186,7 @@ public class FrameUtils {
             ArrayList<ClientTask> finishedTasks = new ArrayList<>();
 
             for (ClientTask t : allSearch) {
-                if (t.state().get() == TaskState.Pending) {
+                if (t.state().get().isPending()) {
                     pendingTasks.add(t);
                 } else {
                     finishedTasks.add(t);
@@ -214,7 +214,7 @@ public class FrameUtils {
                 minStr = "" + min;
             }
             String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
+            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
             tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
         }
 
