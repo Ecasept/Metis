@@ -163,6 +163,7 @@ public class ClientDatabaseRepository {
                 .select()
                 .from("tasks")
                 .filter(it -> it
+                        .eq("isDeleted", false)
                         .or(
                                 c -> c.contains("title", query),
                                 c -> c.contains("description", query)
