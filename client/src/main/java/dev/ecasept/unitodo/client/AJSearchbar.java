@@ -1,7 +1,5 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.shared.utils.Log;
-
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -24,7 +22,6 @@ public class AJSearchbar extends JPanel {
                 if (shouldUpdate) {
                     callback.accept(input.getText());
                 }
-                Log.i("AJSearchbar", "Text changed: " + input.getText());
             }
             @Override public void insertUpdate(DocumentEvent e) { update(); }
             @Override public void removeUpdate(DocumentEvent e) { update(); }
@@ -34,7 +31,6 @@ public class AJSearchbar extends JPanel {
         input.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                Log.i("AJSearchbar", "Focus gained");
                 if (input.getText().equals(placeholder)) {
                     input.setText("");
                 }
