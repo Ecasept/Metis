@@ -4,6 +4,7 @@ import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.db.querybuilder.conditions.AndCondition;
 import dev.ecasept.unitodo.shared.db.querybuilder.conditions.Condition;
 import dev.ecasept.unitodo.shared.db.querybuilder.conditions.ConditionCreator;
 
@@ -32,8 +33,12 @@ public class SelectQueryBuilder {
         if (conditionCreator.getCondition() == null) {
             throw new IllegalArgumentException("Condition can't be null");
         }
-        this.condition = conditionCreator.getCondition();
-        return this;
+        if (this.condition == null) {
+            this.condition = conditionCreator.getCondition();
+        } else {
+             this.condition = new AndCondition(this.condition, conditionCreator.getCondition());
+        }
+         return this;
     }
 
     public SelectQueryBuilder when(boolean condition, UnaryOperator<SelectQueryBuilder> thenFn) {
