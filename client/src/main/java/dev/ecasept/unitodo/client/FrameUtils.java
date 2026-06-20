@@ -81,7 +81,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -118,7 +118,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false);
+            list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -151,8 +151,8 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"), false);
-            list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"), false));
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
+            list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
