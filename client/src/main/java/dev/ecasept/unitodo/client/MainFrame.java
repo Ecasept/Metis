@@ -1,8 +1,6 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
@@ -10,7 +8,6 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
-import javax.xml.crypto.Data;
 import java.awt.*;
 import java.awt.event.*;
 import java.time.DateTimeException;
@@ -21,6 +18,7 @@ import java.util.UUID;
 
 @SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
+    private static final String TAG = "MainFrame";
 
     private final DataManager dataManger;
 
@@ -100,6 +98,12 @@ public class MainFrame extends JFrame {
 
     public MainFrame(DataManager dataManger) {
         this.dataManger = dataManger;
+        dataManger.setAsyncErrorHandler(
+                e -> {
+                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt synchronisiert werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    Log.e(TAG, "Error during asynchronous database operation", e);
+                }
+        );
         try {
             dataManger.initialize();
             loggedIn = dataManger.isLoggedIn();
