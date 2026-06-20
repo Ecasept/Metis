@@ -59,7 +59,7 @@ public class InsertQueryBuilder {
         try {
             int index = startIndex;
             for (Object value : values) {
-                statement.setObject(index++, value);
+                BuilderUtils.bindParameter(statement, index++, value);
             }
             return index;
         } catch (SQLException e) {

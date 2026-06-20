@@ -9,6 +9,6 @@ public class BatcherPlaceholder {
 
     @Override
     public String toString() {
-        return obj.toString();
+        return String.valueOf(obj);
     }
 }
