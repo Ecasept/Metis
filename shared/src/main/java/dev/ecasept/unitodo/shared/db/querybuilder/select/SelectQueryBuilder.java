@@ -34,6 +34,14 @@ public class SelectQueryBuilder {
         return this;
     }
 
+    public SelectQueryBuilder when(boolean condition, UnaryOperator<SelectQueryBuilder> thenFn) {
+        if (condition) {
+            return thenFn.apply(this);
+        } else {
+            return this;
+        }
+    }
+
     public SelectQueryBuilder orderBy(SortOrder sortOrder) {
         this.sortOrder = sortOrder;
         return this;
