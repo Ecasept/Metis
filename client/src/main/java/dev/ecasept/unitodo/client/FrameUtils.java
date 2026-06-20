@@ -83,7 +83,6 @@ public class FrameUtils {
         ArrayList<ClientTask> list;
         try {
             list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
-            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -110,7 +109,6 @@ public class FrameUtils {
         ArrayList<ClientTask> list;
         try {
             list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false);
-            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -134,7 +132,6 @@ public class FrameUtils {
         try {
             list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
             list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false));
-            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
