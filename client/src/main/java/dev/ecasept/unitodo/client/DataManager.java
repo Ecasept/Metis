@@ -123,7 +123,7 @@ public class DataManager {
      * @throws DatabaseException If any database access fails
      */
     public void deleteTask(ClientTask task) throws DatabaseException {
-        var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), new TimestampedField<>(true));
+        var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), task.dueTime(), new TimestampedField<>(true));
         upsertTask(deletedTask);
     }
 

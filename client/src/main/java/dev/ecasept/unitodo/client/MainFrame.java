@@ -11,7 +11,9 @@ import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
 import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.UUID;
@@ -339,13 +341,15 @@ public class MainFrame extends JFrame {
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = "dd.mm.yyyy hh:mm";
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = "dd.mm.yyyy";
+        String placeholderTime = "hh:mm";
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setForeground(Color.GRAY);
         textfieldDueDate.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy"))
                     textfieldDueDate.setText("");
 
 
@@ -354,12 +358,32 @@ public class MainFrame extends JFrame {
             @Override
             public void focusLost(FocusEvent e) {
                 if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText(placeholder);
+                    textfieldDueDate.setText(placeholderDate);
+
+            }
+        });
+
+        textfieldDueTime.setForeground(Color.GRAY);
+        textfieldDueTime.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("hh:mm"))
+                    textfieldDueTime.setText("");
+
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueTime.getText().equals(""))
+                    textfieldDueTime.setText(placeholderTime);
 
             }
         });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
 
         // TextArea für Beschreibung
@@ -397,9 +421,15 @@ public class MainFrame extends JFrame {
 
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
-                LocalDateTime dueDate = checkDueDate(dueDateString);
+                String dueTimeString = textfieldDueTime.getText();
+                LocalDate dueDate = TimeUtils.checkDueDate(dueDateString);
                 if (dueDate == null)
                     return;
+
+                LocalTime dueTime = null;
+                if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
+                    dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                }
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
@@ -410,17 +440,17 @@ public class MainFrame extends JFrame {
                 // Neuen Task in db speichern
                 try {
                     if (selectedPriority.equals("niedrig")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate, dueTime));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("mittel")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate, dueTime));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("hoch")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate, dueTime));
                         setOverview();
                         return;
                     }
@@ -454,53 +484,7 @@ public class MainFrame extends JFrame {
 
 
 
-    public LocalDateTime checkDueDate(String dueDateString) {
-        // Prüfen ob keine Eingabe erfolgt ist
-        if (dueDateString.equals("dd.mm.yyyy hh:mm")) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum darf nicht leer sein.");
-            return null;
-        }
 
-        String[] dueDateArr = dueDateString.split("[.: ]");
-        if (dueDateArr.length != 5) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
-            return null;
-        }
-
-
-        int day = 0;
-        int month = 0;
-        int year = 0;
-        int hour = 0;
-        int minute = 0;
-
-
-        try {
-            day = Integer.parseInt(dueDateArr[0]);
-            month = Integer.parseInt(dueDateArr[1]);
-            year = Integer.parseInt(dueDateArr[2]);
-            hour = Integer.parseInt(dueDateArr[3]);
-            minute = Integer.parseInt(dueDateArr[4]);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
-            return null;
-        }
-
-        LocalDateTime dueDate;
-        try {
-            dueDate = LocalDateTime.of(year, month, day, hour, minute);
-        } catch (DateTimeException dateEx) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie eingegebenen Zahlen stellen kein gültiges Datum dar.");
-            return null;
-        }
-
-        if (dueDate.isBefore(LocalDateTime.now())) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas gewählt Fälligkeitsdatum liegt in der Vergangenhet.");
-            return null;
-        }
-
-        return dueDate;
-    }
 
 
     public void showChangeTask(UUID uuid) {
@@ -579,30 +563,75 @@ public class MainFrame extends JFrame {
         mainPanel.add(panel);
 
 
+
+
+
         // Panel für Fälligkeitsdatum
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderTime = "hh:mm";
+        if (task.dueTime().get() != null) {
+            placeholderTime = task.dueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setForeground(Color.GRAY);
         textfieldDueDate.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy"))
                     textfieldDueDate.setText("");
+
+
             }
 
             @Override
             public void focusLost(FocusEvent e) {
                 if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText("dd.mm.yyyy hh:mm");
+                    textfieldDueDate.setText(placeholderDate);
+
+            }
+        });
+
+        textfieldDueTime.setForeground(Color.GRAY);
+        textfieldDueTime.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("hh:mm"))
+                    textfieldDueTime.setText("");
+
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("")) {
+                    textfieldDueTime.setText("hh:mm");
+                }
 
             }
         });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         // TextArea für Beschreibung
@@ -646,15 +675,39 @@ public class MainFrame extends JFrame {
                 }
 
 
+
+
+
+
+
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
-                LocalDateTime dueDate = checkDueDate(dueDateString);
+                String dueTimeString = textfieldDueTime.getText();
+                LocalDate dueDate = TimeUtils.checkDueDate(dueDateString);
                 if (dueDate == null)
                     return;
+
+                LocalTime dueTime = null;
+                if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
+                    dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                }
+
                 // Wenn sich neues Fälligkeitsdatum von altem unterscheidet, dann neues Fälligkeitsdatum setzen
                 if (!dueDate.equals(task.dueDate().get())) {
                     task.dueDate().set(dueDate);
                 }
+                if (!dueTime.equals(task.dueTime().get())) {
+                    task.dueTime().set(dueTime);
+                }
+
+
+
+
+
+
+
+
+
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
@@ -789,31 +842,38 @@ public class MainFrame extends JFrame {
         mainPanel.add(panel);
 
 
+
+
+
         // Panel für Fälligkeitsdatum
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderTime = "hh:mm";
+        if (task.dueTime().get() != null) {
+            placeholderTime = task.dueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setEditable(false);
+        textfieldDueTime.setEditable(false);
         textfieldDueDate.setForeground(Color.GRAY);
-        textfieldDueDate.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
-                    textfieldDueDate.setText("");
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText("dd.mm.yyyy hh:mm");
-
-            }
-        });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
+
+
+
+
+
+
+
+
+
 
         // TextArea für Beschreibung
         JPanel middlePanel = new JPanel();

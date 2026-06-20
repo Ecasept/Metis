@@ -8,7 +8,9 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 
 public class FrameUtils {
@@ -86,15 +88,16 @@ public class FrameUtils {
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
+            LocalDate date = t.dueDate().get();
+            LocalTime time = t.dueTime().get();
+            int min = time.getMinute();
             String minStr;
             if (min < 10) {
                 minStr = "0" + min;
             } else {
                 minStr = "" + min;
             }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
             tableModel.addRow(new Object[]{"Ausstehend", t.title().get(), str, t.priority().get(), "", "", });
         }
 
@@ -122,15 +125,16 @@ public class FrameUtils {
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
+            LocalDate date = t.dueDate().get();
+            LocalTime time = t.dueTime().get();
+            int min = time.getMinute();
             String minStr;
             if (min < 10) {
                 minStr = "0" + min;
             } else {
                 minStr = "" + min;
             }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
             tableModel.addRow(new Object[]{"Erledigt", t.title().get(), str, t.priority().get(), "", ""});
         }
 
@@ -154,15 +158,16 @@ public class FrameUtils {
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
+            LocalDate date = t.dueDate().get();
+            LocalTime time = t.dueTime().get();
+            int min = time.getMinute();
             String minStr;
             if (min < 10) {
                 minStr = "0" + min;
             } else {
                 minStr = "" + min;
             }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
             String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
             tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
         }
@@ -205,15 +210,16 @@ public class FrameUtils {
             return new ArrayList<ClientTask>();
         }
         for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
+            LocalDate date = t.dueDate().get();
+            LocalTime time = t.dueTime().get();
+            int min = time.getMinute();
             String minStr;
             if (min < 10) {
                 minStr = "0" + min;
             } else {
                 minStr = "" + min;
             }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
+            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
             String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
             tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
         }
