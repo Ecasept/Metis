@@ -48,12 +48,13 @@ public class ClientDatabaseRepository {
         }
     }
 
-    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
+    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order, boolean includeDeleted) throws DatabaseException {
         try (var query = db
                 .select()
                 .from("tasks")
                 .filter(it -> it.eq("state", state.toInt()))
                 .orderBy(order)
+                .when(!includeDeleted, it -> it.filter(i -> i.eq("isDeleted", false)))
                 .prepare()) {
             return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {

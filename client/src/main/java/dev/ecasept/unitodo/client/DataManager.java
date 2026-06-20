@@ -153,8 +153,8 @@ public class DataManager {
         return db.getTask(uuid);
     }
 
-    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
-        return db.getTasks(state, order);
+    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order, boolean includeDeleted) throws DatabaseException {
+        return db.getTasks(state, order, includeDeleted);
     }
 
     public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
