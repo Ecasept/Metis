@@ -12,6 +12,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class FrameUtils {
 
@@ -82,24 +83,14 @@ public class FrameUtils {
         ArrayList<ClientTask> list;
         try {
             list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
+            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDate date = t.dueDate().get();
-            LocalTime time = t.dueTime().get();
-            int min = time.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
-            tableModel.addRow(new Object[]{"Ausstehend", t.title().get(), str, t.priority().get(), "", "", });
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -119,24 +110,14 @@ public class FrameUtils {
         ArrayList<ClientTask> list;
         try {
             list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false);
+            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDate date = t.dueDate().get();
-            LocalTime time = t.dueTime().get();
-            int min = time.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
-            tableModel.addRow(new Object[]{"Erledigt", t.title().get(), str, t.priority().get(), "", ""});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -153,24 +134,13 @@ public class FrameUtils {
         try {
             list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
             list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false));
+            System.out.println("In der Liste sind " + list.size() + " Elemente");
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDate date = t.dueDate().get();
-            LocalTime time = t.dueTime().get();
-            int min = time.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
-            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
-            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -209,22 +179,35 @@ public class FrameUtils {
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDate date = t.dueDate().get();
-            LocalTime time = t.dueTime().get();
-            int min = time.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
-            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
-            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
 
+
+    private static void fillTableModel(DefaultTableModel tableModel, ArrayList<ClientTask> list) {
+
+        String str = "";
+
+        for (ClientTask t : list) {
+            LocalDate date = t.dueDate().get();
+            Optional<LocalTime> timeOptional = t.dueTime().get();
+            if (timeOptional.isPresent()) {
+                LocalTime time = timeOptional.get();
+                int min = time.getMinute();
+                String minStr;
+                if (min < 10) {
+                    minStr = "0" + min;
+                } else {
+                    minStr = "" + min;
+                }
+                str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
+            } else {
+                str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
+            }
+            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
+            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
+        }
+    }
 }

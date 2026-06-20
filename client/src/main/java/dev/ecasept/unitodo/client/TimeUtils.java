@@ -5,6 +5,7 @@ import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.IllegalFormatException;
 
 public class TimeUtils {
 
@@ -57,12 +58,12 @@ public class TimeUtils {
 
 
 
-    public static LocalTime checkDueTime(String dueTimeString, LocalDate dueDate) {
+    public static LocalTime checkDueTime(String dueTimeString, LocalDate dueDate) throws IllegalArgumentException {
 
         String[] dueDateArr = dueTimeString.split("[:]");
         if (dueDateArr.length != 2) {
             JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie Fälligkeitsuhrzeit hat ein ungültiges Format.");
-            return null;
+            throw new IllegalArgumentException("Illegal Time Format");
         }
 
 
@@ -76,7 +77,7 @@ public class TimeUtils {
             minute = Integer.parseInt(dueDateArr[1]);
         } catch (NumberFormatException ex) {
             JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie Fälligkeitsuhrzeit hat ein ungültiges Format.");
-            return null;
+            throw new IllegalArgumentException("Illegal Time Format");
         }
 
         LocalTime dueTime;
@@ -84,13 +85,13 @@ public class TimeUtils {
             dueTime = LocalTime.of(hour, minute);
         } catch (DateTimeException dateEx) {
             JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie eingegebenen Zahlen stellen keine gültige Uhrzeit dar.");
-            return null;
+            throw new IllegalArgumentException("Illegal Time Format");
         }
 
 
         if (LocalDateTime.of(dueDate, dueTime).isBefore(LocalDateTime.now())) {
             JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie gewählte Fälligkeitsuhrzeit liegt in der Vergangenheit.");
-            return null;
+            throw new IllegalArgumentException("Illegal Time Format");
         }
 
         return dueTime;

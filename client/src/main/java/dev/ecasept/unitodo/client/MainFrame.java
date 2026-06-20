@@ -422,15 +422,21 @@ public class MainFrame extends JFrame {
 
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
-                String dueTimeString = textfieldDueTime.getText();
                 LocalDate dueDate = TimeUtils.checkDueDate(dueDateString);
                 if (dueDate == null)
                     return;
 
+                // Prüfen, dass die Fälligkeitsuhrzeit nicht leer oder ungültig ist
+                String dueTimeString = textfieldDueTime.getText();
                 LocalTime dueTime = null;
                 if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
-                    dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                    try {
+                        dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                    } catch (IllegalArgumentException ex) {
+                        return;
+                    }
                 }
+
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
