@@ -1,22 +1,36 @@
 package dev.ecasept.unitodo.shared.db.querybuilder.conditions;
 
+import dev.ecasept.unitodo.shared.db.querybuilder.conditions.OrCondition;
+
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class ConditionCreator {
     private final Consumer<Condition> newConditionFn;
     private Condition condition = null;
-    public ConditionCreator() {
-        newConditionFn = (condition) -> {
-            if (this.condition == null) {
-                this.condition = condition;
-            } else {
-                this.condition = new AndCondition(this.condition, condition);
-            }
-        };
+
+    public void addConditionWithOr(Condition newCondition) {
+        if (this.condition == null) {
+            this.condition = newCondition;
+        } else {
+            this.condition = new OrCondition(this.condition, newCondition);
+        }
     }
-    public ConditionCreator(Consumer<Condition> newConditionFn) {
-        this.newConditionFn = newConditionFn;
+
+    public void addConditionWithAnd(Condition newCondition) {
+        if (this.condition == null) {
+            this.condition = newCondition;
+        } else {
+            this.condition = new AndCondition(this.condition, newCondition);
+        }
+    }
+
+    public ConditionCreator() {
+        newConditionFn = this::addConditionWithAnd;
+    }
+    public ConditionCreator(Function<ConditionCreator, Consumer<Condition>> newConditionFnSupplier) {
+        this.newConditionFn = newConditionFnSupplier.apply(this);
     }
 
 
@@ -64,13 +78,7 @@ public class ConditionCreator {
     }
     public final ConditionCreator defaultOr(Consumer<ConditionCreator> conditionFn) {
         var conditionCreator = new ConditionCreator(
-                (condition) -> {
-                    if (this.condition == null) {
-                        this.condition = condition;
-                    } else {
-                        this.condition = new OrCondition(this.condition, condition);
-                    }
-                }
+                (self) -> self::addConditionWithOr
         );
         conditionFn.accept(conditionCreator);
         if (conditionCreator.getCondition() == null) {
