@@ -132,25 +132,8 @@ public class DataManager {
         return db.getTask(uuid);
     }
 
-    public ArrayList<ClientTask> getTasks(List<UUID> uuids) throws DatabaseException {
-        return db.getTasks(uuids);
-    }
-
     public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
         return db.getTasks(state, order);
-    }
-
-
-
-
-
-
-    public void deleteTasks(List<UUID> uuids) throws DatabaseException {
-        db.deleteTasks(uuids);
-    }
-
-    public ArrayList<ClientTask> getTasksModifiedSince(LocalDateTime lastSyncTime) throws DatabaseException {
-        return db.getTasksModifiedSince(lastSyncTime);
     }
 
     public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
