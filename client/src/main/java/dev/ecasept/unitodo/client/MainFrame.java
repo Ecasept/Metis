@@ -16,6 +16,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 
 @SuppressWarnings("LanguageDetectionInspection")
@@ -440,17 +441,17 @@ public class MainFrame extends JFrame {
                 // Neuen Task in db speichern
                 try {
                     if (selectedPriority.equals("niedrig")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate, dueTime));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("mittel")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate, dueTime));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("hoch")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate, dueTime));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
@@ -572,8 +573,8 @@ public class MainFrame extends JFrame {
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
         String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         String placeholderTime = "hh:mm";
-        if (task.dueTime().get() != null) {
-            placeholderTime = task.dueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (task.dueTime().get().isPresent()) {
+            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
         }
 
         JTextField textfieldDueDate = new JTextField(placeholderDate);
@@ -696,8 +697,8 @@ public class MainFrame extends JFrame {
                 if (!dueDate.equals(task.dueDate().get())) {
                     task.dueDate().set(dueDate);
                 }
-                if (!dueTime.equals(task.dueTime().get())) {
-                    task.dueTime().set(dueTime);
+                if (!Optional.ofNullable(dueTime).equals(task.dueTime().get())) {
+                    task.dueTime().set(Optional.ofNullable(dueTime));
                 }
 
 
@@ -851,8 +852,8 @@ public class MainFrame extends JFrame {
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
         String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         String placeholderTime = "hh:mm";
-        if (task.dueTime().get() != null) {
-            placeholderTime = task.dueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (task.dueTime().get().isPresent()) {
+            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
         }
 
         JTextField textfieldDueDate = new JTextField(placeholderDate);

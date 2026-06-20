@@ -102,7 +102,7 @@ public class ClientDatabaseRepository {
                         task.state().get().toInt(),
                         task.priority().get().toInt(),
                         DateFormat.toLong(task.dueDate().get()),
-                        DateFormat.toLong(task.dueTime().get()),
+                        task.dueTime().get().map(DateFormat::toLong).orElse(null),
                         DateFormat.toLong(task.title().getLastUpdated()),
                         DateFormat.toLong(task.description().getLastUpdated()),
                         DateFormat.toLong(task.state().getLastUpdated()),

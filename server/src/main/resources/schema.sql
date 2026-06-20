@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     state INTEGER NOT NULL,
     priority INTEGER NOT NULL,
     dueDate INTEGER NOT NULL,
-    dueTime INTEGER NOT NULL,
+    dueTime INTEGER,
 
     titleChanged INTEGER NOT NULL,
     descriptionChanged INTEGER NOT NULL,
