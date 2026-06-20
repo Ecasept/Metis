@@ -45,7 +45,9 @@ public class SelectQueryBuilder {
         if (columns.isEmpty()) {
             sb.append(" * ");
         } else {
+            sb.append(" ");
             sb.append(columns.stream().map(BuilderUtils::quoteIdentifier).collect(Collectors.joining(", ")));
+            sb.append(" ");
         }
         sb.append("FROM ").append(BuilderUtils.quoteIdentifier(table));
         if (condition != null) {
