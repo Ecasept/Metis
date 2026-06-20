@@ -1,10 +1,16 @@
 package dev.ecasept.unitodo.shared.models.db;
 
+import dev.ecasept.unitodo.shared.serialization.annotations.Field;
+import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
+
 import java.time.LocalDateTime;
 import java.util.function.UnaryOperator;
 
+@Serializable
 public class TimestampedField<V> {
+    @Field(tag=1)
     private V value;
+    @Field(tag=2)
     private LocalDateTime lastUpdated;
 
     public TimestampedField(V value) {

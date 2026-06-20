@@ -1,22 +1,42 @@
 package dev.ecasept.unitodo.shared.models.db;
 
-public enum TaskState {
-    Finished (0),
-    Pending (1);
+import java.time.LocalDateTime;
+import java.util.Optional;
 
-    private final int value;
-    TaskState(int value) {
-        this.value = value;
+public sealed interface TaskState permits TaskState.Finished, TaskState.Pending {
+    int toInt();
+
+    record Finished(LocalDateTime completedAt) implements TaskState {
+        @Override
+        public int toInt() {
+            return 0;
+        }
+    }
+    record Pending() implements TaskState {
+        @Override
+        public int toInt() {
+            return 1;
+        }
     }
 
-    public int toInt() {
-        return value;
+    default boolean isFinished() {
+        return this instanceof Finished;
+    }
+    default boolean isPending() {
+        return this instanceof Pending;
     }
 
-    public static TaskState fromInt(int value) {
+    default Optional<LocalDateTime> getCompletedAt() {
+        return this instanceof Finished(var completedAt)
+                ? Optional.of(completedAt)
+                : Optional.empty();
+    }
+
+
+    static TaskState fromInt(int value, LocalDateTime completedAt) {
         return switch (value) {
-            case 0 -> Finished;
-            case 1 -> Pending;
+            case 0 -> new Finished(completedAt);
+            case 1 -> new Pending();
             default -> throw new IllegalArgumentException("Invalid TaskState value: " + value);
         };
     }
