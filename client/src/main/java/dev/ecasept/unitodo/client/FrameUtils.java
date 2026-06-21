@@ -24,7 +24,7 @@ public class FrameUtils {
 
 
 
-        // Renderer und Editor setzen
+        // Renderer setzen
         taskTable.setDefaultRenderer(Object.class, new TaskTableCellRenderer());
 
         // Einstellungen für Anzeige des JTable

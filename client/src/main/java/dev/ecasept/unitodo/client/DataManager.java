@@ -80,7 +80,7 @@ public class DataManager {
     /**
      * @throws DatabaseException If any database access fails
      */
-    private void sync() throws DatabaseException {
+    public void sync() throws DatabaseException {
         var now = LocalDateTime.now();
         syncExecutor.submit(() -> {
             try {

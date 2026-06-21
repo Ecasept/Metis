@@ -10,7 +10,6 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -34,7 +33,7 @@ public class MainFrame extends JFrame {
     // Anmeldestatus + Buttons zur Accountverwaltung
     private boolean loggedIn = false;
     JMenuItem logInOutMenuItem;
-    JMenuItem registerDeleteMenuAccountMenuItem;
+    JMenuItem registerDeleteAccountMenuItem;
 
     // Elemente der GUI
     private JScrollPane scrollPaneTasks;
@@ -89,9 +88,69 @@ public class MainFrame extends JFrame {
     private ActionListener syncListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("SYNCHRONISATION");
+            if (!loggedIn) {
+                JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
+                return;
+            } else {
+                try {
+                    dataManger.sync();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Synchronisation fehlgeschlagen. Bitte versuchen sie es erneut.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
+                }
+            }
         }
     };
+    private ActionListener logInOutMenuItemListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+           if (logInOutMenuItem.getActionCommand().equals("Anmelden")) {
+
+               LoginDialog loginFrame = new LoginDialog(null, true, dataManger);
+               try {
+                   loggedIn = dataManger.isLoggedIn();
+               } catch (DatabaseException ex) {
+                   JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                   return;
+               }
+               setOverview();
+
+           } else if (logInOutMenuItem.getActionCommand().equals("Abmelden")) {
+               try {
+                   dataManger.logout();
+                   loggedIn = dataManger.isLoggedIn();
+               } catch (DatabaseException ex) {
+                   JOptionPane.showMessageDialog(null, "Abmelden nicht möglich. Bitte versuchen sie es erneut.", "Abmelden nicht möglich", JOptionPane.ERROR_MESSAGE);
+                   return;
+               }
+               setOverview();
+           }
+        }
+    };
+
+    private ActionListener registerDeleteAccountMenuItemListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (e.getActionCommand().equals("Registrieren")) {
+                RegisterDialog registerDialog = new RegisterDialog(null, true, dataManger);
+                try {
+                    loggedIn = dataManger.isLoggedIn();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } else if (e.getActionCommand().equals("Account löschen")) {
+                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManger);
+                try {
+                    loggedIn = dataManger.isLoggedIn();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
+        }
+    };
+
+
 
 
 
@@ -126,8 +185,6 @@ public class MainFrame extends JFrame {
         this.setLocationRelativeTo(null);
 
         setOverview();
-        LoginFrame test = new LoginFrame(this, true);
-        // JOptionPane.showInputDialog("Bitte Benutzername und Passwort eingeben:");
 
         this.setVisible(true);
     }
@@ -141,13 +198,13 @@ public class MainFrame extends JFrame {
         JMenu accountMenu = new JMenu("Account");
         if (!loggedIn) {
             logInOutMenuItem = new JMenuItem("Anmelden");
-            registerDeleteMenuAccountMenuItem = new JMenuItem("Registrieren");
+            registerDeleteAccountMenuItem = new JMenuItem("Registrieren");
         } else {
             logInOutMenuItem = new JMenuItem("Abmelden");
-            registerDeleteMenuAccountMenuItem = new JMenuItem("Account löschen");
+            registerDeleteAccountMenuItem = new JMenuItem("Account löschen");
         }
         accountMenu.add(logInOutMenuItem);
-        accountMenu.add(registerDeleteMenuAccountMenuItem);
+        accountMenu.add(registerDeleteAccountMenuItem);
         mainMenuBar.add(accountMenu);
 
         // Ansicht Menü
@@ -180,6 +237,8 @@ public class MainFrame extends JFrame {
         finishedTasksItem.addActionListener(showFinishedListener);
         newTaskItem.addActionListener(newTaskListener);
         syncMenuItem.addActionListener(syncListener);
+        logInOutMenuItem.addActionListener(logInOutMenuItemListener);
+        registerDeleteAccountMenuItem.addActionListener(registerDeleteAccountMenuItemListener);
 
 
 
