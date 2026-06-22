@@ -7,7 +7,7 @@ import java.util.UUID;
 public record User (UUID userId, String username, String passwordHash) {
     public static User fromResultSet(ResultSet rs) throws SQLException {
         return new User(
-                UUID.fromString(rs.getString("useId")),
+                UUID.fromString(rs.getString("userId")),
                 rs.getString("username"),
                 rs.getString("password_hash")
         );
