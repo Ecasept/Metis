@@ -2,26 +2,24 @@
 FROM gradle:8-jdk21 AS build
 WORKDIR /app
 
-# Copy gradle files first to leverage Docker caching for dependencies
+# 1. Copy the top-level Gradle wrapper and configuration files
 COPY gradlew build.gradle* settings.gradle* gradle.properties* ./
 COPY gradle ./gradle
 
-# Download dependencies (this saves time on future builds)
-RUN ./gradlew dependencies --no-daemon || true
+# 2. Copy the source code for the backend modules
+# (If server depends on shared, shared must be copied too)
+COPY shared ./shared
+COPY server ./server
 
-# Copy your actual source code
-COPY src ./src
-
-# Build the application and skip tests to speed up deployment
-RUN ./gradlew bootJar --no-daemon || ./gradlew build -x test --no-daemon
+# 3. Build ONLY the server module and skip tests
+RUN ./gradlew :server:bootJar --no-daemon || ./gradlew :server:build -x test --no-daemon
 
 # Stage 2: Create the lightweight runtime container
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app
 
-# Copy the compiled JAR file from the build stage
-# Note: Fat JARs usually end up in build/libs/
-COPY --from=build /app/build/libs/*-SNAPSHOT.jar app.jar || COPY --from=build /app/build/libs/*.jar app.jar
+# 4. Extract the JAR specifically from the server module's build directory
+COPY --from=build /app/server/build/libs/*-SNAPSHOT.jar app.jar || COPY --from=build /app/server/build/libs/*.jar app.jar
 
 # Expose the port your custom server listens on
 EXPOSE 8080
