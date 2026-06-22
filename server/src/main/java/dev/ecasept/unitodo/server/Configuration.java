@@ -12,7 +12,7 @@ import java.time.temporal.TemporalAmount;
 import java.util.HashMap;
 import java.util.Map;
 
-public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, TemporalAmount TOMBSTONE_TTL) {
+public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, TemporalAmount TOMBSTONE_TTL, boolean USE_HTTPS) {
     private static final String TAG = "Configuration";
     public static final int DEFAULT_PORT = 6767;
     public static final String DEFAULT_SECRET_KEY = "testing123";
@@ -21,9 +21,10 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
     public static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
     public static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
     public static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofMonths(1);
+    public static final boolean DEFAULT_USE_HTTPS = true;
 
-    public Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl) {
-         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl);
+    public Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl, boolean useHttps) {
+         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl, useHttps);
     }
 
 
@@ -41,7 +42,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
             env = Configuration.loadEnv(envPath);
         } catch (IOException e) {
             Log.w(TAG, "Failed to load configuration from .env file, using defaults", e);
-            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION, DEFAULT_DB_URL, DEFAULT_TOMBSTONE_TTL);
+            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION, DEFAULT_DB_URL, DEFAULT_TOMBSTONE_TTL, DEFAULT_USE_HTTPS);
         }
         ensureEnv(env, "PORT", String.valueOf(DEFAULT_PORT));
         ensureEnv(env, "SECRET_KEY", DEFAULT_SECRET_KEY);
@@ -50,6 +51,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
         ensureEnv(env, "KEYSTORE_LOCATION", DEFAULT_KEYSTORE_LOCATION);
         ensureEnv(env, "DB_URL", DEFAULT_DB_URL);
         ensureEnv(env, "TOMBSTONE_TTL", String.valueOf(DEFAULT_TOMBSTONE_TTL.get(ChronoUnit.DAYS)));
+        ensureEnv(env, "USE_HTTPS", String.valueOf(DEFAULT_USE_HTTPS));
         return new Configuration(
                 Integer.parseInt(env.get("PORT")),
                 env.get("SECRET_KEY"),
@@ -57,7 +59,8 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
                 env.get("KEYSTORE_PASSWORD"),
                 env.get("KEYSTORE_LOCATION"),
                 env.get("DB_URL"),
-                Period.ofDays(Integer.parseInt(env.get("TOMBSTONE_TTL")))
+                Period.ofDays(Integer.parseInt(env.get("TOMBSTONE_TTL"))),
+                Boolean.parseBoolean(env.get("USE_HTTPS"))
         );
     }
 

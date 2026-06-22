@@ -1,22 +1,12 @@
 package dev.ecasept.unitodo.server.serverlib;
 
-import com.sun.net.httpserver.HttpExchange;
-import com.sun.net.httpserver.HttpsConfigurator;
-import com.sun.net.httpserver.HttpsParameters;
-import com.sun.net.httpserver.HttpsServer;
+import com.sun.net.httpserver.*;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLParameters;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
-import java.security.*;
-import java.security.cert.CertificateException;
 import java.util.HashMap;
 
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
@@ -25,68 +15,30 @@ import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.utils.Log;
 
-public class SimpleHttpsServer {
+public class SimpleServer {
     private static final String TAG = "SimpleHttpsServer";
-    private final HttpsServer server;
+    private final HttpServer server;
     private final HashMap<RouteKey, Route<?, ?>> routes = new HashMap<>();
     private final Serializer defaultSerializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
 
-    public SimpleHttpsServer(String keystorePassword, String keystoreLocation) {
-        char[] pw = keystorePassword.toCharArray();
-        KeyStore ks;
-        try {
-            ks = KeyStore.getInstance("JKS");
-        } catch (KeyStoreException e) {
-            throw new RuntimeException("Error initializing keystore: " + keystoreLocation, e);
-        }
-        try (FileInputStream fis = new FileInputStream(keystoreLocation)) {
-            ks.load(fis, pw);
-        } catch (FileNotFoundException e) {
-            throw new IllegalArgumentException("Keystore file not found: " + keystoreLocation, e);
-        } catch (IOException e) {
-            throw new RuntimeException("Error reading keystore file: " + keystoreLocation, e);
-        } catch (NoSuchAlgorithmException | CertificateException e) {
-            throw new RuntimeException("Error loading keystore: " + keystoreLocation, e);
-        }
-
-        KeyManagerFactory kmf;
-        try {
-            kmf = KeyManagerFactory.getInstance("SunX509");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error initializing KeyManagerFactory", e);
-        }
-        try {
-            kmf.init(ks, pw);
-        } catch (UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error initializing KeyManagerFactory with keystore: " + keystoreLocation, e);
-        }
-
-        SSLContext sslContext;
-        try {
-            sslContext = SSLContext.getInstance("TLS");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("Error initializing SSLContext", e);
-        }
-        try {
-            sslContext.init(kmf.getKeyManagers(), null, null);
-        } catch (KeyManagementException e) {
-            throw new RuntimeException("Error initializing SSLContext with KeyManagerFactory", e);
-        }
-
-        HttpsServer server;
-        try {
-            server = HttpsServer.create(null, 0);
-        } catch (IOException e) {
-            throw new RuntimeException("Error creating HttpsServer", e);
-        }
-        server.setHttpsConfigurator(new HttpsConfigurator(sslContext) {
-            public void configure(HttpsParameters params) {
-                SSLParameters sslParams = sslContext.getDefaultSSLParameters();
-                params.setSSLParameters(sslParams);
+    public SimpleServer(String keystorePassword, String keystoreLocation, boolean useHttps) {
+        if (useHttps) {
+            HttpsServer server;
+            try {
+                server = HttpsServer.create(null, 0);
+            } catch (IOException e) {
+                throw new RuntimeException("Error creating HttpsServer", e);
             }
-        });
-        this.server = server;
-        server.createContext("/", this::handleRequest);
+            server.setHttpsConfigurator(HttpsConfiguratorFactory.create(keystorePassword, keystoreLocation));
+            this.server = server;
+        } else {
+            try {
+                this.server = HttpServer.create(null, 0);
+            } catch (IOException e) {
+                throw new RuntimeException("Error creating HttpServer", e);
+            }
+        }
+        this.server.createContext("/", this::handleRequest);
     }
 
     private String normalizePath(String path) {

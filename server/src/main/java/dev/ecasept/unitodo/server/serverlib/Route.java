@@ -15,7 +15,7 @@ public record Route<RequestType, ResponseType>(StoreType<RequestType> requestTyp
     private static final String TAG = "RouteValue";
     private static final Serializer serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
 
-    public void handle(HttpExchange exchange, SimpleHttpsServer server) throws IOException, DatabaseException {
+    public void handle(HttpExchange exchange, SimpleServer server) throws IOException, DatabaseException {
             var rawRequestBody = exchange.getRequestBody();
             var bytes = rawRequestBody.readAllBytes();
             RequestType requestBody;

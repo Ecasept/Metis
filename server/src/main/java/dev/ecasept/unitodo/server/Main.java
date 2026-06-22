@@ -13,7 +13,7 @@ import dev.ecasept.unitodo.shared.serialization.RawData;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.server.api.AuthService;
 import dev.ecasept.unitodo.server.serverlib.Response;
-import dev.ecasept.unitodo.server.serverlib.SimpleHttpsServer;
+import dev.ecasept.unitodo.server.serverlib.SimpleServer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 public class Main {
@@ -37,7 +37,7 @@ public class Main {
             var synchronizer = new ServerSynchronizer();
             var syncService = new SyncService(databaseRepository, synchronizer, tokenService, config);
 
-            var server = new SimpleHttpsServer("changeit", "keystore.jks");
+            var server = new SimpleServer("changeit", "keystore.jks", config.USE_HTTPS());
             server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (r, headers) -> new Response<>(200, RawData.fromString("Hello, world!")));
             server.addRoute("/api/auth/login", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::loginRequest);
             server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::registerRequest);

@@ -27,7 +27,7 @@ You should include a few keys in your config:
 - `KEYSTORE_LOCATION`: the location of the keystore file relative to the current working directory of the server.
 - `DB_URL`: the location of your sqlite database, e.g. `jdbc:sqlite:database.db`. The database file will be created if it does not exist.
 - `TOMBSTONE_TTL`: the time in days that a tombstone (a marker for a deleted item) should be kept in the database before it is permanently deleted. Clients whose last sync was before the tombstone was created, and sync again after it was deleted won't be aware of its existence and will require a full sync to reconcile their state with the server.
-
+- `USE_HTTPS`: enables or disables https support
 ## Running the client
 The client does not require any configuration whatsoever.
 It can be run using `./gradlew :client:run`.
