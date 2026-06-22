@@ -23,8 +23,7 @@ public class InCondition<T> implements Condition {
     public int fillParameters(PreparedStatement statement, int i) throws DatabaseException {
         try {
             for (var option : options) {
-                statement.setObject(i, option);
-                i++;
+                BuilderUtils.bindParameter(statement, i++, option);
             }
             return i;
         } catch (SQLException e) {

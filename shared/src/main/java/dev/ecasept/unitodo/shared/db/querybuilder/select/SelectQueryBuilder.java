@@ -4,12 +4,15 @@ import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.db.querybuilder.conditions.AndCondition;
 import dev.ecasept.unitodo.shared.db.querybuilder.conditions.Condition;
 import dev.ecasept.unitodo.shared.db.querybuilder.conditions.ConditionCreator;
 
 import java.sql.PreparedStatement;
+import java.util.Arrays;
 import java.util.List;
 import java.util.function.Consumer;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 public class SelectQueryBuilder {
@@ -30,8 +33,20 @@ public class SelectQueryBuilder {
         if (conditionCreator.getCondition() == null) {
             throw new IllegalArgumentException("Condition can't be null");
         }
-        this.condition = conditionCreator.getCondition();
-        return this;
+        if (this.condition == null) {
+            this.condition = conditionCreator.getCondition();
+        } else {
+             this.condition = new AndCondition(this.condition, conditionCreator.getCondition());
+        }
+         return this;
+    }
+
+    public SelectQueryBuilder when(boolean condition, UnaryOperator<SelectQueryBuilder> thenFn) {
+        if (condition) {
+            return thenFn.apply(this);
+        } else {
+            return this;
+        }
     }
 
     public SelectQueryBuilder orderBy(SortOrder sortOrder) {
@@ -45,14 +60,20 @@ public class SelectQueryBuilder {
         if (columns.isEmpty()) {
             sb.append(" * ");
         } else {
+            sb.append(" ");
             sb.append(columns.stream().map(BuilderUtils::quoteIdentifier).collect(Collectors.joining(", ")));
+            sb.append(" ");
         }
         sb.append("FROM ").append(BuilderUtils.quoteIdentifier(table));
         if (condition != null) {
             sb.append(" WHERE ").append(condition.asParameterizedSql());
         }
         if (sortOrder != null) {
-            sb.append(" ORDER BY ").append(BuilderUtils.quoteIdentifier(sortOrder.column())).append(" ").append(sortOrder.orderAsSql());
+            sb.append(" ORDER BY ");
+            var sortColumns = Arrays.stream(sortOrder.getColumns())
+                    .map(BuilderUtils::quoteIdentifier)
+                    .collect(Collectors.joining(", "));
+            sb.append(sortColumns).append(" ").append(sortOrder.orderAsSql());
         }
         return sb.toString();
     }

@@ -79,18 +79,21 @@ public class ServerDatabaseRepository {
                 .v("state", batcher.placeholder())
                 .v("priority", batcher.placeholder())
                 .v("dueDate", batcher.placeholder())
+                .v("dueTime", batcher.placeholder())
                 .v("titleChanged", batcher.placeholder())
                 .v("descriptionChanged", batcher.placeholder())
                 .v("stateChanged", batcher.placeholder())
                 .v("priorityChanged", batcher.placeholder())
                 .v("dueDateChanged", batcher.placeholder())
+                .v("dueTimeChanged", batcher.placeholder())
+                .v("completedAt", batcher.placeholder())
                 .v("isDeleted", batcher.placeholder())
                 .v("deletedChanged", batcher.placeholder())
                 .v("userId", batcher.placeholder())
                 .into("tasks")
                 .onConflict("uuid")
                 .doUpdate(it -> it.copy(
-                        "title", "description", "state", "priority", "dueDate", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "isDeleted", "deletedChanged", "userId"
+                        "title", "description", "state", "priority", "dueDate", "dueTime", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "dueTimeChanged", "completedAt", "isDeleted", "deletedChanged", "userId"
                 ));
 
 
@@ -103,11 +106,14 @@ public class ServerDatabaseRepository {
                         task.state().get().toInt(),
                         task.priority().get().toInt(),
                         DateFormat.toLong(task.dueDate().get()),
+                        task.dueTime().get().map(DateFormat::toLong).orElse(null),
                         DateFormat.toLong(task.title().getLastUpdated()),
                         DateFormat.toLong(task.description().getLastUpdated()),
                         DateFormat.toLong(task.state().getLastUpdated()),
                         DateFormat.toLong(task.priority().getLastUpdated()),
                         DateFormat.toLong(task.dueDate().getLastUpdated()),
+                        DateFormat.toLong(task.dueTime().getLastUpdated()),
+                        task.state().get().getCompletedAt().map(DateFormat::toLong).orElse(null),
                         task.isDeleted().get(),
                         DateFormat.toLong(task.isDeleted().getLastUpdated()),
                         task.userId()
@@ -198,6 +204,7 @@ public class ServerDatabaseRepository {
                                 .eq("stateChanged", lastSync)
                                 .eq("priorityChanged", lastSync)
                                 .eq("dueDateChanged", lastSync)
+                                .eq("dueTimeChanged", lastSync)
                                 .eq("deletedChanged", lastSync)
                         )
                 )

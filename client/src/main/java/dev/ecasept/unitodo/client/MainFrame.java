@@ -1,8 +1,6 @@
 package dev.ecasept.unitodo.client;
 
-import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
@@ -12,22 +10,30 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.awt.event.*;
-import java.time.DateTimeException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Optional;
 import java.util.UUID;
 
 @SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
+    private static final String TAG = "MainFrame";
 
-    private final ClientDatabaseRepository db;
+    private final DataManager dataManger;
 
     // Aktuelle Ansicht (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
     private static final int LAST_WAS_PENDING = 2;
     private static final int LAST_WAS_ALL = 3;
     private int last;
+
+    // Anmeldestatus + Buttons zur Accountverwaltung
+    private boolean loggedIn = false;
+    JMenuItem logInOutMenuItem;
+    JMenuItem registerDeleteAccountMenuItem;
 
     // Elemente der GUI
     private JScrollPane scrollPaneTasks;
@@ -82,7 +88,65 @@ public class MainFrame extends JFrame {
     private ActionListener syncListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            System.out.println("SYNCHRONISATION");
+            if (!loggedIn) {
+                JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
+                return;
+            } else {
+                try {
+                    dataManger.sync();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Synchronisation fehlgeschlagen. Bitte versuchen sie es erneut.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        }
+    };
+    private ActionListener logInOutMenuItemListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+           if (logInOutMenuItem.getActionCommand().equals("Anmelden")) {
+
+               LoginDialog loginFrame = new LoginDialog(null, true, dataManger);
+               try {
+                   loggedIn = dataManger.isLoggedIn();
+               } catch (DatabaseException ex) {
+                   JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                   return;
+               }
+               setOverview();
+
+           } else if (logInOutMenuItem.getActionCommand().equals("Abmelden")) {
+               try {
+                   dataManger.logout();
+                   loggedIn = dataManger.isLoggedIn();
+               } catch (DatabaseException ex) {
+                   JOptionPane.showMessageDialog(null, "Abmelden nicht möglich. Bitte versuchen sie es erneut.", "Abmelden nicht möglich", JOptionPane.ERROR_MESSAGE);
+                   return;
+               }
+               setOverview();
+           }
+        }
+    };
+
+    private ActionListener registerDeleteAccountMenuItemListener = new ActionListener() {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            if (e.getActionCommand().equals("Registrieren")) {
+                RegisterDialog registerDialog = new RegisterDialog(null, true, dataManger);
+                try {
+                    loggedIn = dataManger.isLoggedIn();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            } else if (e.getActionCommand().equals("Account löschen")) {
+                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManger);
+                try {
+                    loggedIn = dataManger.isLoggedIn();
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+            }
         }
     };
 
@@ -92,8 +156,25 @@ public class MainFrame extends JFrame {
 
 
 
-    public MainFrame(ClientDatabaseRepository db) {
-        this.db = db;
+
+
+    public MainFrame(DataManager dataManger) {
+        this.dataManger = dataManger;
+        dataManger.setAsyncErrorHandler(
+                e -> {
+                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt synchronisiert werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    Log.e(TAG, "Error during asynchronous database operation", e);
+                }
+        );
+        try {
+            dataManger.initialize();
+            loggedIn = dataManger.isLoggedIn();
+        } catch (DatabaseException e) {
+            JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
+
         last = LAST_WAS_ALL;
 
         // Frame vorbereiten
@@ -104,8 +185,6 @@ public class MainFrame extends JFrame {
         this.setLocationRelativeTo(null);
 
         setOverview();
-        LoginFrame test = new LoginFrame(this, true);
-        // JOptionPane.showInputDialog("Bitte Benutzername und Passwort eingeben:");
 
         this.setVisible(true);
     }
@@ -117,10 +196,15 @@ public class MainFrame extends JFrame {
         JMenuBar mainMenuBar = new JMenuBar();
         // Account Menü
         JMenu accountMenu = new JMenu("Account");
-        JMenuItem logoutMenuItem = new JMenuItem("Abmelden");
-        JMenuItem deleteAccountMenuItem = new JMenuItem("Account löschen");
-        accountMenu.add(logoutMenuItem);
-        accountMenu.add(deleteAccountMenuItem);
+        if (!loggedIn) {
+            logInOutMenuItem = new JMenuItem("Anmelden");
+            registerDeleteAccountMenuItem = new JMenuItem("Registrieren");
+        } else {
+            logInOutMenuItem = new JMenuItem("Abmelden");
+            registerDeleteAccountMenuItem = new JMenuItem("Account löschen");
+        }
+        accountMenu.add(logInOutMenuItem);
+        accountMenu.add(registerDeleteAccountMenuItem);
         mainMenuBar.add(accountMenu);
 
         // Ansicht Menü
@@ -153,6 +237,8 @@ public class MainFrame extends JFrame {
         finishedTasksItem.addActionListener(showFinishedListener);
         newTaskItem.addActionListener(newTaskListener);
         syncMenuItem.addActionListener(syncListener);
+        logInOutMenuItem.addActionListener(logInOutMenuItemListener);
+        registerDeleteAccountMenuItem.addActionListener(registerDeleteAccountMenuItemListener);
 
 
 
@@ -169,11 +255,11 @@ public class MainFrame extends JFrame {
 
 
         if (last == LAST_WAS_PENDING) {
-            currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, db);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
         } else if (last == LAST_WAS_FINISHED) {
-            currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, db);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
         } else {
-            currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, db);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
         }
 
         // JTable erstellen und in ScrollPane einbetten
@@ -225,7 +311,7 @@ public class MainFrame extends JFrame {
         }
 
         tableModel.setRowCount(0);
-        currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, db);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
         mainPanelRightLabel.setText("Alle Aufgaben");
     }
 
@@ -235,7 +321,7 @@ public class MainFrame extends JFrame {
         }
 
         tableModel.setRowCount(0);
-        currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, db, searchString);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManger, searchString);
         mainPanelRightLabel.setText("Suchergebnisse: " + searchString);
     }
 
@@ -251,7 +337,7 @@ public class MainFrame extends JFrame {
 
 
 
-        currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, db);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
 
         mainPanelRightLabel.setText("Ausstehende Aufgaben");
     }
@@ -267,7 +353,7 @@ public class MainFrame extends JFrame {
         tableModel.setRowCount(0);
 
 
-        currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, db);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
         mainPanelRightLabel.setText("Erledigte Aufgaben");
     }
 
@@ -315,13 +401,15 @@ public class MainFrame extends JFrame {
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = "dd.mm.yyyy hh:mm";
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = "dd.mm.yyyy";
+        String placeholderTime = "hh:mm";
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setForeground(Color.GRAY);
         textfieldDueDate.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy"))
                     textfieldDueDate.setText("");
 
 
@@ -330,12 +418,32 @@ public class MainFrame extends JFrame {
             @Override
             public void focusLost(FocusEvent e) {
                 if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText(placeholder);
+                    textfieldDueDate.setText(placeholderDate);
+
+            }
+        });
+
+        textfieldDueTime.setForeground(Color.GRAY);
+        textfieldDueTime.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("hh:mm"))
+                    textfieldDueTime.setText("");
+
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueTime.getText().equals(""))
+                    textfieldDueTime.setText(placeholderTime);
 
             }
         });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
 
         // TextArea für Beschreibung
@@ -373,9 +481,21 @@ public class MainFrame extends JFrame {
 
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
-                LocalDateTime dueDate = checkDueDate(dueDateString);
+                LocalDate dueDate = TimeUtils.checkDueDate(dueDateString);
                 if (dueDate == null)
                     return;
+
+                // Prüfen, dass die Fälligkeitsuhrzeit nicht leer oder ungültig ist
+                String dueTimeString = textfieldDueTime.getText();
+                LocalTime dueTime = null;
+                if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
+                    try {
+                        dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                    } catch (IllegalArgumentException ex) {
+                        return;
+                    }
+                }
+
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
@@ -386,22 +506,22 @@ public class MainFrame extends JFrame {
                 // Neuen Task in db speichern
                 try {
                     if (selectedPriority.equals("niedrig")) {
-                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Low, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("mittel")) {
-                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.Mid, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
                     if (selectedPriority.equals("hoch")) {
-                        db.upsertTask(ClientTask.create(title, description, TaskState.Pending, TaskPriority.High, dueDate));
+                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate, Optional.ofNullable(dueTime)));
                         setOverview();
                         return;
                     }
                 } catch (DatabaseException dbEx) {
-                    JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.");
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     setOverview();
                     return;
                 }
@@ -430,53 +550,7 @@ public class MainFrame extends JFrame {
 
 
 
-    public LocalDateTime checkDueDate(String dueDateString) {
-        // Prüfen ob keine Eingabe erfolgt ist
-        if (dueDateString.equals("dd.mm.yyyy hh:mm")) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum darf nicht leer sein.");
-            return null;
-        }
 
-        String[] dueDateArr = dueDateString.split("[.: ]");
-        if (dueDateArr.length != 5) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
-            return null;
-        }
-
-
-        int day = 0;
-        int month = 0;
-        int year = 0;
-        int hour = 0;
-        int minute = 0;
-
-
-        try {
-            day = Integer.parseInt(dueDateArr[0]);
-            month = Integer.parseInt(dueDateArr[1]);
-            year = Integer.parseInt(dueDateArr[2]);
-            hour = Integer.parseInt(dueDateArr[3]);
-            minute = Integer.parseInt(dueDateArr[4]);
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas Fälligkeitsdatum hat ein ungültiges Format.");
-            return null;
-        }
-
-        LocalDateTime dueDate;
-        try {
-            dueDate = LocalDateTime.of(year, month, day, hour, minute);
-        } catch (DateTimeException dateEx) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie eingegebenen Zahlen stellen kein gültiges Datum dar.");
-            return null;
-        }
-
-        if (dueDate.isBefore(LocalDateTime.now())) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDas gewählt Fälligkeitsdatum liegt in der Vergangenhet.");
-            return null;
-        }
-
-        return dueDate;
-    }
 
 
     public void showChangeTask(UUID uuid) {
@@ -485,7 +559,7 @@ public class MainFrame extends JFrame {
         // Taskobjekt aus DB auslesen
         ClientTask task;
         try {
-            task = this.db.getTask(uuid.toString()).get();
+            task = this.dataManger.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -540,10 +614,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().equals(TaskState.Pending)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().equals(TaskState.Finished)) {
+        if (task.state().get().isFinished()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -555,30 +629,75 @@ public class MainFrame extends JFrame {
         mainPanel.add(panel);
 
 
+
+
+
         // Panel für Fälligkeitsdatum
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderTime = "hh:mm";
+        if (task.dueTime().get().isPresent()) {
+            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setForeground(Color.GRAY);
         textfieldDueDate.addFocusListener(new FocusListener() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
+                if (textfieldDueDate.getText().equals("dd.mm.yyyy"))
                     textfieldDueDate.setText("");
+
+
             }
 
             @Override
             public void focusLost(FocusEvent e) {
                 if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText("dd.mm.yyyy hh:mm");
+                    textfieldDueDate.setText(placeholderDate);
+
+            }
+        });
+
+        textfieldDueTime.setForeground(Color.GRAY);
+        textfieldDueTime.addFocusListener(new FocusListener() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("hh:mm"))
+                    textfieldDueTime.setText("");
+
+
+            }
+
+            @Override
+            public void focusLost(FocusEvent e) {
+                if (textfieldDueTime.getText().equals("")) {
+                    textfieldDueTime.setText("hh:mm");
+                }
 
             }
         });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
         // TextArea für Beschreibung
@@ -622,15 +741,39 @@ public class MainFrame extends JFrame {
                 }
 
 
+
+
+
+
+
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
-                LocalDateTime dueDate = checkDueDate(dueDateString);
+                String dueTimeString = textfieldDueTime.getText();
+                LocalDate dueDate = TimeUtils.checkDueDate(dueDateString);
                 if (dueDate == null)
                     return;
+
+                LocalTime dueTime = null;
+                if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
+                    dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                }
+
                 // Wenn sich neues Fälligkeitsdatum von altem unterscheidet, dann neues Fälligkeitsdatum setzen
                 if (!dueDate.equals(task.dueDate().get())) {
                     task.dueDate().set(dueDate);
                 }
+                if (!Optional.ofNullable(dueTime).equals(task.dueTime().get())) {
+                    task.dueTime().set(Optional.ofNullable(dueTime));
+                }
+
+
+
+
+
+
+
+
+
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
@@ -656,10 +799,10 @@ public class MainFrame extends JFrame {
 
                 // Änderungen in db speichern
                 try {
-                    db.upsertTask(task);
+                    dataManger.upsertTask(task);
                     setOverview();
                 } catch (DatabaseException dbEx) {
-                    JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.");
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     setOverview();
                     return;
                 }
@@ -693,7 +836,7 @@ public class MainFrame extends JFrame {
         // Taskobjekt aus DB auslesen
         ClientTask task;
         try {
-            task = this.db.getTask(uuid.toString()).get();
+            task = this.dataManger.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -750,10 +893,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().equals(TaskState.Pending)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().equals(TaskState.Finished)) {
+        if (task.state().get().isPending()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -765,31 +908,38 @@ public class MainFrame extends JFrame {
         mainPanel.add(panel);
 
 
+
+
+
         // Panel für Fälligkeitsdatum
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholder = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy HH:mm"));
-        JTextField textfieldDueDate = new JTextField(placeholder);
+        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderTime = "hh:mm";
+        if (task.dueTime().get().isPresent()) {
+            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        }
+
+        JTextField textfieldDueDate = new JTextField(placeholderDate);
+        JTextField textfieldDueTime = new JTextField((placeholderTime));
         textfieldDueDate.setEditable(false);
+        textfieldDueTime.setEditable(false);
         textfieldDueDate.setForeground(Color.GRAY);
-        textfieldDueDate.addFocusListener(new FocusListener() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (textfieldDueDate.getText().equals("dd.mm.yyyy hh:mm"))
-                    textfieldDueDate.setText("");
-            }
-
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (textfieldDueDate.getText().equals(""))
-                    textfieldDueDate.setText("dd.mm.yyyy hh:mm");
-
-            }
-        });
 
         panelTwo.add(textfieldDueDate);
+        panelTwo.add(new JLabel("Uhrzeit:"));
+        panelTwo.add(textfieldDueTime);
         mainPanel.add(panelTwo);
+
+
+
+
+
+
+
+
+
 
         // TextArea für Beschreibung
         JPanel middlePanel = new JPanel();
@@ -841,19 +991,20 @@ public class MainFrame extends JFrame {
         System.out.println("Löschen von Zeile " + row);
 
         if (!currentlyShownTasks.isEmpty()) {
-            UUID uuid = currentlyShownTasks.get(row).uuid();
+            ClientTask deleteThis  = currentlyShownTasks.get(row);
 
 
             try {
                 int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
                 if (x == JOptionPane.YES_OPTION) {
-                    db.deleteTask(uuid);
+                    dataManger.deleteTask(deleteThis);
                     tableModel.removeRow(row);
                     currentlyShownTasks.remove(row);
                 } else {
                     return;
                 }
             } catch (DatabaseException ex) {
+                JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Aufgabe konnte nicht gelöscht werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                 Log.e("Main", "error", ex);
                 return;
             }
@@ -875,23 +1026,26 @@ public class MainFrame extends JFrame {
            ClientTask task = currentlyShownTasks.get(row);
 
 
-           if (task.state().get().equals(TaskState.Pending)) {
-               task.state().set(TaskState.Finished);
+           if (task.state().get().isPending()) {
+               task.state().set(new TaskState.Finished(LocalDateTime.now()));
                try {
-                   db.upsertTask(task);
+                   dataManger.upsertTask(task);
                    if (last == LAST_WAS_ALL) {
                        showAll();
+                   } else if (last == LAST_WAS_FINISHED){
+                       showFinished();
                    } else {
                        showPending();
                    }
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
+                   JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
                }
-           } else if (task.state().get().equals(TaskState.Finished)) {
-               task.state().set(TaskState.Pending);
+           } else if (task.state().get().isFinished()) {
+               task.state().set(new TaskState.Pending());
                try {
-                   db.upsertTask(task);
+                   dataManger.upsertTask(task);
                    if (last == LAST_WAS_ALL) {
                        showAll();
                    } else {
@@ -899,6 +1053,7 @@ public class MainFrame extends JFrame {
                    }
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
+                   JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
                }
            }

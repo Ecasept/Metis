@@ -5,13 +5,22 @@ import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.client.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
+import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.models.db.TimestampedField;
 import dev.ecasept.unitodo.shared.utils.Log;
 
+import java.time.Instant;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 public class DataManager {
     private static final String TAG = "DataManager";
@@ -20,6 +29,8 @@ public class DataManager {
     private final Synchronizer synchronizer;
     private final HashMap<UUID, ClientTask> unsynced = new HashMap<>();
     private LocalDateTime cachedLastSyncTime = null;
+    private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
+
 
     public boolean isLoggedIn() throws DatabaseException {
         return db.getSessionToken().isPresent();
@@ -27,7 +38,7 @@ public class DataManager {
 
     private LocalDateTime getLastSyncTime() throws DatabaseException {
         if (cachedLastSyncTime == null) {
-            cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.MIN);
+            cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC));
         }
         return cachedLastSyncTime;
     }
@@ -61,18 +72,31 @@ public class DataManager {
         logout();
     }
 
+    private Consumer<Exception> asyncErrorHandler = e -> {};
+    public void setAsyncErrorHandler(Consumer<Exception> asyncErrorHandler) {
+        this.asyncErrorHandler = asyncErrorHandler;
+    }
+
     /**
      * @throws DatabaseException If any database access fails
      */
-    private void sync() throws DatabaseException {
-        var lastSyncTime = getLastSyncTime();
-        try {
-            synchronizer.synchronize(unsynced.values().toArray(new ClientTask[0]), lastSyncTime);
-            setLastSyncTime(LocalDateTime.now());
-            unsynced.clear();
-        } catch (ApiException e) {
-            Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
-        }
+    public void sync() throws DatabaseException {
+        var now = LocalDateTime.now();
+        syncExecutor.submit(() -> {
+            try {
+                var lastSyncTime = getLastSyncTime();
+                try {
+                    synchronizer.synchronize(unsynced.values().toArray(new ClientTask[0]), lastSyncTime);
+                    setLastSyncTime(now);
+                    unsynced.clear();
+                } catch (ApiException e) {
+                    Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
+                }
+            } catch (DatabaseException e) {
+                Log.e(TAG, "Failed to access database during synchronization", e);
+                asyncErrorHandler.accept(e);
+            }
+        });
     }
 
     /**
@@ -99,7 +123,7 @@ public class DataManager {
      * @throws DatabaseException If any database access fails
      */
     public void deleteTask(ClientTask task) throws DatabaseException {
-        var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), new TimestampedField<>(true));
+        var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), task.dueTime(), new TimestampedField<>(true));
         upsertTask(deletedTask);
     }
 
@@ -119,5 +143,21 @@ public class DataManager {
         apiClient.setSessionToken(sessionToken.orElse(null));
         // Sync with server to get any changes that might have happened while the client was offline
         sync();
+    }
+
+
+
+
+
+    public Optional<ClientTask> getTask(String uuid) throws DatabaseException {
+        return db.getTask(uuid);
+    }
+
+    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order, boolean includeDeleted) throws DatabaseException {
+        return db.getTasks(state, order, includeDeleted);
+    }
+
+    public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
+        return db.searchTasks(query);
     }
 }

@@ -68,8 +68,9 @@ public class Synchronizer {
         var state = pickNewer(a.state(), b.state());
         var priority = pickNewer(a.priority(), b.priority());
         var dueDate = pickNewer(a.dueDate(), b.dueDate());
+        var dueTime = pickNewer(a.dueTime(), b.dueTime());
         var isDeleted = pickNewer(a.isDeleted(), b.isDeleted());
-        return new ClientTask(a.uuid(), title, description, state, priority, dueDate, isDeleted);
+        return new ClientTask(a.uuid(), title, description, state, priority, dueDate, dueTime, isDeleted);
     }
 
     private List<ClientTask> mergeTasks(Map<UUID, ClientTask> cur, Map<UUID, ClientTask> other) {

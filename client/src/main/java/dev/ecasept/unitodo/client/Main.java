@@ -34,7 +34,7 @@ public class Main {
         var synchronizer = new Synchronizer(db, apiClient);
         var dataManager = new DataManager(db, apiClient, synchronizer);
 
-        MainFrame frame = new MainFrame(db);
+        MainFrame frame = new MainFrame(dataManager);
         frame.addWindowListener(new WindowAdapter() {
             @Override
             public void windowClosed(WindowEvent e) {

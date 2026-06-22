@@ -18,7 +18,7 @@ public class EqualsCondition<T> implements Condition {
     }
     public int fillParameters(PreparedStatement statement, int i) throws DatabaseException {
         try {
-            statement.setObject(i, operand);
+            BuilderUtils.bindParameter(statement, i, operand);
         } catch (SQLException e) {
             throw new DatabaseException("Failed to fill parameters for EqualsCondition", e);
         }

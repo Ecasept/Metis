@@ -8,8 +8,11 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
+import java.util.Optional;
 
 public class FrameUtils {
 
@@ -21,7 +24,7 @@ public class FrameUtils {
 
 
 
-        // Renderer und Editor setzen
+        // Renderer setzen
         taskTable.setDefaultRenderer(Object.class, new TaskTableCellRenderer());
 
         // Einstellungen für Anzeige des JTable
@@ -74,29 +77,19 @@ public class FrameUtils {
      *
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            tableModel.addRow(new Object[]{"Ausstehend", t.title().get(), str, t.priority().get(), "", "", });
-            // tableModel.addRow(new Object[]{t});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -110,29 +103,19 @@ public class FrameUtils {
      *
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate"));
+            list = dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            tableModel.addRow(new Object[]{"Erledigt", t.title().get(), str, t.priority().get(), "", ""});
-            // tableModel.addRow(new Object[]{t});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -142,30 +125,19 @@ public class FrameUtils {
      * Die DefaultListModel wird mit den Repräsentationen der einzelnen Tasks als Zeilen in der Tabelle gefüllt.
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks in list als Tabellenzeilen gefüllt wird.     *
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      */
-    public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, ClientDatabaseRepository db) {
+    public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = db.getTasks(TaskState.Pending, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate"));
-            list.addAll(db.getTasks(TaskState.Finished, new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate")));
+            list = dataManager.getTasks(new TaskState.Pending(), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Ascending("dueDate", "dueTime"), false);
+            list.addAll(dataManager.getTasks(new TaskState.Finished(null), new dev.ecasept.unitodo.shared.db.querybuilder.SortOrder.Descending("dueDate", "dueTime"), false));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
-            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
@@ -174,19 +146,19 @@ public class FrameUtils {
      * Befüllt die übergebene DefaultTableModel mit allen Tasks, die dem Suchstring entsprechen.
      *
      * @param tableModel DefaultTableModel das mit den Repräsentationen der Tasks gefüllt wird.
-     * @param db Datenbankinstanz aus der die Daten gelesen werden
+     * @param dataManager Datenbankinstanz aus der die Daten gelesen werden
      * @param searchString Der Suchbegriff
      */
-    public static ArrayList<ClientTask> fillListAndTableModelSearched(DefaultTableModel tableModel, ClientDatabaseRepository db, String searchString) {
+    public static ArrayList<ClientTask> fillListAndTableModelSearched(DefaultTableModel tableModel, DataManager dataManager, String searchString) {
         ArrayList<ClientTask> list;
         try {
-            ArrayList<ClientTask> allSearch = db.searchTasks(searchString);
+            ArrayList<ClientTask> allSearch = dataManager.searchTasks(searchString);
 
             ArrayList<ClientTask> pendingTasks = new ArrayList<>();
             ArrayList<ClientTask> finishedTasks = new ArrayList<>();
 
             for (ClientTask t : allSearch) {
-                if (t.state().get() == TaskState.Pending) {
+                if (t.state().get().isPending()) {
                     pendingTasks.add(t);
                 } else {
                     finishedTasks.add(t);
@@ -201,23 +173,38 @@ public class FrameUtils {
 
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
+            JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return new ArrayList<ClientTask>();
         }
-        for (ClientTask t : list) {
-            LocalDateTime date = t.dueDate().get();
-            int min = date.getMinute();
-            String minStr;
-            if (min < 10) {
-                minStr = "0" + min;
-            } else {
-                minStr = "" + min;
-            }
-            String str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + date.getHour() + ":" + minStr;
-            String stateStr = t.state().get() == TaskState.Pending ? "Ausstehend" : "Erledigt";
-            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
-        }
+
+        fillTableModel(tableModel, list);
 
         return list;
     }
 
+
+    private static void fillTableModel(DefaultTableModel tableModel, ArrayList<ClientTask> list) {
+
+        String str = "";
+
+        for (ClientTask t : list) {
+            LocalDate date = t.dueDate().get();
+            Optional<LocalTime> timeOptional = t.dueTime().get();
+            if (timeOptional.isPresent()) {
+                LocalTime time = timeOptional.get();
+                int min = time.getMinute();
+                String minStr;
+                if (min < 10) {
+                    minStr = "0" + min;
+                } else {
+                    minStr = "" + min;
+                }
+                str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear() + " " + time.getHour() + ":" + minStr;
+            } else {
+                str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
+            }
+            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
+            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
+        }
+    }
 }

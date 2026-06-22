@@ -6,12 +6,16 @@ CREATE TABLE IF NOT EXISTS tasks
     state              INTEGER NOT NULL,
     priority           INTEGER NOT NULL,
     dueDate            INTEGER NOT NULL,
+    dueTime            INTEGER,
 
     titleChanged       INTEGER NOT NULL,
     descriptionChanged INTEGER NOT NULL,
     stateChanged       INTEGER NOT NULL,
     priorityChanged    INTEGER NOT NULL,
     dueDateChanged     INTEGER NOT NULL,
+    dueTimeChanged     INTEGER NOT NULL,
+
+    completedAt        INTEGER,
 
     isDeleted          TEXT    NOT NULL,
     deletedChanged     INTEGER NOT NULL

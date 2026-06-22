@@ -48,12 +48,13 @@ public class ClientDatabaseRepository {
         }
     }
 
-    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
+    public ArrayList<ClientTask> getTasks(TaskState state, SortOrder order, boolean includeDeleted) throws DatabaseException {
         try (var query = db
                 .select()
                 .from("tasks")
                 .filter(it -> it.eq("state", state.toInt()))
                 .orderBy(order)
+                .when(!includeDeleted, it -> it.filter(i -> i.eq("isDeleted", false)))
                 .prepare()) {
             return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -75,17 +76,20 @@ public class ClientDatabaseRepository {
                 .v("state", batcher.placeholder())
                 .v("priority", batcher.placeholder())
                 .v("dueDate", batcher.placeholder())
+                .v("dueTime", batcher.placeholder())
                 .v("titleChanged", batcher.placeholder())
                 .v("descriptionChanged", batcher.placeholder())
                 .v("stateChanged", batcher.placeholder())
                 .v("priorityChanged", batcher.placeholder())
                 .v("dueDateChanged", batcher.placeholder())
+                .v("dueTimeChanged", batcher.placeholder())
+                .v("completedAt", batcher.placeholder())
                 .v("isDeleted", batcher.placeholder())
                 .v("deletedChanged", batcher.placeholder())
                 .into("tasks")
                 .onConflict("uuid")
                 .doUpdate(it -> it.copy(
-                        "title", "description", "state", "priority", "dueDate", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "isDeleted", "deletedChanged"
+                        "title", "description", "state", "priority", "dueDate", "dueTime", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "dueTimeChanged", "completedAt", "isDeleted", "deletedChanged"
                 ));
 
 
@@ -98,11 +102,14 @@ public class ClientDatabaseRepository {
                         task.state().get().toInt(),
                         task.priority().get().toInt(),
                         DateFormat.toLong(task.dueDate().get()),
+                        task.dueTime().get().map(DateFormat::toLong).orElse(null),
                         DateFormat.toLong(task.title().getLastUpdated()),
                         DateFormat.toLong(task.description().getLastUpdated()),
                         DateFormat.toLong(task.state().getLastUpdated()),
                         DateFormat.toLong(task.priority().getLastUpdated()),
                         DateFormat.toLong(task.dueDate().getLastUpdated()),
+                        DateFormat.toLong(task.dueTime().getLastUpdated()),
+                        task.state().get().getCompletedAt().map(DateFormat::toLong).orElse(null),
                         task.isDeleted().get(),
                         DateFormat.toLong(task.isDeleted().getLastUpdated())
                 );
@@ -140,6 +147,7 @@ public class ClientDatabaseRepository {
                                 .eq("stateChanged", lastSync)
                                 .eq("priorityChanged", lastSync)
                                 .eq("dueDateChanged", lastSync)
+                                .eq("dueTimeChanged", lastSync)
                                 .eq("deletedChanged", lastSync)
                         )
                 )
@@ -155,6 +163,7 @@ public class ClientDatabaseRepository {
                 .select()
                 .from("tasks")
                 .filter(it -> it
+                        .eq("isDeleted", false)
                         .or(
                                 c -> c.contains("title", query),
                                 c -> c.contains("description", query)
