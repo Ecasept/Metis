@@ -1,9 +1,6 @@
 package dev.ecasept.unitodo.shared.serialization;
 
-import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
-import dev.ecasept.unitodo.shared.serialization.adapters.LocalDateTimeAdapter;
-import dev.ecasept.unitodo.shared.serialization.adapters.OptionalAdapter;
-import dev.ecasept.unitodo.shared.serialization.adapters.RawDataAdapter;
+import dev.ecasept.unitodo.shared.serialization.adapters.*;
 import dev.ecasept.unitodo.shared.serialization.annotations.Field;
 import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;import dev.ecasept.unitodo.shared.serialization.types.StoreType;import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
@@ -12,6 +9,7 @@ import java.nio.ByteOrder;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Optional;
+import java.util.UUID;
 
 
 /**
@@ -99,6 +97,6 @@ public class Serializer {
     }
 
     public static Serializer createDefault() {
-        return new Serializer().adapter(RawDataAdapter.class, RawData.class).adapter(LocalDateTimeAdapter.class, LocalDateTime.class).adapter(OptionalAdapter.class, Optional.class);
+        return new Serializer().adapter(RawDataAdapter.class, RawData.class).adapter(LocalDateTimeAdapter.class, LocalDateTime.class).adapter(OptionalAdapter.class, Optional.class).adapter(UUIDAdapter.class, UUID.class);
     }
 }
