@@ -9,19 +9,22 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.ByteBuffer;
 
 public class RawDataAdapter extends Adapter<RawData> {
-        private static final String TAG = "RawDataAdapter";
-        public RawDataAdapter(DaddySerializer daddySerializer) {
-            super(daddySerializer);
-        }
+    private static final String TAG = "RawDataAdapter";
+    public RawDataAdapter(DaddySerializer daddySerializer) {
+        super(daddySerializer);
+    }
 
-        public void serialize(RawData obj, GrowableBuffer buf) {
-            Log.i(TAG, "Serializing RawData of length: " + obj.data().length);
-            buf.putBytes(obj.data());
-        }
-        public RawData deserialize(ByteBuffer data, TypeContainer<RawData> type) {
-            Log.i(TAG, "Deserializing RawData of length: " + data.remaining());
-            byte[] bytes = new byte[data.remaining()];
-            data.get(bytes);
-            return new RawData(bytes);
-        }
+    @Override
+    public void serialize(RawData obj, GrowableBuffer buf) {
+        Log.i(TAG, "Serializing RawData of length: " + obj.data().length);
+        buf.putBytes(obj.data());
+    }
+
+    @Override
+    public RawData deserialize(ByteBuffer data, TypeContainer<RawData> type) {
+        Log.i(TAG, "Deserializing RawData of length: " + data.remaining());
+        byte[] bytes = new byte[data.remaining()];
+        data.get(bytes);
+        return new RawData(bytes);
+    }
 }

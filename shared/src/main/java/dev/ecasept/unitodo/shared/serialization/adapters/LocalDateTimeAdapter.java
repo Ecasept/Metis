@@ -9,23 +9,31 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.ByteBuffer;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeParseException;
 
 public class LocalDateTimeAdapter extends Adapter<LocalDateTime> {
-        private static final String TAG = "LocalDateTimeAdapter";
-        private static final StringSerializer stringSerializer = new StringSerializer();
-        public LocalDateTimeAdapter(DaddySerializer daddySerializer) {
-                super(daddySerializer);
-        }
+    private static final String TAG = "LocalDateTimeAdapter";
+    private static final StringSerializer stringSerializer = new StringSerializer();
+    public LocalDateTimeAdapter(DaddySerializer daddySerializer) {
+        super(daddySerializer);
+    }
 
-        public void serialize(LocalDateTime obj, GrowableBuffer buf) {
-                Log.i(TAG, "Serializing LocalDateTime: " + obj.toString());
-                String s = obj.toString();
-                stringSerializer.serialize(s, buf);
+    @Override
+    public void serialize(LocalDateTime obj, GrowableBuffer buf) {
+        Log.i(TAG, "Serializing LocalDateTime: " + obj.toString());
+        String s = obj.toString();
+        stringSerializer.serialize(s, buf);
 
+    }
+
+    @Override
+    public LocalDateTime deserialize(ByteBuffer data, TypeContainer<LocalDateTime> type) throws SerializationException {
+        String s = stringSerializer.deserialize(data);
+        Log.i(TAG, "Deserialized LocalDateTime string: " + s);
+        try {
+            return LocalDateTime.parse(s);
+        } catch (DateTimeParseException e) {
+            throw new SerializationException("Failed to parse LocalDateTime from string: " + s, e);
         }
-        public LocalDateTime deserialize(ByteBuffer data, TypeContainer<LocalDateTime> type) throws SerializationException {
-                String s = stringSerializer.deserialize(data);
-                Log.i(TAG, "Deserialized LocalDateTime string: " + s);
-                return LocalDateTime.parse(s);
-        }
+    }
 }
