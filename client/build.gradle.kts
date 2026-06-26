@@ -46,6 +46,7 @@ dependencies {
 val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/sources/buildConfig/java/main")
 
+    inputs.property("baseUrl", baseUrl)
     outputs.dir(outputDir)
 
     doLast {
