@@ -26,6 +26,7 @@ public class ApiClient {
         this.httpClient = httpClient;
         this.baseUrl = baseUrl;
         this.serializer = serializer;
+        Log.i(TAG, "ApiClient initialized with base URL: " + baseUrl);
     }
 
     private String sessionToken;
@@ -82,6 +83,7 @@ public class ApiClient {
         HttpResponse<byte[]> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
+            Log.i(TAG, "Request to " + endpoint + " returned status code: " + response.statusCode());
         } catch (IOException | InterruptedException e) {
             throw new ApiNetworkException("Failed to send request to " + endpoint, e);
         }
