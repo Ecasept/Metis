@@ -13,6 +13,9 @@ public class TimestampedField<V> {
     @Field(tag=2)
     private LocalDateTime lastUpdated;
 
+    /** Provide no-arg constructor for serialization */
+    private TimestampedField() {}
+
     public TimestampedField(V value) {
         this.value = value;
         lastUpdated = LocalDateTime.now();
