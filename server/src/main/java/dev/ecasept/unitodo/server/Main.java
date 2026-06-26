@@ -42,7 +42,7 @@ public class Main {
             server.addRoute("/api/auth/login", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::loginRequest);
             server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::registerRequest);
             server.addRoute("/api/users/delete", "POST", new StoreType<Password>() {}, new StoreType<ApiResponse<Void>>() {}, authService::deleteAccountRequest);
-            server.addRoute("/api/sync/synchronize", "POST", new StoreType<SyncRequest>() {}, new StoreType<ApiResponse<SyncResponse>>() {}, syncService::syncRequest);
+            server.addRoute("/api/data/sync", "POST", new StoreType<SyncRequest>() {}, new StoreType<ApiResponse<SyncResponse>>() {}, syncService::syncRequest);
             server.run(config.PORT());
         } catch (Exception e) {
             try {
