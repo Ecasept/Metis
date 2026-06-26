@@ -101,6 +101,9 @@ public class DataManager {
             } catch (DatabaseException e) {
                 Log.e(TAG, "Failed to access database during synchronization", e);
                 asyncErrorHandler.accept(e);
+            } catch (Throwable t) {
+                Log.e(TAG, "Unexpected error during synchronization", t);
+                asyncErrorHandler.accept(new Exception("Unexpected error during synchronization", t));
             }
         });
     }
