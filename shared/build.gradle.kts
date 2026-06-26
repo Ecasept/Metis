@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    implementation("org.xerial:sqlite-jdbc:3.45.2.0")
+    implementation(libs.xerial.sqlite)
 }
 
 tasks.register("prepareKotlinBuildScriptModel"){}

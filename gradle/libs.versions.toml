@@ -1,0 +1,5 @@
+[versions]
+sqlite = "3.45.2.0"
+
+[libraries]
+xerial-sqlite = { group = "org.xerial", name = "sqlite-jdbc", version.ref = "sqlite"}
