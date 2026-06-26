@@ -47,7 +47,11 @@ public class ConditionCreator {
         return this;
     }
     public <T> ConditionCreator eqAny(String column, List<T> values) {
-        addNewCondition(new InCondition<>(column, values));
+        if (values.isEmpty()) {
+            addNewCondition(new FalseCondition());
+        } else {
+            addNewCondition(new InCondition<>(column, values));
+        }
         return this;
     }
     public <T> ConditionCreator ge(String column, T value) {
