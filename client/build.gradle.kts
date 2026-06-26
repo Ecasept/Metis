@@ -7,10 +7,7 @@ application {
     mainClass.set("dev.ecasept.unitodo.client.Main")
 }
 
-dependencies {
-    implementation(project(":shared"))
-}
-
+// Fix IntelliJ warning
 tasks.register("prepareKotlinBuildScriptModel"){}
 
 tasks.jar {
@@ -22,21 +19,49 @@ tasks.jar {
 }
 
 
-
+val trustAllCertificates: String by project
+val baseUrl: String by project
 
 
 sourceSets {
-    main {
-    }
-    create("dev") {
-        java.srcDir("src/dev/java")
-        compileClasspath += sourceSets["main"].compileClasspath
-        runtimeClasspath += sourceSets["main"].runtimeClasspath
+    create("defaultCerts")
+    create("trustAllCerts")
+}
+
+dependencies {
+
+    // Add the shared module as a dependency for all source sets
+    implementation(project(":shared"))
+    "defaultCertsImplementation"(project(":shared"))
+    "trustAllCertsImplementation"(project(":shared"))
+
+    // Make the client depend on the corresponding source set
+    if (trustAllCertificates.toBoolean()) {
+        implementation(sourceSets["trustAllCerts"].output)
+    } else {
+        implementation(sourceSets["defaultCerts"].output)
     }
 }
 
-// Create tasks for each
-tasks.register<JavaExec>("runDev") {
-    classpath = sourceSets["dev"].runtimeClasspath + sourceSets["main"].runtimeClasspath
-    mainClass.set("dev.ecasept.unitodo.client.Main")
+val generateBuildConfig by tasks.registering {
+    val outputDir = layout.buildDirectory.dir("generated/sources/buildConfig/java/main")
+
+    outputs.dir(outputDir)
+
+    doLast {
+        val outputFile = outputDir.get().file("dev/ecasept/unitodo/build/BuildConfig.java").asFile
+        outputFile.parentFile.mkdirs()
+        outputFile.writeText("""
+            package dev.ecasept.unitodo.build;
+
+            public class BuildConfig {
+                public static final String BASE_URL = "$baseUrl";
+            }
+        """.trimIndent())
+    }
+}
+
+java.sourceSets["main"].java.srcDir(generateBuildConfig)
+tasks.compileJava {
+    dependsOn(generateBuildConfig)
 }

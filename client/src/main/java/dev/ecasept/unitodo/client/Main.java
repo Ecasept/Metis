@@ -1,5 +1,6 @@
 package dev.ecasept.unitodo.client;
 
+import dev.ecasept.unitodo.build.BuildConfig;
 import dev.ecasept.unitodo.client.api.ApiClient;
 import dev.ecasept.unitodo.client.api.HttpClientFactory;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
@@ -19,7 +20,7 @@ public class Main {
     public static void main(String[] args) {
         var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
         var httpClient = HttpClientFactory.createClient();
-        var apiClient = new ApiClient(httpClient, "https://localhost:6767/api", serializer);
+        var apiClient = new ApiClient(httpClient, BuildConfig.BASE_URL, serializer);
 
         DatabaseController databaseController;
         try {

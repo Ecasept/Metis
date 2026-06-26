@@ -1,5 +1,7 @@
 package dev.ecasept.unitodo.client.api;
 
+import dev.ecasept.unitodo.shared.utils.Log;
+
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
@@ -10,7 +12,9 @@ import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
 
 public class HttpClientFactory {
+    private static final String TAG = "HttpClientFactory";
     public static HttpClient createClient() {
+        Log.w(TAG, "Creating HttpClient that trusts all certificates. This is insecure and should only be used for testing purposes.");
         TrustManager[] trustAllCerts = new TrustManager[]{
                 new X509TrustManager() {
                     public X509Certificate[] getAcceptedIssuers() {
