@@ -85,7 +85,6 @@ public class RegisterDialog extends JDialog {
             // Registrierung und anschließender Login über den DataManager
             try {
                 dataManager.register(username, Arrays.toString(passwordArray));
-                dataManager.login(username, Arrays.toString(passwordArray));
                 Arrays.fill(passwordArray, '0');
                 dispose();
             } catch (ApiException eA) {
