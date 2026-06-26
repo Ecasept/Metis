@@ -77,10 +77,12 @@ public class DataManager {
         this.asyncErrorHandler = asyncErrorHandler;
     }
 
-    /**
-     * @throws DatabaseException If any database access fails
-     */
-    public void sync() throws DatabaseException {
+    public void synchronize() {
+        sync();
+    }
+
+    private void sync() {
+        Log.i(TAG, "Starting synchronization of " + unsynced.size() + " tasks");
         var now = LocalDateTime.now();
         syncExecutor.submit(() -> {
             try {

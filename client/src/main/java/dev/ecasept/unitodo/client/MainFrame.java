@@ -92,11 +92,7 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
                 return;
             } else {
-                try {
-                    dataManger.sync();
-                } catch (DatabaseException ex) {
-                    JOptionPane.showMessageDialog(null, "Synchronisation fehlgeschlagen. Bitte versuchen sie es erneut.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
-                }
+                dataManger.synchronize();
             }
         }
     };
@@ -162,8 +158,8 @@ public class MainFrame extends JFrame {
         this.dataManger = dataManger;
         dataManger.setAsyncErrorHandler(
                 e -> {
-                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt synchronisiert werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
-                    Log.e(TAG, "Error during asynchronous database operation", e);
+                    JOptionPane.showMessageDialog(this, "Fehler! Die Daten konnten nicht korrekt synchronisiert werden", "Fehler", JOptionPane.ERROR_MESSAGE);
+                    Log.e(TAG, "Error during asynchronous operation", e);
                 }
         );
         try {
