@@ -24,7 +24,8 @@ public class Synchronizer {
     }
 
 
-    public void synchronize(ClientTask[] modifiedTasks, LocalDateTime lastSyncTime) throws ApiException, DatabaseException {
+    @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
+    public void synchronize(ClientTask[] modifiedTasks, Optional<LocalDateTime> lastSyncTime) throws ApiException, DatabaseException {
         var syncRequest = new SyncRequest(modifiedTasks, lastSyncTime);
         var res = apiClient.sync(syncRequest);
 

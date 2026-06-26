@@ -36,11 +36,15 @@ public class DataManager {
         return db.getSessionToken().isPresent();
     }
 
-    private LocalDateTime getLastSyncTime() throws DatabaseException {
+    private Optional<LocalDateTime> getLastSyncTime() throws DatabaseException {
         if (cachedLastSyncTime == null) {
-            cachedLastSyncTime = db.getLastSyncTime().orElse(LocalDateTime.ofInstant(Instant.EPOCH, ZoneOffset.UTC));
+            var time = db.getLastSyncTime();
+            if (time.isEmpty()) {
+                return time;
+            }
+            cachedLastSyncTime = time.get();
         }
-        return cachedLastSyncTime;
+        return Optional.of(cachedLastSyncTime);
     }
     private void setLastSyncTime(LocalDateTime time) throws DatabaseException {
         db.setLastSyncTime(time);
@@ -133,18 +137,29 @@ public class DataManager {
     public void initialize() throws DatabaseException {
         // Check for unsynced tasks in the database
         var lastSyncTime = getLastSyncTime();
-        var modifiedTasks = db.getTasksModifiedSince(lastSyncTime);
-        if (!modifiedTasks.isEmpty()) {
-            Log.i(TAG, "Found " + modifiedTasks.size() + " unsynced tasks in the database, will synchronize on next sync");
-            for (var task : modifiedTasks) {
+        if (lastSyncTime.isEmpty()) {
+            Log.i(TAG, "No last sync time found, syncing all tasks");
+            var allTasks = db.getAllTasks();
+            Log.i(TAG, "Found " + allTasks.size() + " unsynced tasks in the database, will synchronize on next sync");
+            for (var task : allTasks) {
                 unsynced.put(task.uuid(), task);
+            }
+        } else {
+            var modifiedTasks = db.getTasksModifiedSince(lastSyncTime.get());
+            if (!modifiedTasks.isEmpty()) {
+                Log.i(TAG, "Found " + modifiedTasks.size() + " unsynced tasks in the database, will synchronize on next sync");
+                for (var task : modifiedTasks) {
+                    unsynced.put(task.uuid(), task);
+                }
             }
         }
         // Cache session token
         var sessionToken = db.getSessionToken();
         apiClient.setSessionToken(sessionToken.orElse(null));
-        // Sync with server to get any changes that might have happened while the client was offline
-        sync();
+        if (sessionToken.isPresent()) {
+            // Sync with server to get any changes that might have happened while the client was offline
+            sync();
+        }
     }
 
 

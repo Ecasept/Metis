@@ -135,6 +135,17 @@ public class ClientDatabaseRepository {
         }
     }
 
+    public ArrayList<ClientTask> getAllTasks() throws DatabaseException {
+        try (var query = db
+                .select()
+                .from("tasks")
+                .prepare()) {
+            return query.executeMulti(ClientTask::fromResultSet);
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to get all tasks from database", e);
+        }
+    }
+
     public ArrayList<ClientTask> getTasksModifiedSince(LocalDateTime lastSyncTime) throws DatabaseException {
         long lastSync = DateFormat.toLong(lastSyncTime);
         try (var query = db

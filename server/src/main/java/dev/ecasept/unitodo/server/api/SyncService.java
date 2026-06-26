@@ -45,7 +45,12 @@ public class SyncService {
                 var serverTasks = serverTaskList.stream().collect(Collectors.toMap(ServerTask::uuid, Function.identity()));
                 var clientTasks = Arrays.stream(request.tasks()).collect(Collectors.toMap(ClientTask::uuid, Function.identity()));
 
-                ServerTask[] modifiedServerTasks = db.getTasksModifiedSince(request.lastSyncTime(), userId);
+                ServerTask[] modifiedServerTasks;
+                if (request.lastSyncTime().isPresent()) {
+                    modifiedServerTasks = db.getTasksModifiedSince(request.lastSyncTime().get(), userId);
+                } else {
+                    modifiedServerTasks = db.getAllTasks(userId);
+                }
 
                 var newTasks = synchronizer.synchronize(serverTasks, clientTasks, userId);
                 db.upsertTasks(newTasks);
@@ -53,7 +58,7 @@ public class SyncService {
                 var responseDelta = Arrays.stream(modifiedServerTasks).map(ServerTask::toClientTask).toArray(ClientTask[]::new);
 
                 Optional<List<UUID>> presentList = Optional.empty();
-                if (request.lastSyncTime().isBefore(LocalDateTime.now().minus(config.TOMBSTONE_TTL()))) {
+                if (request.lastSyncTime().isEmpty() || request.lastSyncTime().get().isBefore(LocalDateTime.now().minus(config.TOMBSTONE_TTL()))) {
                     presentList = Optional.of(db.getAllTaskUUIDs(userId));
                 }
 

@@ -52,6 +52,18 @@ public class ServerDatabaseRepository {
         }
     }
 
+    public ServerTask[] getAllTasks(UUID userId) throws DatabaseException {
+        try (var query = db
+                .select()
+                .from("tasks")
+                .filter(it -> it.eq("userId", userId))
+                .prepare()) {
+            return query.executeMulti(ServerTask::fromResultSet).toArray(new ServerTask[0]);
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to get all tasks from database", e);
+        }
+    }
+
     public ArrayList<ServerTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
         try (var query = db
                 .select()
