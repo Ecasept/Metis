@@ -1,13 +1,14 @@
-package dev.ecasept.unitodo.client.Icons;
+package dev.ecasept.unitodo.client.ui.icon;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class PriorityIcon implements Icon {
+public class DeleteIcon implements Icon {
+
     private final Color color;
     private final int size;
 
-    public PriorityIcon(Color color, int size) {
+    public DeleteIcon(Color color, int size) {
         this.color = color;
         this.size = size;
 
@@ -17,8 +18,12 @@ public class PriorityIcon implements Icon {
     @Override
     public void paintIcon(Component c, Graphics g, int x, int y) {
         g.setColor(color);
-        g.drawRect(30, 10, size, size);
-        g.fillRect(30, 10, size, size);
+        g.drawRect(15, 10, size, size);
+        g.setColor(Color.RED);
+        g.drawLine(15, 10, size + 15, size + 10);
+        g.drawLine(15 + size, 10, 15, size + 10);
+
+
     }
 
     @Override
@@ -31,3 +36,4 @@ public class PriorityIcon implements Icon {
         return size;
     }
 }
+

@@ -1,14 +1,14 @@
-package dev.ecasept.unitodo.client.Icons;
+package dev.ecasept.unitodo.client.ui.icon;
 
 import javax.swing.*;
 import java.awt.*;
 
-public class DeleteIcon implements Icon {
+public class EditIcon implements Icon {
 
     private final Color color;
     private final int size;
 
-    public DeleteIcon(Color color, int size) {
+    public EditIcon(Color color, int size) {
         this.color = color;
         this.size = size;
 
@@ -19,10 +19,6 @@ public class DeleteIcon implements Icon {
     public void paintIcon(Component c, Graphics g, int x, int y) {
         g.setColor(color);
         g.drawRect(15, 10, size, size);
-        g.setColor(Color.RED);
-        g.drawLine(15, 10, size + 15, size + 10);
-        g.drawLine(15 + size, 10, 15, size + 10);
-
 
     }
 
@@ -36,4 +32,3 @@ public class DeleteIcon implements Icon {
         return size;
     }
 }
-

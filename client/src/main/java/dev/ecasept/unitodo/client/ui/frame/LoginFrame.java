@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.frame;
 
 import javax.swing.*;
 import java.awt.*;

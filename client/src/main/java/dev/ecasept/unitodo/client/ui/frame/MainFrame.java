@@ -1,5 +1,13 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.frame;
 
+import dev.ecasept.unitodo.client.*;
+import dev.ecasept.unitodo.client.ui.component.AJSearchbar;
+import dev.ecasept.unitodo.client.ui.component.TaskTableEditor;
+import dev.ecasept.unitodo.client.ui.dialog.DeleteAccountDialog;
+import dev.ecasept.unitodo.client.ui.dialog.LoginDialog;
+import dev.ecasept.unitodo.client.ui.dialog.RegisterDialog;
+import dev.ecasept.unitodo.client.ui.utils.FrameUtils;
+import dev.ecasept.unitodo.client.ui.utils.TimeUtils;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;

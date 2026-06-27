@@ -1,6 +1,7 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.utils;
 
-import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
+import dev.ecasept.unitodo.client.DataManager;
+import dev.ecasept.unitodo.client.ui.component.TaskTableCellRenderer;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
@@ -9,7 +10,6 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Optional;

@@ -1,11 +1,10 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.utils;
 
 import javax.swing.*;
 import java.time.DateTimeException;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.IllegalFormatException;
 
 public class TimeUtils {
 

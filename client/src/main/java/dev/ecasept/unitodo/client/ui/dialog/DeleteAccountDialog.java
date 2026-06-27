@@ -1,5 +1,6 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.dialog;
 
+import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 
@@ -9,24 +10,23 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 
-public class RegisterDialog extends JDialog {
+public class DeleteAccountDialog extends JDialog {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
 
 
-    public RegisterDialog(Frame x, boolean modal, DataManager dataManager) {
-        super(x, "Registrieren", modal);
+    public DeleteAccountDialog(Frame x, boolean modal, DataManager dataManager) {
+        super(x, "Account löschen", modal);
         this.dataManager = dataManager;
         this.setLocation(550, 320);
 
         JPanel usernamePanel = new JPanel();
-        JLabel usernameLabel = new JLabel("Benutzername:");
-        usernameField = new JTextField();
+        JLabel usernameLabel = new JLabel("Bitte Passwort eingeben");
         usernamePanel.setLayout(new BoxLayout(usernamePanel, BoxLayout.X_AXIS));
         usernamePanel.add(usernameLabel);
-        usernamePanel.add(usernameField);
+
 
         JPanel passwordPanel = new JPanel();
         JLabel passwordLabel = new JLabel("Passwort: ");
@@ -40,12 +40,12 @@ public class RegisterDialog extends JDialog {
         inputPanel.add(usernamePanel);
         inputPanel.add(passwordPanel);
 
-        JButton registerButton = new JButton("Registrieren");
+        JButton deleteButton = new JButton("Account löschen");
         JButton cancelButton = new JButton("Abbrechen");
-        registerButton.addActionListener(registerButtonListener);
+        deleteButton.addActionListener(deleteButtonListener);
         cancelButton.addActionListener(cancelButtonListener);
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(registerButton);
+        buttonPanel.add(deleteButton);
         buttonPanel.add(cancelButton);
 
 
@@ -60,15 +60,10 @@ public class RegisterDialog extends JDialog {
     }
 
 
-    ActionListener registerButtonListener = new ActionListener() {
+    ActionListener deleteButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
-            // Prüfung ob username und password leer sind
-            String username = usernameField.getText();
-            if (username.equals("")) {
-                JOptionPane.showMessageDialog(null, "Der Benutzername darf nicht leer sein.", "Registrierung fehgeschlagen", JOptionPane.ERROR_MESSAGE);
-                return;
-            }
+            // Prüfung password leer ist
             char[] passwordArray;
             try {
                 passwordArray = passwordField.getPassword();
@@ -82,17 +77,16 @@ public class RegisterDialog extends JDialog {
                 return;
             }
 
-            // Registrierung und anschließender Login über den DataManager
+            // Account löschen
             try {
-                dataManager.register(username, Arrays.toString(passwordArray));
+                dataManager.deleteAccount(Arrays.toString(passwordArray));
                 Arrays.fill(passwordArray, '0');
-                dispose();
             } catch (ApiException eA) {
-                JOptionPane.showMessageDialog(null, "Fehler beim Registrieren. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Fehler löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
                 Arrays.fill(passwordArray, '0');
                 return;
             } catch (DatabaseException eD) {
-                JOptionPane.showMessageDialog(null, "Datenbankfehler bei der Registrierung. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Datenbankfehler. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
                 Arrays.fill(passwordArray, '0');
                 return;
             }
@@ -106,5 +100,5 @@ public class RegisterDialog extends JDialog {
             dispose();
         }
     };
-}
 
+}

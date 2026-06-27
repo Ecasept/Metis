@@ -1,6 +1,6 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.component;
 
-import dev.ecasept.unitodo.client.Icons.PriorityIcon;
+import dev.ecasept.unitodo.client.ui.icon.PriorityIcon;
 import dev.ecasept.unitodo.shared.models.db.TaskPriority;
 import dev.ecasept.unitodo.shared.utils.Log;
 

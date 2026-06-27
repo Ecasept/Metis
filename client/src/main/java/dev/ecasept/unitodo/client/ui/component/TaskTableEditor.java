@@ -1,5 +1,6 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.component;
 
+import dev.ecasept.unitodo.client.ui.frame.MainFrame;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.*;

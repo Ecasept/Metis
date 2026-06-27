@@ -5,6 +5,7 @@ import dev.ecasept.unitodo.client.api.ApiClient;
 import dev.ecasept.unitodo.client.api.HttpClientFactory;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.client.sync.Synchronizer;
+import dev.ecasept.unitodo.client.ui.frame.MainFrame;
 import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;

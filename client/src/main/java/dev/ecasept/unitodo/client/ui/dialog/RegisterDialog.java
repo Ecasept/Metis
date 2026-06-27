@@ -1,5 +1,6 @@
-package dev.ecasept.unitodo.client;
+package dev.ecasept.unitodo.client.ui.dialog;
 
+import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 
@@ -9,15 +10,15 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
 
-public class LoginDialog extends JDialog {
+public class RegisterDialog extends JDialog {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
 
 
-    public LoginDialog(Frame x, boolean modal, DataManager dataManager) {
-        super(x, "Anmelden", modal);
+    public RegisterDialog(Frame x, boolean modal, DataManager dataManager) {
+        super(x, "Registrieren", modal);
         this.dataManager = dataManager;
         this.setLocation(550, 320);
 
@@ -40,12 +41,12 @@ public class LoginDialog extends JDialog {
         inputPanel.add(usernamePanel);
         inputPanel.add(passwordPanel);
 
-        JButton loginButton = new JButton("Anmelden");
+        JButton registerButton = new JButton("Registrieren");
         JButton cancelButton = new JButton("Abbrechen");
-        loginButton.addActionListener(loginButtonListener);
+        registerButton.addActionListener(registerButtonListener);
         cancelButton.addActionListener(cancelButtonListener);
         JPanel buttonPanel = new JPanel();
-        buttonPanel.add(loginButton);
+        buttonPanel.add(registerButton);
         buttonPanel.add(cancelButton);
 
 
@@ -60,7 +61,7 @@ public class LoginDialog extends JDialog {
     }
 
 
-    ActionListener loginButtonListener = new ActionListener() {
+    ActionListener registerButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             // Prüfung ob username und password leer sind
@@ -76,26 +77,27 @@ public class LoginDialog extends JDialog {
                 JOptionPane.showMessageDialog(null, "Das Passwort darf nicht leer sein.", "Registrierung fehgeschlagen", JOptionPane.ERROR_MESSAGE);
                 return;
             }
+
             if (passwordArray.length == 0) {
                 JOptionPane.showMessageDialog(null, "Das Passwort darf nicht leer sein.", "Registrierung fehgeschlagen", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-
-            // Login über den DataManager
+            // Registrierung und anschließender Login über den DataManager
             try {
-                dataManager.login(username, Arrays.toString(passwordArray));
+                dataManager.register(username, Arrays.toString(passwordArray));
                 Arrays.fill(passwordArray, '0');
-
+                dispose();
             } catch (ApiException eA) {
-                JOptionPane.showMessageDialog(null, "Fehler beim Anmelden. Bitte versuchen sie es erneut", "Anmelden fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Fehler beim Registrieren. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
                 Arrays.fill(passwordArray, '0');
                 return;
             } catch (DatabaseException eD) {
-                JOptionPane.showMessageDialog(null, "Datenbankfehler beim Anmelden. Bitte versuchen sie es erneut", "Anmelden fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                JOptionPane.showMessageDialog(null, "Datenbankfehler bei der Registrierung. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
                 Arrays.fill(passwordArray, '0');
                 return;
             }
+
         }
     };
 
@@ -106,3 +108,4 @@ public class LoginDialog extends JDialog {
         }
     };
 }
+
