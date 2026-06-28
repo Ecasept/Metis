@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.client.ui.dialog.DeleteAccountDialog;
 import dev.ecasept.unitodo.client.ui.dialog.LoginDialog;
 import dev.ecasept.unitodo.client.ui.dialog.RegisterDialog;
 import dev.ecasept.unitodo.client.ui.utils.FrameUtils;
+import dev.ecasept.unitodo.client.ui.utils.SyncResponse;
 import dev.ecasept.unitodo.client.ui.utils.TimeUtils;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
@@ -36,6 +37,8 @@ public class MainFrame extends JFrame {
     private static final int LAST_WAS_FINISHED = 1;
     private static final int LAST_WAS_PENDING = 2;
     private static final int LAST_WAS_ALL = 3;
+    private static final int LAST_WAS_SEARCHED = 4;
+    private static String lastSearchString;
     private int last;
 
     // Anmeldestatus + Buttons zur Accountverwaltung
@@ -65,6 +68,24 @@ public class MainFrame extends JFrame {
     private DefaultTableModel tableModel;
     private String[] rows = {"Status", "Titel", "Fälligkeitsdatum", "Priorität", "", ""};
     private ArrayList<ClientTask> currentlyShownTasks;
+
+
+    // SyncResponse, um setOverview nach sync aufzurufen
+    SyncResponse syncResponse = new SyncResponse() {
+        @Override
+        public void syncFinished() {
+            if (last == LAST_WAS_ALL) {
+                showAll();
+            } else if (last == LAST_WAS_FINISHED){
+                showFinished();
+            } else if (last == LAST_WAS_PENDING){
+                showPending();
+            } else {
+                showSearched(lastSearchString);
+            }
+        }
+    };
+
 
     // Listener für die Button
     private ActionListener showAllListener = new ActionListener() {
@@ -262,8 +283,10 @@ public class MainFrame extends JFrame {
             currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
         } else if (last == LAST_WAS_FINISHED) {
             currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
-        } else {
+        } else if (last == LAST_WAS_ALL){
             currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
+        } else if (last == LAST_WAS_SEARCHED){
+            currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManger, lastSearchString);
         }
 
         // JTable erstellen und in ScrollPane einbetten
@@ -320,6 +343,9 @@ public class MainFrame extends JFrame {
     }
 
     public void showSearched(String searchString) {
+        last = LAST_WAS_SEARCHED;
+        lastSearchString = searchString;
+
         if (taskTable.isEditing()) {
             taskTable.getCellEditor().stopCellEditing();
         }
@@ -1017,8 +1043,10 @@ public class MainFrame extends JFrame {
                 showAll();
             } else if (last == LAST_WAS_PENDING) {
                 showPending();
-            } else {
+            } else if (last == LAST_WAS_FINISHED){
                 showFinished();
+            } else {
+                showSearched(lastSearchString);
             }
         }
     }
@@ -1038,8 +1066,10 @@ public class MainFrame extends JFrame {
                        showAll();
                    } else if (last == LAST_WAS_FINISHED){
                        showFinished();
-                   } else {
+                   } else if (last == LAST_WAS_PENDING){
                        showPending();
+                   } else {
+                       showSearched(lastSearchString);
                    }
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
