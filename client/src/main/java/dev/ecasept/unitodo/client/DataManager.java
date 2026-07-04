@@ -109,14 +109,14 @@ public class DataManager {
     }
 
     /**
-     * Updates the specified task, or creates it if it doesn't exist yet. Tries to update the server as well.
+     * Updates the specified task or creates it if it doesn't exist yet. Tries to update the server as well.
      * <p>
-     * Tasks are stored based on their UUID, so if no task with the contained UUID exist, it will be created,
+     * Tasks are stored based on their UUID, so if no task with the contained UUID exists, it will be created,
      * otherwise the task with the matching UUID will have its fields updated to reflect those of the provided task.
      * <p>
-     * If the server can not be notified of the change
+     * If the server cannot be notified of the change
      *
-     * @param task The task that should be created, or the tas
+     * @param task The task that should be created or updated
      * @throws DatabaseException If any database access fails
      */
     public void upsertTask(ClientTask task) throws DatabaseException {
