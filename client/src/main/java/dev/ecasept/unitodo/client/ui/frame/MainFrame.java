@@ -899,7 +899,7 @@ public class MainFrame extends JFrame {
         if (task.state().get().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().isPending()) {
+        if (task.state().get().isFinished()) {
             taskStateField.setText("Erledigt");
         }
 
