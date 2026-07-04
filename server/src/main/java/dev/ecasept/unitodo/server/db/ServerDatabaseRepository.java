@@ -211,13 +211,13 @@ public class ServerDatabaseRepository {
                 .filter(it -> it
                         .eq("userId", userId)
                         .defaultOr(c -> c
-                                .eq("titleChanged", lastSync)
-                                .eq("descriptionChanged", lastSync)
-                                .eq("stateChanged", lastSync)
-                                .eq("priorityChanged", lastSync)
-                                .eq("dueDateChanged", lastSync)
-                                .eq("dueTimeChanged", lastSync)
-                                .eq("deletedChanged", lastSync)
+                                .ge("titleChanged", lastSync)
+                                .ge("descriptionChanged", lastSync)
+                                .ge("stateChanged", lastSync)
+                                .ge("priorityChanged", lastSync)
+                                .ge("dueDateChanged", lastSync)
+                                .ge("dueTimeChanged", lastSync)
+                                .ge("deletedChanged", lastSync)
                         )
                 )
                 .prepare()) {
