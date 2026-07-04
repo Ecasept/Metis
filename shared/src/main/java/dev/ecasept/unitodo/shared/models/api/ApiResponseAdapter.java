@@ -3,43 +3,54 @@ package dev.ecasept.unitodo.shared.models.api;
 import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
 import dev.ecasept.unitodo.shared.serialization.adapters.Adapter;
-import dev.ecasept.unitodo.shared.serialization.serializers.DaddySerializer;
+import dev.ecasept.unitodo.shared.serialization.compilers.DaddyCompiler;
+import dev.ecasept.unitodo.shared.serialization.compilers.NullableTypeContainer;
+import dev.ecasept.unitodo.shared.serialization.schemas.Schema;
 import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 
 import java.nio.ByteBuffer;
 
-public class ApiResponseAdapter<T> extends Adapter<ApiResponse<T>> {
-    public ApiResponseAdapter(DaddySerializer daddySerializer) {
-        super(daddySerializer);
+public class ApiResponseAdapter<T> implements Adapter<ApiResponse<T>> {
+    private final DaddyCompiler daddyCompiler;
+
+    public ApiResponseAdapter(DaddyCompiler daddyCompiler) {
+        this.daddyCompiler = daddyCompiler;
     }
 
     @Override
-    public void serialize(ApiResponse<T> obj, GrowableBuffer buf) {
-        obj.on(
-                data -> {
-                    buf.putByte((byte) 0x00);
-                    daddySerializer.serialize(data, null, buf, false, new boolean[0]);
-                },
-                error -> {
-                    buf.putByte((byte) 0x01);
-                    daddySerializer.serialize(error, null, buf, false, new boolean[0]);
+    public Schema<ApiResponse<T>> compileToSchema(NullableTypeContainer<ApiResponse<T>> nullableType) {
+        //noinspection unchecked
+        var dataType = (TypeContainer<T>) nullableType.type().getGenericArgument(0);
+        var dataSchema = daddyCompiler.compileToSchema(NullableTypeContainer.of(dataType, false));
+        var stringSchema = daddyCompiler.compileToSchema(NullableTypeContainer.of(String.class, false));
+        return new Schema<>() {
+            @Override
+            public void serialize(ApiResponse<T> obj, GrowableBuffer buf) {
+                obj.on(
+                        data -> {
+                            buf.putByte((byte) 0x00);
+                            dataSchema.serialize(data, buf);
+                        },
+                        error -> {
+                            buf.putByte((byte) 0x01);
+                            stringSchema.serialize(error, buf);
+                        }
+                );
+            }
+
+            @Override
+            public ApiResponse<T> deserialize(ByteBuffer data) throws SerializationException {
+                byte success = data.get();
+                if (success == (byte) 0x00) {
+                    T successData = dataSchema.deserialize(data);
+                    return ApiResponse.success(successData);
+                } else if (success == (byte) 0x01) {
+                    String errorMessage = stringSchema.deserialize(data);
+                    return ApiResponse.error(errorMessage);
+                } else {
+                    throw new SerializationException("Invalid ApiResponse tag: " + String.format("0x%02X", success));
                 }
-        );
-    }
-
-    @Override
-    public ApiResponse<T> deserialize(ByteBuffer data, TypeContainer<ApiResponse<T>> type) throws SerializationException {
-        byte success = data.get();
-        if (success == (byte) 0x00) {
-            @SuppressWarnings("unchecked")
-            TypeContainer<T> subType = (TypeContainer<T>) type.getGenericArgument(0);
-            T successData = daddySerializer.deserialize(data, subType, false, new boolean[0]);
-            return ApiResponse.success(successData);
-        } else if (success == (byte) 0x01) {
-            String errorMessage = daddySerializer.deserialize(data, new TypeContainer<>(String.class), false, new boolean[0]);
-            return ApiResponse.error(errorMessage);
-        } else {
-            throw new SerializationException("Invalid ApiResponse type: " + type);
-        }
+            }
+        };
     }
 }

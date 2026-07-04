@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
-@SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
     private static final String TAG = "MainFrame";
 

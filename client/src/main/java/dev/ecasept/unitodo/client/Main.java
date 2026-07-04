@@ -9,9 +9,10 @@ import dev.ecasept.unitodo.client.ui.frame.MainFrame;
 import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
-import dev.ecasept.unitodo.shared.models.api.ApiResponse;
 import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
+import dev.ecasept.unitodo.shared.serialization.adapters.Any;
+import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.awt.event.WindowAdapter;
@@ -19,7 +20,7 @@ import java.awt.event.WindowEvent;
 
 public class Main {
     public static void main(String[] args) {
-        var serializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
+        var serializer = Serializer.createDefault().adapter(ApiResponseAdapter<Any>::new, new StoreType<>(){});
         var httpClient = HttpClientFactory.createClient();
         var apiClient = new ApiClient(httpClient, BuildConfig.BASE_URL, serializer);
 

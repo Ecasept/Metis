@@ -5,7 +5,6 @@ import dev.ecasept.unitodo.shared.db.querybuilder.TransactionFunction;
 import dev.ecasept.unitodo.shared.db.querybuilder.batch.Batcher;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
-import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.ServerTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.DateFormat;
