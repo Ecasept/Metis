@@ -12,8 +12,8 @@ import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.SyncRequest;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
-import dev.ecasept.unitodo.shared.models.db.ServerTask;
 import dev.ecasept.unitodo.shared.models.db.TimestampedField;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 public class Synchronizer {
     private final ClientDatabaseRepository db;
@@ -37,11 +37,12 @@ public class Synchronizer {
                         var serverTasks = Arrays.stream(res.tasks()).collect(Collectors.toUnmodifiableMap(ClientTask::uuid, Function.identity()));
 
                         var newTasks = mergeTasks(clientTasks, serverTasks);
+                        Log.i("Synchronizer", "Merged tasks: " + newTasks.size());
 
                         db.upsertTasks(newTasks);
 
                         if (res.presentList().isPresent()) {
-                            db.deleteTasks(Arrays.asList(res.presentList().get()));
+                            db.deleteTasksNotPresent(Arrays.asList(res.presentList().get()));
                         }
 
                         return null;

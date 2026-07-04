@@ -123,6 +123,18 @@ public class ClientDatabaseRepository {
         deleteTasks(List.of(uuid));
     }
 
+    public void deleteTasksNotPresent(List<UUID> uuids) throws DatabaseException {
+        try (var query = db
+                .delete()
+                .from("tasks")
+                .filter(it -> it.not( c -> c.eqAny("uuid", uuids)))
+                .prepare()) {
+            query.execute();
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to delete tasks from database", e);
+        }
+    }
+
     public void deleteTasks(List<UUID> uuids) throws DatabaseException {
         try (var query = db
                 .delete()
