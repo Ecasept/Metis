@@ -67,6 +67,10 @@ public class ConditionCreator {
         addNewCondition(new GreaterThanOrEqualsCondition<>(column, value));
         return this;
     }
+    public <T> ConditionCreator lt(String column, T value) {
+        addNewCondition(new LessThanCondition<>(column, value));
+        return this;
+    }
     public Condition getCondition() {
         return this.condition;
     }
