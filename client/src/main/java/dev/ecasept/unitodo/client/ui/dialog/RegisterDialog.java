@@ -9,14 +9,22 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
-
+/**
+ * This class is responsible for creating a (modal) dialog box for registering a new user.
+ */
 public class RegisterDialog extends JDialog {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
 
-
+    /**
+     * Creates an new dialog box for registering a new user.
+     *
+     * @param x the parent frame.
+     * @param modal true if the dialog should be modal, false otherwise.
+     * @param dataManager the DataManager-Object which manages the account and login status.
+     */
     public RegisterDialog(Frame x, boolean modal, DataManager dataManager) {
         super(x, "Registrieren", modal);
         this.dataManager = dataManager;
@@ -61,7 +69,7 @@ public class RegisterDialog extends JDialog {
     }
 
 
-    ActionListener registerButtonListener = new ActionListener() {
+    private ActionListener registerButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             // Prüfung ob username und password leer sind
@@ -101,7 +109,7 @@ public class RegisterDialog extends JDialog {
         }
     };
 
-    ActionListener cancelButtonListener = new ActionListener() {
+    private ActionListener cancelButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             dispose();

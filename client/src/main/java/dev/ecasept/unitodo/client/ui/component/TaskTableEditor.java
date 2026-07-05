@@ -9,6 +9,10 @@ import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 
+/**
+ * This class is responsible for handling the events when the user interacts with the JTable
+ * that displays an overview of the tasks.
+ */
 public class TaskTableEditor extends AbstractCellEditor implements TableCellEditor {
 
     private Object currentValue;
@@ -21,6 +25,10 @@ public class TaskTableEditor extends AbstractCellEditor implements TableCellEdit
 
     private static final String TAG = "TaskTableEditor";
 
+    /**
+     * Creates an new TaskTableEditor Object
+     * @param frame this is the MainFrame that contains the JTable displaying the tasks
+     */
     public TaskTableEditor(MainFrame frame) {
         this.frame = frame;
         button = new JButton();
@@ -71,6 +79,17 @@ public class TaskTableEditor extends AbstractCellEditor implements TableCellEdit
 
     }
 
+    /**
+     * This method creates the editable component suitable for JTable's cell that the user wants to edit.
+     *
+     * @param table           the JTable the method is called for.
+     * @param value           that value of the cell that is to be edited.
+     * @param isSelected      true if the cell is to be rendered with
+     *                          highlighting
+     * @param row             the row of the cell being edited
+     * @param column          the column of the cell being edited
+     * @return the component that than can be edited.
+     */
     @Override
     public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) {
         this.currentValue = value;
@@ -115,6 +134,10 @@ public class TaskTableEditor extends AbstractCellEditor implements TableCellEdit
         return label;
     }
 
+    /**
+     * Returns the value contained in the editor.
+     * @return the value contained in the editor
+     */
     @Override
     public Object getCellEditorValue() {
         return currentValue;

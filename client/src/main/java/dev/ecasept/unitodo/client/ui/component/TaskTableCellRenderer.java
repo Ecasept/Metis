@@ -8,11 +8,26 @@ import javax.swing.*;
 import javax.swing.table.TableCellRenderer;
 import java.awt.*;
 
+/**
+ * This class is responsible for rendering the cell of the table that displays the tasks.
+ */
 public class TaskTableCellRenderer implements TableCellRenderer {
 
     private static final String TAG = "TaskTableCellRenderer";
 
-
+    /**
+     * This method returns a Component that ist used to draw a cell in the JTable the method is called for.
+     *
+     * @param table           the JTable of which the cells are drawn.
+     * @param value           the value of the cell to be rendered.
+     * @param isSelected      true if the cell is to be rendered with the
+     *                          selection highlighted; otherwise false.
+     * @param hasFocus        if true, render cell appropriately.
+     * @param row             the row index of the cell being drawn.
+     * @param column          the column index of the cell being drawn.
+     *
+     * @return the component used for drawing the cell.
+     */
     public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 
         // Renderer für Spalte 0

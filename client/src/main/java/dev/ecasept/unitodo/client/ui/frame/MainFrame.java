@@ -27,6 +27,12 @@ import java.util.ArrayList;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * This class is the central GUI class of the program. It is responsible for displaying the
+ * JTable containing the users taks and the JMenuBar with menu buttons for account management, switching
+ * between pending and finished tasks, creating new tasks and the searchbar.
+ * In Addition this class manages the user interactions with all buttons in the JMenuBar.
+ */
 @SuppressWarnings("LanguageDetectionInspection")
 public class MainFrame extends JFrame {
     private static final String TAG = "MainFrame";
@@ -176,13 +182,10 @@ public class MainFrame extends JFrame {
     };
 
 
-
-
-
-
-
-
-
+    /**
+     * Creates a new MainFrame-Object
+     * @param dataManger the DataManager-Object that manages the login status and the users tasks.
+     */
     public MainFrame(DataManager dataManger) {
         this.dataManger = dataManger;
         dataManger.setAsyncErrorHandler(
@@ -214,6 +217,10 @@ public class MainFrame extends JFrame {
         this.setVisible(true);
     }
 
+    /**
+     * This methods sets the task overview and the JMenuBar. It is called at the programs start
+     * and always when the user returns from one of the views to add, edit or show a task.
+     */
     public void setOverview() {
         this.getContentPane().removeAll();
 
@@ -330,6 +337,9 @@ public class MainFrame extends JFrame {
         this.getContentPane().repaint();
     }
 
+    /**
+     * Sets the JTable displaying the users tasks to show all tasks regardless of their state.
+     */
     public void showAll() {
         last = LAST_WAS_ALL;
 
@@ -342,6 +352,10 @@ public class MainFrame extends JFrame {
         mainPanelRightLabel.setText("Alle Aufgaben");
     }
 
+    /**
+     * Sets the JTable displaying only taks
+     * based on what the user searched for in the search bar.
+     */
     public void showSearched(String searchString) {
         last = LAST_WAS_SEARCHED;
         lastSearchString = searchString;
@@ -355,6 +369,10 @@ public class MainFrame extends JFrame {
         mainPanelRightLabel.setText("Suchergebnisse: " + searchString);
     }
 
+    /**
+     * Sets the JTable displaying the users tasks to show
+     * only taks that are pending.
+     */
     public void showPending() {
         // Variable für letzte Seite auf Pending stellen
         last = LAST_WAS_PENDING;
@@ -372,6 +390,10 @@ public class MainFrame extends JFrame {
         mainPanelRightLabel.setText("Ausstehende Aufgaben");
     }
 
+    /**
+     * Sets the JTable displaying the users tasks to show
+     * only taks that are finished.
+     */
     public void showFinished() {
         // Variable für letzte Seite auf Finished stellen
         last = LAST_WAS_FINISHED;
@@ -387,7 +409,9 @@ public class MainFrame extends JFrame {
         mainPanelRightLabel.setText("Erledigte Aufgaben");
     }
 
-
+    /**
+     * Shows the view where the user can add a new task.
+     */
     public void showAddTask() {
         this.getContentPane().removeAll();
 
@@ -579,10 +603,10 @@ public class MainFrame extends JFrame {
     }
 
 
-
-
-
-
+    /**
+     * Shows the view where the user can add a new task.
+     * @param uuid the unique uuid of the task the user wants to edit.
+     */
     public void showChangeTask(UUID uuid) {
         this.getContentPane().removeAll();
 
@@ -859,7 +883,10 @@ public class MainFrame extends JFrame {
         this.getContentPane().repaint();
     }
 
-
+    /**
+     * Displays all information about a task without allowing the user to edit it.
+     * @param uuid the unique uuid of the task the user wants to display.
+     */
     public void showOnlyTask(UUID uuid) {
         this.getContentPane().removeAll();
 
@@ -1009,7 +1036,10 @@ public class MainFrame extends JFrame {
     }
 
 
-    // Methoden für Benutzeraktionen in der JTable die die Tasks anzeigt
+    /**
+     * This method is called by the JTable whenever the user clicks on the edit-icon of a task.
+     * @param row the row in the JTable the user clicked the edit-icon for
+     */
     public void editTaskClicked(int row) {
         if (!currentlyShownTasks.isEmpty()) {
             UUID uuid = currentlyShownTasks.get(row).uuid();
@@ -1017,6 +1047,10 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * This method is called by the JTable whenever the user clicks on the delete-icon of a task.
+     * @param row the row in the JTable the user clicked the delete-icon for
+     */
     public void deleteTaskClicked(int row) {
         System.out.println("Löschen von Zeile " + row);
 
@@ -1051,6 +1085,10 @@ public class MainFrame extends JFrame {
         }
     }
 
+    /**
+     * This method is called by the JTable whenever the user clicks on the checkbox of a task.
+     * @param row the row in the JTable the user clicked the checkbox for.
+     */
     public void changeStateTaskClicked(int row) {
        System.out.println("Status ändern von Zeile " + row);
 
@@ -1095,6 +1133,10 @@ public class MainFrame extends JFrame {
 
     }
 
+    /**
+     * This method is called by the JTable whenever the user clicks on the title of a taks.
+     * @param row the row in the JTable the user clicked task-title for.
+     */
     public void showTaskClicked(int row) {
         if (!currentlyShownTasks.isEmpty()) {
             UUID uuid = currentlyShownTasks.get(row).uuid();

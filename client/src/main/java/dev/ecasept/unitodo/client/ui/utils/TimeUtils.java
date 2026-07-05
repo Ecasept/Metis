@@ -9,7 +9,11 @@ import java.time.LocalTime;
 public class TimeUtils {
 
 
-
+    /**
+     * This method checks if the input dueDateString is a valid dueDate for a taks.
+     * @param dueDateString the String the user entered in the date field.
+     * @return the dueDate the user entered if the date is valid or null otherwise
+     */
     public static LocalDate checkDueDate(String dueDateString) {
         // Prüfen ob keine Eingabe erfolgt ist
         if (dueDateString.equals("dd.mm.yyyy")) {
@@ -57,6 +61,19 @@ public class TimeUtils {
 
 
 
+    /**
+     * This method checks if the input dueTimeString is a valid dueTime for a taks.
+     * @param dueTimeString the String the user entered in the date field.
+     *
+     * @return the dueDate the user entered if the date is valid or null otherwise
+     */
+    /**
+     * This method checks if the input dueTimeString is a valid dueTime for a taks.
+     * @param dueTimeString the String the user entered in the time field.
+     * @param dueDate the dueDate the user entered for the task (it depends on the dueDate wether a due time is valid or not)
+     * @return the dueTime entered by the user if the time is valid and throws an IllegalArgumentException otherwise
+     * @throws IllegalArgumentException the exception is thrown if the dueTimeString is an invalid format or time.
+     */
     public static LocalTime checkDueTime(String dueTimeString, LocalDate dueDate) throws IllegalArgumentException {
 
         String[] dueDateArr = dueTimeString.split("[:]");
