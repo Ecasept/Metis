@@ -158,15 +158,15 @@ public class FrameUtils {
             ArrayList<ClientTask> finishedTasks = new ArrayList<>();
 
             for (ClientTask t : allSearch) {
-                if (t.state().get().isPending()) {
+                if (t.getState().isPending()) {
                     pendingTasks.add(t);
                 } else {
                     finishedTasks.add(t);
                 }
             }
 
-            pendingTasks.sort((t1, t2) -> t1.dueDate().get().compareTo(t2.dueDate().get()));
-            finishedTasks.sort((t1, t2) -> t2.dueDate().get().compareTo(t1.dueDate().get()));
+            pendingTasks.sort((t1, t2) -> t1.getDueDate().compareTo(t2.getDueDate()));
+            finishedTasks.sort((t1, t2) -> t2.getDueDate().compareTo(t1.getDueDate()));
 
             list = new ArrayList<>(pendingTasks);
             list.addAll(finishedTasks);
@@ -188,8 +188,8 @@ public class FrameUtils {
         String str = "";
 
         for (ClientTask t : list) {
-            LocalDate date = t.dueDate().get();
-            Optional<LocalTime> timeOptional = t.dueTime().get();
+            LocalDate date = t.getDueDate();
+            Optional<LocalTime> timeOptional = t.getDueTime();
             if (timeOptional.isPresent()) {
                 LocalTime time = timeOptional.get();
                 int min = time.getMinute();
@@ -203,8 +203,8 @@ public class FrameUtils {
             } else {
                 str = date.getDayOfMonth() + "." + date.getMonthValue() + "." + date.getYear();
             }
-            String stateStr = t.state().get().isPending() ? "Ausstehend" : "Erledigt";
-            tableModel.addRow(new Object[]{stateStr, t.title().get(), str, t.priority().get(), "", ""});
+            String stateStr = t.getState().isPending() ? "Ausstehend" : "Erledigt";
+            tableModel.addRow(new Object[]{stateStr, t.getTitle(), str, t.getPriority(), "", ""});
         }
     }
 }
