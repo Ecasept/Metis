@@ -48,14 +48,6 @@ public class MainFrame extends JFrame {
     JPanel mainPanelLeft;
     JPanel mainPanelRight;
 
-    // Buttons
-    private JButton logout;
-    private JButton delAcc;
-    private JButton sync;
-    private JButton showPending;
-    private JButton showFinished;
-    private JButton newTask;
-
     // Lables für Übersicht
     JLabel mainPanelRightLabel;
 
