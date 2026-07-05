@@ -11,6 +11,7 @@ import dev.ecasept.unitodo.shared.models.api.SyncRequest;
 import dev.ecasept.unitodo.shared.models.api.SyncResponse;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.ServerTask;
+import dev.ecasept.unitodo.shared.sync.Synchronizer;
 
 import java.sql.SQLException;
 import java.time.LocalDateTime;
@@ -20,11 +21,11 @@ import java.util.stream.Collectors;
 
 public class SyncService {
     private final String TAG = "SyncService";
-    private final ServerSynchronizer synchronizer;
+    private final Synchronizer synchronizer;
     private final SignedTokenService tokenService;
     private final Configuration config;
     private final ServerDatabaseRepository db;
-    public SyncService(ServerDatabaseRepository db, ServerSynchronizer synchronizer, SignedTokenService tokenService, Configuration config) {
+    public SyncService(ServerDatabaseRepository db, Synchronizer synchronizer, SignedTokenService tokenService, Configuration config) {
         this.db = db;
         this.synchronizer = synchronizer;
         this.tokenService = tokenService;
@@ -52,7 +53,7 @@ public class SyncService {
                     modifiedServerTasks = db.getAllTasks(userId);
                 }
 
-                var newTasks = synchronizer.synchronize(serverTasks, clientTasks, userId);
+                var newTasks = synchronizer.synchronizeServer(serverTasks, clientTasks, userId);
                 db.upsertTasks(newTasks);
 
                 var responseDelta = Arrays.stream(modifiedServerTasks).map(ServerTask::toClientTask).toArray(ClientTask[]::new);

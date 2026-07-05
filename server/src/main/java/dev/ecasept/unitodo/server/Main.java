@@ -1,6 +1,5 @@
 package dev.ecasept.unitodo.server;
 
-import dev.ecasept.unitodo.server.api.ServerSynchronizer;
 import dev.ecasept.unitodo.server.api.SyncService;
 import dev.ecasept.unitodo.server.db.ServerDatabaseRepository;
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
@@ -14,6 +13,7 @@ import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.server.api.AuthService;
 import dev.ecasept.unitodo.server.serverlib.Response;
 import dev.ecasept.unitodo.server.serverlib.SimpleServer;
+import dev.ecasept.unitodo.shared.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 public class Main {
@@ -34,7 +34,7 @@ public class Main {
             var queryBuilder = new QueryBuilder(databaseController);
             var databaseRepository = new ServerDatabaseRepository(queryBuilder);
             var authService = new AuthService(databaseRepository, passwordHasherService, tokenService, config);
-            var synchronizer = new ServerSynchronizer();
+            var synchronizer = new Synchronizer();
             var syncService = new SyncService(databaseRepository, synchronizer, tokenService, config);
 
             var server = new SimpleServer("changeit", "keystore.jks", config.USE_HTTPS());
