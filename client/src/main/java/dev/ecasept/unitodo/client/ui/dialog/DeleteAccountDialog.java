@@ -3,12 +3,14 @@ package dev.ecasept.unitodo.client.ui.dialog;
 import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.models.api.Password;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Arrays;
+import java.util.concurrent.CompletionException;
 
 public class DeleteAccountDialog extends JDialog {
 
@@ -64,33 +66,33 @@ public class DeleteAccountDialog extends JDialog {
         @Override
         public void actionPerformed(ActionEvent e) {
             // Prüfung password leer ist
-            char[] passwordArray;
+            Password password;
             try {
-                passwordArray = passwordField.getPassword();
+                password = new Password(passwordField.getPassword());
             } catch (NullPointerException ex) {
                 JOptionPane.showMessageDialog(null, "Das Passwort darf nicht leer sein.", "Registrierung fehgeschlagen", JOptionPane.ERROR_MESSAGE);
                 return;
             }
 
-            if (passwordArray.length == 0) {
+            if (password.isEmpty()) {
                 JOptionPane.showMessageDialog(null, "Das Passwort darf nicht leer sein.", "Registrierung fehgeschlagen", JOptionPane.ERROR_MESSAGE);
+                password.shred();
                 return;
             }
 
-            // Account löschen
-            try {
-                dataManager.deleteAccount(Arrays.toString(passwordArray));
-                Arrays.fill(passwordArray, '0');
-            } catch (ApiException eA) {
-                JOptionPane.showMessageDialog(null, "Fehler löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                Arrays.fill(passwordArray, '0');
-                return;
-            } catch (DatabaseException eD) {
-                JOptionPane.showMessageDialog(null, "Datenbankfehler. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                Arrays.fill(passwordArray, '0');
-                return;
-            }
-
+            dataManager.deleteAccount(password).exceptionally(t -> {
+                var cause = (t instanceof CompletionException) ? t.getCause() : t;
+                if (cause instanceof ApiException) {
+                    JOptionPane.showMessageDialog(null, "Netzwerk Fehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                } else if (cause instanceof DatabaseException) {
+                    JOptionPane.showMessageDialog(null, "Datenbankfehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(null, "Unbekannter Fehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
+                }
+                return null;
+            }).whenComplete((r, t) -> {
+                password.shred();
+            });
         }
     };
 

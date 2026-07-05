@@ -37,18 +37,16 @@ public class ApiClient {
         this.sessionToken = token;
     }
 
-    public String login(String username, String password) throws ApiException {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
+    public String login(String username, Password password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, password);
         return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
-    public String register(String username, String password) throws ApiException {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
+    public String register(String username, Password password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, password);
         return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
-    public void deleteAccount(String password) throws ApiException {
-        try (var requestBody = new Password(password)) {
-            dispatch(() -> sendPost("/users/delete", new StoreType<ApiResponse<Void>>() {}, new StoreType<>() {}, requestBody, true));
-        }
+    public void deleteAccount(Password password) throws ApiException {
+        dispatch(() -> sendPost("/users/delete", new StoreType<ApiResponse<Void>>() {}, new StoreType<>() {}, password, true));
     }
     public SyncResponse sync(SyncRequest request) throws ApiException {
         return dispatch(() -> sendPost("/data/sync", new StoreType<>() {}, new StoreType<>() {}, request, true));

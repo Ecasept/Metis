@@ -5,6 +5,7 @@ import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.models.api.Password;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
@@ -52,7 +53,7 @@ public class DataManager {
         this.syncService = syncService;
     }
 
-    public CompletableFuture<Void> login(String username, String password) {
+    public CompletableFuture<Void> login(String username, Password password) {
         return CompletableFuture.runAsync(() -> {
             try {
                 var sessionToken = apiClient.login(username, password);
@@ -67,7 +68,7 @@ public class DataManager {
             }
         }, syncExecutor);
     }
-    public CompletableFuture<Void> register(String username, String password) {
+    public CompletableFuture<Void> register(String username, Password password) {
         return CompletableFuture.runAsync(() -> {
             try {
                 var sessionToken = apiClient.register(username, password);
@@ -86,7 +87,7 @@ public class DataManager {
         db.deleteSessionToken();
         apiClient.setSessionToken(null);
     }
-    public CompletableFuture<Void> deleteAccount(String password) {
+    public CompletableFuture<Void> deleteAccount(Password password) {
         return CompletableFuture.runAsync(() -> {
             try {
                 apiClient.deleteAccount(password);

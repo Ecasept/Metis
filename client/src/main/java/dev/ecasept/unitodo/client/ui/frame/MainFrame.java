@@ -155,12 +155,6 @@ public class MainFrame extends JFrame {
 
     public MainFrame(DataManager dataManger) {
         this.dataManger = dataManger;
-        dataManger.setAsyncErrorHandler(
-                e -> {
-                    JOptionPane.showMessageDialog(this, "Fehler! Die Daten konnten nicht korrekt synchronisiert werden", "Fehler", JOptionPane.ERROR_MESSAGE);
-                    Log.e(TAG, "Error during asynchronous operation", e);
-                }
-        );
         try {
             dataManger.initialize();
             loggedIn = dataManger.isLoggedIn();
