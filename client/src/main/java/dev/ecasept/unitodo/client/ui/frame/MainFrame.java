@@ -3,6 +3,7 @@ package dev.ecasept.unitodo.client.ui.frame;
 import dev.ecasept.unitodo.client.*;
 import dev.ecasept.unitodo.client.ui.component.AJSearchbar;
 import dev.ecasept.unitodo.client.ui.component.TaskTableEditor;
+import dev.ecasept.unitodo.client.ui.UIErrorHandler;
 import dev.ecasept.unitodo.client.ui.dialog.DeleteAccountDialog;
 import dev.ecasept.unitodo.client.ui.dialog.LoginDialog;
 import dev.ecasept.unitodo.client.ui.dialog.RegisterDialog;
@@ -119,7 +120,15 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
                 return;
             } else {
-                dataManger.synchronize();
+                dataManger.synchronize().whenComplete((r, t) -> {
+                    if (t != null) {
+                        UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
+                    } else {
+                        SwingUtilities.invokeLater(() -> {
+                            syncResponse.syncFinished();
+                        });
+                    }
+                });
             }
         }
     };
@@ -181,7 +190,6 @@ public class MainFrame extends JFrame {
     public MainFrame(DataManager dataManger) {
         this.dataManger = dataManger;
         try {
-            dataManger.initialize();
             loggedIn = dataManger.isLoggedIn();
         } catch (DatabaseException e) {
             JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -545,21 +553,24 @@ public class MainFrame extends JFrame {
 
                 // Neuen Task in db speichern
                 try {
-                    if (selectedPriority.equals("niedrig")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Low, dueDate, Optional.ofNullable(dueTime)));
+
+                    var priority = switch (selectedPriority) {
+                        case "mittel" -> TaskPriority.Mid;
+                        case "hoch" -> TaskPriority.High;
+                        default -> TaskPriority.Low;
+                    };
+
+                    dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), priority, dueDate, Optional.ofNullable(dueTime)))
+                        .whenComplete((r, t) -> {
+                            if (t != null) {
+                                UIErrorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
+                            } else {
+                                SwingUtilities.invokeLater(() -> {
+                                    syncResponse.syncFinished();
+                                });
+                            }
+                        });
                         setOverview();
-                        return;
-                    }
-                    if (selectedPriority.equals("mittel")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.Mid, dueDate, Optional.ofNullable(dueTime)));
-                        setOverview();
-                        return;
-                    }
-                    if (selectedPriority.equals("hoch")) {
-                        dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), TaskPriority.High, dueDate, Optional.ofNullable(dueTime)));
-                        setOverview();
-                        return;
-                    }
                 } catch (DatabaseException dbEx) {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     setOverview();
@@ -810,7 +821,16 @@ public class MainFrame extends JFrame {
 
                 // Änderungen in db speichern
                 try {
-                    dataManger.upsertTask(t);
+                    dataManger.upsertTask(t)
+                        .whenComplete((r, ex) -> {
+                            if (ex != null) {
+                                UIErrorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
+                            } else {
+                                SwingUtilities.invokeLater(() -> {
+                                    syncResponse.syncFinished();
+                                });
+                            }
+                        });
                     setOverview();
                 } catch (DatabaseException dbEx) {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -1018,9 +1038,17 @@ public class MainFrame extends JFrame {
             try {
                 int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
                 if (x == JOptionPane.YES_OPTION) {
-                    dataManger.deleteTask(deleteThis);
-                    tableModel.removeRow(row);
-                    currentlyShownTasks.remove(row);
+                    dataManger.deleteTask(deleteThis)
+                        .whenComplete((r, t) -> {
+                            if (t != null) {
+                                UIErrorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden");
+                            } else {
+                                SwingUtilities.invokeLater(() -> {
+                                    syncResponse.syncFinished();
+                                });
+                            }
+                        });
+                    syncResponse.syncFinished();
                 } else {
                     return;
                 }
@@ -1055,34 +1083,40 @@ public class MainFrame extends JFrame {
 
            if (task.getState().isPending()) {
                try {
-                   dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())));
-                   if (last == LAST_WAS_ALL) {
-                       showAll();
-                   } else if (last == LAST_WAS_FINISHED){
-                       showFinished();
-                   } else if (last == LAST_WAS_PENDING){
-                       showPending();
-                   } else {
-                       showSearched(lastSearchString);
-                   }
+                   dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
+                        .whenComplete((r, t) -> {
+                            if (t != null) {
+                                UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
+                            } else {
+                                SwingUtilities.invokeLater(() -> {
+                                    syncResponse.syncFinished();
+                                });
+                            }
+                        });
+                   syncResponse.syncFinished();
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
                }
            } else if (task.getState().isFinished()) {
-               try {
-                   dataManger.upsertTask(task.withState(new TaskState.Pending()));
-                   if (last == LAST_WAS_ALL) {
-                       showAll();
-                   } else {
-                       showFinished();
-                   }
-               } catch (DatabaseException ex) {
-                   Log.e("Main", "error", ex);
-                   JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
-                   return;
-               }
+                try {
+                    dataManger.upsertTask(task.withState(new TaskState.Pending()))
+                        .whenComplete((r, t) -> {
+                            if (t != null) {
+                                UIErrorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden");
+                            } else {
+                                SwingUtilities.invokeLater(() -> {
+                                    syncResponse.syncFinished();
+                                });
+                            }
+                        });
+                    syncResponse.syncFinished();
+                } catch (DatabaseException ex) {
+                    Log.e("Main", "error", ex);
+                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
            }
        }
 

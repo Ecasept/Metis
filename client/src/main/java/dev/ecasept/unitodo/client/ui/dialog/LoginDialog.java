@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.client.ui.dialog;
 
 import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
+import dev.ecasept.unitodo.client.ui.UIErrorHandler;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.Password;
 
@@ -94,19 +95,18 @@ public class LoginDialog extends JDialog {
                 return;
             }
 
-            dataManager.login(username, password).exceptionally(t -> {
-                var cause = (t instanceof CompletionException) ? t.getCause() : t;
-                if (cause instanceof ApiException) {
-                    JOptionPane.showMessageDialog(null, "Netzwerk Fehler beim Anmelden. Bitte versuchen sie es erneut", "Anmelden fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                } else if (cause instanceof DatabaseException) {
-                    JOptionPane.showMessageDialog(null, "Datenbankfehler beim Anmelden. Bitte versuchen sie es erneut", "Anmelden fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(null, "Unbekannter Fehler beim Anmelden. Bitte versuchen sie es erneut", "Anmelden fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                }
-                return null;
-            }).whenComplete((r, t) -> {
-                password.shred();
-            });
+            dataManager.login(username, password)
+                .whenComplete((r, t) -> {
+                    password.shred();
+
+                    if (t != null) {
+                        UIErrorHandler.handleAsyncError(t, "Anmelden", "Anmeldung fehlgeschlagen");
+                    } else {
+                        SwingUtilities.invokeLater(() -> {
+                            dispose();
+                        });
+                    }
+                });
         }
     };
 

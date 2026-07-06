@@ -16,6 +16,8 @@ import dev.ecasept.unitodo.shared.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.utils.Log;
 import sync.SyncService;
 
+import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 
@@ -39,17 +41,31 @@ public class Main {
         var syncService = new SyncService(db, synchronizer, apiClient);
         var dataManager = new DataManager(db, apiClient, syncService);
 
-        MainFrame frame = new MainFrame(dataManager);
-        frame.addWindowListener(new WindowAdapter() {
-            @Override
-            public void windowClosed(WindowEvent e) {
-                try {
-                    databaseController.close();
-                    dataManager.close();
-                } catch (DatabaseException ex) {
-                    Log.e("Main", "Failed to close database", ex);
-                }
-            }
-        });
+        try {
+            dataManager.initialize().thenAcceptAsync(
+                v -> {
+                    MainFrame frame = new MainFrame(dataManager);
+
+                    frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
+
+                    frame.addWindowListener(new WindowAdapter() {
+                        @Override
+                        public void windowClosed(WindowEvent e) {
+                            try {
+                                databaseController.close();
+                                dataManager.close();
+                            } catch (DatabaseException ex) {
+                                Log.e("Main", "Failed to close database", ex);
+                            }
+                        }
+                    });
+                }, SwingUtilities::invokeLater
+            ).exceptionally(t -> {
+                Log.e("Main", "Failed to initialize DataManager", t);
+                return null;
+            });
+        } catch (DatabaseException e) {
+            Log.e("Main", "Failed to initialize DataManager", e);
+        }
     }
 }

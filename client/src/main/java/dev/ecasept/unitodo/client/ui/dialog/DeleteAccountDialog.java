@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.client.ui.dialog;
 
 import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
+import dev.ecasept.unitodo.client.ui.UIErrorHandler;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.Password;
 
@@ -89,18 +90,15 @@ public class DeleteAccountDialog extends JDialog {
                 return;
             }
 
-            dataManager.deleteAccount(password).exceptionally(t -> {
-                var cause = (t instanceof CompletionException) ? t.getCause() : t;
-                if (cause instanceof ApiException) {
-                    JOptionPane.showMessageDialog(null, "Netzwerk Fehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                } else if (cause instanceof DatabaseException) {
-                    JOptionPane.showMessageDialog(null, "Datenbankfehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                } else {
-                    JOptionPane.showMessageDialog(null, "Unbekannter Fehler beim Löschen des Accounts. Bitte versuchen sie es erneut", "Account löschen fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                }
-                return null;
-            }).whenComplete((r, t) -> {
+            dataManager.deleteAccount(password).whenComplete((r, t) -> {
                 password.shred();
+                if (t != null) {
+                    UIErrorHandler.handleAsyncError(t, "Löschen des Accounts", "Account löschen fehlgeschlagen");
+                } else {
+                    SwingUtilities.invokeLater(() -> {
+                        dispose();
+                    });
+                }
             });
         }
     };

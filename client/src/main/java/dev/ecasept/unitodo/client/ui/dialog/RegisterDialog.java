@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.client.ui.dialog;
 
 import dev.ecasept.unitodo.client.DataManager;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
+import dev.ecasept.unitodo.client.ui.UIErrorHandler;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.Password;
 
@@ -95,19 +96,18 @@ public class RegisterDialog extends JDialog {
                 return;
             }
 
-            dataManager.register(username, password).exceptionally(t -> {
-                 var cause = (t instanceof CompletionException) ? t.getCause() : t;
-                 if (cause instanceof ApiException) {
-                     JOptionPane.showMessageDialog(null, "Fehler beim Registrieren. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                 } else if (cause instanceof DatabaseException) {
-                     JOptionPane.showMessageDialog(null, "Datenbankfehler bei der Registrierung. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                 } else {
-                     JOptionPane.showMessageDialog(null, "Unbekannter Fehler bei der Registrierung. Bitte versuchen sie es erneut", "Registrierung fehlgeschlagen", JOptionPane.ERROR_MESSAGE);
-                 }
-                 return null;
-            }).whenComplete((r, t) -> {
-                password.shred();
-            });
+            dataManager.register(username, password)
+                .whenComplete((r, t) -> {
+                    password.shred();
+
+                    if (t != null) {
+                        UIErrorHandler.handleAsyncError(t, "Registrieren", "Registrierung fehlgeschlagen");
+                    } else {
+                        SwingUtilities.invokeLater(() -> {
+                            dispose();
+                        });
+                    }
+                });
         }
     };
 

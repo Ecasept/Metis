@@ -66,7 +66,7 @@ public class DataManager {
                 Log.e(TAG, "Unexpected error during login", t);
                 throw t;
             }
-        }, syncExecutor);
+        }, syncExecutor).thenCompose(v -> sync());
     }
     public CompletableFuture<Void> register(String username, Password password) {
         return CompletableFuture.runAsync(() -> {
@@ -84,8 +84,13 @@ public class DataManager {
         }, syncExecutor);
     }
     public void logout() throws DatabaseException {
-        db.deleteSessionToken();
-        apiClient.setSessionToken(null);
+        try {
+            db.deleteSessionToken();
+            apiClient.setSessionToken(null);
+        } catch (DatabaseException e) {
+            Log.e(TAG, "Logout failed", e);
+            throw e;
+        }
     }
     public CompletableFuture<Void> deleteAccount(Password password) {
         return CompletableFuture.runAsync(() -> {
@@ -151,10 +156,10 @@ public class DataManager {
      * @param task The task that should be created or updated
      * @throws DatabaseException If any database access fails
      */
-    public void upsertTask(ClientTask task) throws DatabaseException {
+    public CompletableFuture<Void> upsertTask(ClientTask task) throws DatabaseException {
         db.upsertTask(task);
         unsynced.put(task.uuid(), task);
-        sync();
+        return sync();
     }
 
     /**
@@ -163,12 +168,12 @@ public class DataManager {
      * @param task The task that should be deleted
      * @throws DatabaseException If any database access fails
      */
-    public void deleteTask(ClientTask task) throws DatabaseException {
-        upsertTask(task.withDeleted(true));
+    public CompletableFuture<Void> deleteTask(ClientTask task) throws DatabaseException {
+        return upsertTask(task.withDeleted(true));
     }
 
 
-    public void initialize() throws DatabaseException {
+    public CompletableFuture<Void> initialize() throws DatabaseException {
         // Check for unsynced tasks in the database
         var lastSyncTime = getLastSyncTime();
         if (lastSyncTime.isEmpty()) {
@@ -192,8 +197,9 @@ public class DataManager {
         apiClient.setSessionToken(sessionToken.orElse(null));
         if (sessionToken.isPresent()) {
             // Sync with server to get any changes that might have happened while the client was offline
-            sync();
+            return sync();
         }
+        return CompletableFuture.completedFuture(null);
     }
 
 
