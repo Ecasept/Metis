@@ -42,10 +42,10 @@ public class SyncService {
                         var newTasks = synchronizer.synchronizeClient(clientTasks, serverTasks);
                         Log.i("Synchronizer", "Merged tasks: " + newTasks.size());
 
-                        db.upsertTasks(newTasks);
+                        db.upsertTasksWhithOldFields(newTasks);
 
                         if (res.presentList().isPresent()) {
-                            db.deleteTasksNotPresentBefore(Arrays.asList(res.presentList().get()), syncStart);
+                            db.deleteTasksNotPresentAndOlderThan(Arrays.asList(res.presentList().get()), syncStart);
                         }
 
                         return null;

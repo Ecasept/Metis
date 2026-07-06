@@ -119,11 +119,9 @@ public class ClientDatabaseRepository {
             throw new DatabaseException("Failed to store new task", e);
         }
     }
-    public void deleteTask(UUID uuid) throws DatabaseException {
-        deleteTasks(List.of(uuid));
-    }
 
-    public void deleteTasksNotPresentBefore(List<UUID> uuids, LocalDateTime before) throws DatabaseException {
+    /** Deletes all tasks that are not present in the given list of UUIDs and have not been modified since the given timestamp. */
+    public void deleteTasksNotPresentAndOlderThan(List<UUID> uuids, LocalDateTime before) throws DatabaseException {
         try (var query = db
                 .delete()
                 .from("tasks")
@@ -143,15 +141,18 @@ public class ClientDatabaseRepository {
         }
     }
 
-    public void deleteTasks(List<UUID> uuids) throws DatabaseException {
+    /** Deletes all tasks that are marked as deleted and have not been modified since the given timestamp. */
+    public void deleteTombstonesOlderThan(LocalDateTime before) throws DatabaseException {
         try (var query = db
                 .delete()
                 .from("tasks")
-                .filter(it -> it.eqAny("uuid", uuids))
+                .filter(it -> it.eq("isDeleted", true)
+                        .lt("deletedChanged", before)
+                )
                 .prepare()) {
             query.execute();
         } catch (SQLException | DatabaseException e) {
-            throw new DatabaseException("Failed to delete tasks from database", e);
+            throw new DatabaseException("Failed to delete tombstones from database", e);
         }
     }
 

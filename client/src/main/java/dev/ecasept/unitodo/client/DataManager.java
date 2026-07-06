@@ -113,7 +113,7 @@ public class DataManager {
 
     private CompletableFuture<Void> sync() {
         Log.i(TAG, "Starting synchronization of " + unsynced.size() + " tasks");
-        var now = LocalDateTime.now();
+        var syncStart = LocalDateTime.now();
 
         var unsyncedSnapshot = Map.copyOf(unsynced);
         unsynced.clear();
@@ -127,8 +127,12 @@ public class DataManager {
             try {
                 var lastSyncTime = getLastSyncTime();
                 try {
-                    syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, now);
-                    setLastSyncTime(now);
+                    syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, syncStart);
+                    setLastSyncTime(syncStart);
+
+                    // Delete tombstones from the database after successful sync
+                    db.deleteTombstonesOlderThan(syncStart);
+
                 } catch (ApiException e) {
                     Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
                     restoreSync.run();
