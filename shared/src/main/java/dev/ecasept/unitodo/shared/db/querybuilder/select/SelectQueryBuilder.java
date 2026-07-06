@@ -70,10 +70,10 @@ public class SelectQueryBuilder {
         }
         if (sortOrder != null) {
             sb.append(" ORDER BY ");
-            var sortColumns = Arrays.stream(sortOrder.getColumns())
-                    .map(BuilderUtils::quoteIdentifier)
+            var sortColumns = sortOrder.entries().stream()
+                    .map(e -> BuilderUtils.quoteIdentifier(e.column()) + " " + e.order())
                     .collect(Collectors.joining(", "));
-            sb.append(sortColumns).append(" ").append(sortOrder.orderAsSql());
+            sb.append(sortColumns);
         }
         return sb.toString();
     }
