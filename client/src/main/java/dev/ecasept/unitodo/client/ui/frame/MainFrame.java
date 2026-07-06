@@ -209,7 +209,7 @@ public class MainFrame extends JFrame {
         last_table = LAST_WAS_ALL;
 
         // Frame vorbereiten
-        this.setTitle("To-Do Liste");
+        this.setTitle("Aufgabenverwaltung");
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(800, 450);
         this.setBackground(Color.lightGray);
