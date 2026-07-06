@@ -15,7 +15,7 @@ import java.util.UUID;
 import java.util.stream.Stream;
 
 @Serializable
-public record ServerTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField<String> title, @Field(tag=3) TimestampedField<String> description, @Field(tag=4) TimestampedField<TaskState> state, @Field(tag=5) TimestampedField<TaskPriority> priority, @Field(tag=6) TimestampedField<LocalDate> dueDate, @Field(tag=7) TimestampedField<Optional<LocalTime>> dueTime, @Field(tag=8) TimestampedField<Boolean> isDeleted, @Field(tag=9) UUID userId) {
+public record ServerTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField<String> title, @Field(tag=3) TimestampedField<String> description, @Field(tag=4) TimestampedField<TaskState> state, @Field(tag=5) TimestampedField<TaskPriority> priority, @Field(tag=6) TimestampedField<LocalDate> dueDate, @Field(tag=7) TimestampedField<Optional<LocalTime>> dueTime, @Field(tag=8) TimestampedField<Boolean> isDeleted, @Field(tag=9) UUID userId) implements Task<ServerTask> {
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static ServerTask create(String title, String description, TaskState state, TaskPriority priority, LocalDate dueDate, Optional<LocalTime> dueTime, boolean isDeleted, UUID userId) {
@@ -92,11 +92,8 @@ public record ServerTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField
         );
     }
 
-    public LocalDateTime getLastUpdate() {
-        return Stream.of(title, description, state, priority, dueDate)
-                .map(TimestampedField::getLastUpdated)
-                .filter(Objects::nonNull)
-                .max(LocalDateTime::compareTo)
-                .orElse(LocalDateTime.MIN);
+    @Override
+    public ServerTask with(TimestampedField<String> title, TimestampedField<String> description, TimestampedField<TaskState> state, TimestampedField<TaskPriority> priority, TimestampedField<LocalDate> dueDate, TimestampedField<Optional<LocalTime>> dueTime, TimestampedField<Boolean> isDeleted) {
+        return new ServerTask(uuid, title, description, state, priority, dueDate, dueTime, isDeleted, userId);
     }
 }

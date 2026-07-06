@@ -10,7 +10,7 @@ public class FalseCondition implements Condition {
     public String asParameterizedSql() {
         return "(1=0)";
     }
-    public int fillParameters(PreparedStatement statement, int i) throws DatabaseException {
+    public int fillParameters(PreparedStatement statement, int i) {
         return i;
     }
 }

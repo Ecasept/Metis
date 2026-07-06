@@ -5,7 +5,6 @@ import dev.ecasept.unitodo.shared.db.querybuilder.TransactionFunction;
 import dev.ecasept.unitodo.shared.db.querybuilder.batch.Batcher;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
-import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.ServerTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.DateFormat;
@@ -211,13 +210,13 @@ public class ServerDatabaseRepository {
                 .filter(it -> it
                         .eq("userId", userId)
                         .defaultOr(c -> c
-                                .eq("titleChanged", lastSync)
-                                .eq("descriptionChanged", lastSync)
-                                .eq("stateChanged", lastSync)
-                                .eq("priorityChanged", lastSync)
-                                .eq("dueDateChanged", lastSync)
-                                .eq("dueTimeChanged", lastSync)
-                                .eq("deletedChanged", lastSync)
+                                .ge("titleChanged", lastSync)
+                                .ge("descriptionChanged", lastSync)
+                                .ge("stateChanged", lastSync)
+                                .ge("priorityChanged", lastSync)
+                                .ge("dueDateChanged", lastSync)
+                                .ge("dueTimeChanged", lastSync)
+                                .ge("deletedChanged", lastSync)
                         )
                 )
                 .prepare()) {

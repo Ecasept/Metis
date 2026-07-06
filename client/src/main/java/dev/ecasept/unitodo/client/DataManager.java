@@ -3,31 +3,27 @@ package dev.ecasept.unitodo.client;
 import dev.ecasept.unitodo.client.api.ApiClient;
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
-import dev.ecasept.unitodo.client.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
+import dev.ecasept.unitodo.shared.models.api.Password;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
-import dev.ecasept.unitodo.shared.models.db.TimestampedField;
 import dev.ecasept.unitodo.shared.utils.Log;
+import sync.SyncService;
 
-import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
+import java.util.concurrent.*;
 
 public class DataManager {
     private static final String TAG = "DataManager";
     private final ClientDatabaseRepository db;
     private final ApiClient apiClient;
-    private final Synchronizer synchronizer;
-    private final HashMap<UUID, ClientTask> unsynced = new HashMap<>();
+    private final SyncService syncService;
+    private final ConcurrentMap<UUID, ClientTask> unsynced = new ConcurrentHashMap<>();
     private LocalDateTime cachedLastSyncTime = null;
     private final ExecutorService syncExecutor = Executors.newSingleThreadExecutor();
 
@@ -51,72 +47,108 @@ public class DataManager {
         cachedLastSyncTime = time;
     }
 
-    public DataManager(ClientDatabaseRepository db, ApiClient apiClient, Synchronizer synchronizer) {
+    public DataManager(ClientDatabaseRepository db, ApiClient apiClient, SyncService syncService) {
         this.db = db;
         this.apiClient = apiClient;
-        this.synchronizer = synchronizer;
+        this.syncService = syncService;
     }
 
-    public void login(String username, String password) throws ApiException, DatabaseException {
-        var sessionToken = apiClient.login(username, password);
-        db.setSessionToken(sessionToken);
-        apiClient.setSessionToken(sessionToken);
+    public CompletableFuture<Void> login(String username, Password password) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                var sessionToken = apiClient.login(username, password);
+                db.setSessionToken(sessionToken);
+                apiClient.setSessionToken(sessionToken);
+            } catch (ApiException | DatabaseException e) {
+                Log.e(TAG, "Login failed", e);
+                throw new RuntimeException(e);
+            } catch (Throwable t) {
+                Log.e(TAG, "Unexpected error during login", t);
+                throw t;
+            }
+        }, syncExecutor);
     }
-    public void register(String username, String password) throws ApiException, DatabaseException {
-        var sessionToken = apiClient.register(username, password);
-        db.setSessionToken(sessionToken);
-        apiClient.setSessionToken(sessionToken);
+    public CompletableFuture<Void> register(String username, Password password) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                var sessionToken = apiClient.register(username, password);
+                db.setSessionToken(sessionToken);
+                apiClient.setSessionToken(sessionToken);
+            } catch (ApiException | DatabaseException e) {
+                Log.e(TAG, "Registration failed", e);
+                throw new RuntimeException(e);
+            } catch (Throwable t) {
+                Log.e(TAG, "Unexpected error during registration", t);
+                throw t;
+            }
+        }, syncExecutor);
     }
     public void logout() throws DatabaseException {
         db.deleteSessionToken();
         apiClient.setSessionToken(null);
     }
-    public void deleteAccount(String password) throws ApiException, DatabaseException {
-        apiClient.deleteAccount(password);
-        logout();
+    public CompletableFuture<Void> deleteAccount(Password password) {
+        return CompletableFuture.runAsync(() -> {
+            try {
+                apiClient.deleteAccount(password);
+                logout();
+            } catch (ApiException | DatabaseException e) {
+                Log.e(TAG, "Account deletion failed", e);
+                throw new RuntimeException(e);
+            } catch (Throwable t) {
+                Log.e(TAG, "Unexpected error during account deletion", t);
+                throw t;
+            }
+        }, syncExecutor);
     }
 
-    private Consumer<Exception> asyncErrorHandler = e -> {};
-    public void setAsyncErrorHandler(Consumer<Exception> asyncErrorHandler) {
-        this.asyncErrorHandler = asyncErrorHandler;
+    public CompletableFuture<Void> synchronize() {
+        return sync();
     }
 
-    public void synchronize() {
-        sync();
-    }
-
-    private void sync() {
+    private CompletableFuture<Void> sync() {
         Log.i(TAG, "Starting synchronization of " + unsynced.size() + " tasks");
         var now = LocalDateTime.now();
-        syncExecutor.submit(() -> {
+
+        var unsyncedSnapshot = Map.copyOf(unsynced);
+        unsynced.clear();
+
+         Runnable restoreSync = () -> {
+            Log.i(TAG, "Restoring " + unsyncedSnapshot.size() + " unsynced tasks to queue");
+            unsyncedSnapshot.forEach(unsynced::putIfAbsent);
+        };
+
+         return CompletableFuture.runAsync(() -> {
             try {
                 var lastSyncTime = getLastSyncTime();
                 try {
-                    synchronizer.synchronize(unsynced.values().toArray(new ClientTask[0]), lastSyncTime);
+                    syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, now);
                     setLastSyncTime(now);
-                    unsynced.clear();
                 } catch (ApiException e) {
                     Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
+                    restoreSync.run();
                 }
             } catch (DatabaseException e) {
                 Log.e(TAG, "Failed to access database during synchronization", e);
-                asyncErrorHandler.accept(e);
+                restoreSync.run();
+                throw new RuntimeException(e);
             } catch (Throwable t) {
                 Log.e(TAG, "Unexpected error during synchronization", t);
-                asyncErrorHandler.accept(new Exception("Unexpected error during synchronization", t));
+                restoreSync.run();
+                throw t;
             }
-        });
+        }, syncExecutor);
     }
 
     /**
-     * Updates the specified task, or creates it if it doesn't exist yet. Tries to update the server as well.
+     * Updates the specified task or creates it if it doesn't exist yet. Tries to update the server as well.
      * <p>
-     * Tasks are stored based on their UUID, so if no task with the contained UUID exist, it will be created,
+     * Tasks are stored based on their UUID, so if no task with the contained UUID exists, it will be created,
      * otherwise the task with the matching UUID will have its fields updated to reflect those of the provided task.
      * <p>
-     * If the server can not be notified of the change
+     * If the server cannot be notified of the change
      *
-     * @param task The task that should be created, or the tas
+     * @param task The task that should be created or updated
      * @throws DatabaseException If any database access fails
      */
     public void upsertTask(ClientTask task) throws DatabaseException {
@@ -132,8 +164,7 @@ public class DataManager {
      * @throws DatabaseException If any database access fails
      */
     public void deleteTask(ClientTask task) throws DatabaseException {
-        var deletedTask = new ClientTask(task.uuid(), task.title(), task.description(), task.state(), task.priority(), task.dueDate(), task.dueTime(), new TimestampedField<>(true));
-        upsertTask(deletedTask);
+        upsertTask(task.withDeleted(true));
     }
 
 
@@ -179,5 +210,10 @@ public class DataManager {
 
     public ArrayList<ClientTask> searchTasks(String query) throws DatabaseException {
         return db.searchTasks(query);
+    }
+
+
+    public void close() {
+        syncExecutor.shutdown();
     }
 }

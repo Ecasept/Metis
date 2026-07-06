@@ -11,6 +11,7 @@
       <module name="shared" target="21" />
       <module name="shared.main" target="21" />
       <module name="shared.test" target="21" />
+      <module name="todo-uni-augsburg.client.dev" target="21" />
     </bytecodeTargetLevel>
   </component>
 </project>

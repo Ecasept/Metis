@@ -1,6 +1,8 @@
 package dev.ecasept.unitodo.shared.serialization.types;
 
 import java.lang.reflect.*;
+import java.util.StringJoiner;
+import java.util.function.Function;
 
 /**
  * A class that wraps a {@link java.lang.reflect.Type} and provides useful methods for working on it.
@@ -9,21 +11,105 @@ import java.lang.reflect.*;
 public class TypeContainer<T> {
     private final Type type;
 
-    /**
-     * Creates a new {@code TypeContainer} with the given type.
-     * @param type The type to wrap. This can be any implementation of {@link java.lang.reflect.Type}, such as {@link Class}, {@link ParameterizedType}, {@link GenericArrayType}, {@link TypeVariable}, or {@link WildcardType}.
-     */
-    public TypeContainer(Type type) {
+    private TypeContainer(Type type) {
         this.type = type;
     }
 
     /**
      * Creates a new {@code TypeContainer} with the type provided by the given {@link StoreType}.
      * @param storeType The stored type to wrap.
-     * @param <R> The type of the {@link StoreType}. Ensures that {@code storeType} stores the type {@code <T>}. This is only used for type safety and does not affect the runtime behavior of the class.
+     * @param <T> The type to store. Ensures that {@code storeType} stores the type {@code <T>}. This is only used for type safety and does not affect the runtime behavior of the class.
      */
-    public <R extends StoreType<T>> TypeContainer(R storeType) {
-        this.type = storeType.getType();
+    public static <T> TypeContainer<T> of(StoreType<T> storeType) {
+        return TypeContainer.of(storeType.getType());
+    }
+
+    /**
+     * Creates a new {@code TypeContainer} with the given type.
+     * @param type The type to wrap. This can be any implementation of {@link java.lang.reflect.Type}, such as {@link Class}, {@link ParameterizedType}, {@link GenericArrayType}, {@link TypeVariable}, or {@link WildcardType}.
+     */
+    public static <T> TypeContainer<T> of(Type type) {
+        return new TypeContainer<>(type);
+    }
+
+    @Override
+    public boolean equals(Object otherContainer) {
+        if (this == otherContainer) {
+            return true;
+        } else if (otherContainer instanceof TypeContainer<?> other) {
+            return equals(other, self -> false);
+        }
+        return false;
+    }
+
+    /** Checks whether two {@code TypeContainer}s are equal. You can add a function that can add special behavior for special types, like {@link dev.ecasept.unitodo.shared.serialization.adapters.Any}.
+     * @param otherContainer The other {@code TypeContainer} to compare to.
+     * @param additionalComparison A function that will be called on the current {@link TypeContainer} {@code this} (or parts of it, e.g. if {@code this} is {@code List<String>}, it might also be called on {@code String}) that can short circuit the comparison by saying that this (sub-)type is equal to anything if it returns {@code true}. Returning {@code false} makes the function fallback to the default behavior.
+     * @return Whether the types are equal.
+     */
+    public boolean equals(TypeContainer<?> otherContainer, Function<TypeContainer<?>, Boolean> additionalComparison) {
+        if (otherContainer == null) {
+            // don't throw NPE
+            return false;
+        }
+        var other = otherContainer.type;
+        if (additionalComparison.apply(this)) {
+            return true;
+        }
+        switch (type) {
+            case null -> {
+                return other == null;
+            }
+            case Class<?> ca when other instanceof Class<?> cb -> {
+                return ca.equals(cb);
+            }
+            case ParameterizedType pa when other instanceof ParameterizedType pb -> {
+                var rawA = pa.getRawType();
+                var rawB = pb.getRawType();
+                if (!TypeContainer.of(rawA).equals(TypeContainer.of(rawB), additionalComparison)) {
+                    return false;
+                }
+                var argsA = pa.getActualTypeArguments();
+                var argsB = pb.getActualTypeArguments();
+                if (argsA.length != argsB.length) {
+                    return false;
+                }
+                for (int i = 0; i < argsA.length; i++) {
+                    if (!TypeContainer.of(argsA[i]).equals(TypeContainer.of(argsB[i]), additionalComparison)) {
+                        return false;
+                    }
+                }
+                var ownerA = pa.getOwnerType();
+                var ownerB = pb.getOwnerType();
+                return ownerA == null ? ownerB == null : TypeContainer.of(ownerA).equals(TypeContainer.of(ownerB), additionalComparison);
+            }
+            case GenericArrayType ga when other instanceof GenericArrayType gb -> {
+                return TypeContainer.of(ga.getGenericComponentType()).equals(TypeContainer.of(gb.getGenericComponentType()), additionalComparison);
+            }
+            default -> {
+                // TypeVariables and WildcardTypes are not supported and should not be contained inside a TypeContainer
+                return false;
+            }
+        }
+    }
+
+    @Override
+    public int hashCode() {
+        return switch (type) {
+            case null -> 0;
+            case Class<?> c -> c.hashCode();
+            case ParameterizedType pt -> {
+                int result = TypeContainer.of(pt.getRawType()).hashCode();
+                for (Type arg : pt.getActualTypeArguments()) {
+                    result = 31 * result + TypeContainer.of(arg).hashCode();
+                }
+                Type owner = pt.getOwnerType();
+                result = 31 * result + (owner == null ? 0 : TypeContainer.of(owner).hashCode());
+                yield result;
+            }
+            case GenericArrayType gat -> 31 * TypeContainer.of(gat.getGenericComponentType()).hashCode();
+            default -> type.hashCode();
+        };
     }
 
     /**
@@ -100,6 +186,15 @@ public class TypeContainer<T> {
     }
 
     /**
+     * Checks whether the type represented by this container is a {@link GenericArrayType},
+     * for example {@code List<String>[]}.
+     * @return {@code true} if the type is a {@link GenericArrayType}, {@code false} otherwise.
+     */
+    public boolean isGenericArray() {
+        return type instanceof GenericArrayType;
+    }
+
+    /**
      * Returns the component type of the underlying array.
      * <p>
      * Example:
@@ -146,7 +241,7 @@ public class TypeContainer<T> {
      * If the type is a parameterized type, it returns the raw type of that parameterized type.
      * For example, if the type is {@code List<String>}, this method will return {@link java.util.List}.
      * @return The raw class represented as a {@code Class<?>}.
-     * @throws IllegalArgumentException When the underlying type is not actually a class or a parameterized type.
+     * @throws IllegalArgumentException When the underlying type is not actually a {@link Class} or a {@link ParameterizedType}.
      */
     public Class<?> getRawClass() {
         if (type instanceof Class<?> clazz) {
@@ -155,6 +250,25 @@ public class TypeContainer<T> {
             return (Class<?>) paramType.getRawType(); // This cast is safe because the raw type of a parameterized type is always a class
         }
         throw new IllegalArgumentException("Unsupported type: " + type);
+    }
+
+    /**
+     * Returns the first level class just like {@link TypeContainer#getRawClass},
+     * but if the type is a primitive, it will return the corresponding wrapper class instead.
+     * For example, if the type is {@code int}, this method will return {@link Integer}.
+     * @return The raw class, with primitives converted to their wrappers
+     */
+    public Class<?> getRawWrapperClass() {
+        var clazz = getRawClass();
+        if (clazz == int.class)     return Integer.class;
+        if (clazz == boolean.class) return Boolean.class;
+        if (clazz == double.class)  return Double.class;
+        if (clazz == long.class)    return Long.class;
+        if (clazz == char.class)    return Character.class;
+        if (clazz == byte.class)    return Byte.class;
+        if (clazz == short.class)   return Short.class;
+        if (clazz == float.class)   return Float.class;
+        return clazz;
     }
 
     /**
@@ -218,6 +332,8 @@ public class TypeContainer<T> {
      * This is especially useful for resolving the types of fields that are declared using type variables (e.g. {@code T} in {@code class ApiResponse<T>}),
      * as it will try to resolve those type variables using the actual type arguments provided to this container
      * (e.g. if this container represents {@code ApiResponse<String>}, it will resolve {@code T} to {@link String}).
+     * <p>
+     * Note: This method should only be called for fields that are fetched through {@link Class#getDeclaredFields()} (which does not return fields of superclasses) as this method does not look at the superclass when resolving type variables.
      * @param field The field whose type should be resolved. This field should be declared in the class represented by this container.
      * @return A new {@code TypeContainer} representing the type of the given field, with type variables resolved if possible.
      * @throws IllegalArgumentException When the field's type cannot be accurately resolved (e.g. if it's a type variable that cannot be resolved, or a wildcard).
@@ -235,13 +351,99 @@ public class TypeContainer<T> {
     private TypeContainer<?> resolveType(Type fieldType) {
         switch (fieldType) {
             case Class<?> clazz -> {
-                return new TypeContainer<>(clazz);
+                return TypeContainer.of(clazz);
             }
             case ParameterizedType paramType -> {
-                return new TypeContainer<>(paramType);
+                var isDifferent = false;
+                var typeArgs = paramType.getActualTypeArguments();
+                var resolvedTypes = new TypeContainer<?>[typeArgs.length];
+                for (int i = 0; i < typeArgs.length; i++) {
+                    var resolvedType = resolveType(typeArgs[i]);
+                    if (!TypeContainer.of(typeArgs[i]).equals(resolvedType)) {
+                        isDifferent = true;
+                    }
+                    resolvedTypes[i] = resolvedType;
+                }
+                var resolvedOwnerType = paramType.getOwnerType() != null ? resolveType(paramType.getOwnerType()) : null;
+                if (resolvedOwnerType != null && resolvedOwnerType.equals(TypeContainer.of(paramType.getOwnerType()))) {
+                    isDifferent = true;
+                }
+
+                if (!isDifferent) {
+                    return TypeContainer.of(paramType);
+                } else {
+                    // Create a new ParameterizedType with the resolved type arguments
+                    var rawType = (Class<?>) paramType.getRawType();
+                    return TypeContainer.of(new ParameterizedType() {
+                        @SuppressWarnings("NullableProblems")
+                        @Override
+                        public Type[] getActualTypeArguments() {
+                            Type[] resolvedTypeArgs = new Type[resolvedTypes.length];
+                            for (int i = 0; i < resolvedTypes.length; i++) {
+                                resolvedTypeArgs[i] = resolvedTypes[i].type;
+                            }
+                            return resolvedTypeArgs;
+                        }
+
+                        @SuppressWarnings("NullableProblems")
+                        @Override
+                        public Type getRawType() {
+                            return rawType;
+                        }
+
+                        @Override
+                        public Type getOwnerType() {
+                            return resolvedOwnerType != null ? resolvedOwnerType.type : null;
+                        }
+
+                        /** Stolen from {@code ParameterizedTypeImpl.toString()} */
+                        @Override
+                        public String toString() {
+                            StringBuilder sb = new StringBuilder();
+                            if (getOwnerType() != null) {
+                                sb.append(getOwnerType().getTypeName());
+
+                                sb.append("$");
+
+                                if (getOwnerType() instanceof ParameterizedType ownerType) {
+                                    sb.append((rawType.getName().replace(((Class<?>)ownerType.getRawType()).getName() + "$", "")));
+                                } else
+                                    sb.append(rawType.getSimpleName());
+                            } else
+                                sb.append(rawType.getName());
+
+                            StringJoiner sj = new StringJoiner(", ", "<", ">");
+                            sj.setEmptyValue("");
+                            for(Type t : getActualTypeArguments()) {
+                                sj.add(t.getTypeName());
+                            }
+                            sb.append(sj);
+
+                            return sb.toString();
+                        }
+                    });
+                }
             }
             case GenericArrayType arrayType -> {
-                return new TypeContainer<>(arrayType);
+                var componentType = arrayType.getGenericComponentType();
+                var resolvedComponentType = resolveType(componentType);
+                if (TypeContainer.of(componentType).equals(resolvedComponentType)) {
+                    return TypeContainer.of(arrayType);
+                } else {
+                    // Create a new GenericArrayType with the resolved component type
+                    return TypeContainer.of(new GenericArrayType() {
+                        @SuppressWarnings("NullableProblems")
+                        @Override
+                        public Type getGenericComponentType() {
+                            return resolvedComponentType.type;
+                        }
+
+                        @Override
+                        public String toString() {
+                            return resolvedComponentType.getTypeName() + "[]";
+                        }
+                    });
+                }
             }
             case TypeVariable<?> typeVar -> {
                 // Try to resolve the type variable using the class's type parameters
@@ -253,7 +455,7 @@ public class TypeContainer<T> {
 
                     for (int i = 0; i < typeParams.length; i++) {
                         if (typeParams[i].equals(typeVar)) {
-                            return new TypeContainer<>(typeArgs[i]);
+                            return TypeContainer.of(typeArgs[i]);
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.shared.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.schemas;
 
 import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
@@ -7,9 +7,11 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
-public class PrimitiveSerializer extends BaseSerializer {
+public record PrimitiveSchema<T>(Class<T> clazz) implements Schema<T> {
     private static final String TAG = "PrimitiveSerializer";
-    public void serialize(Object o, GrowableBuffer buf) {
+
+    @Override
+    public void serialize(T o, GrowableBuffer buf) {
         switch (o) {
             case Byte b -> {
                 Log.i(TAG, "Serializing byte: " + b);
@@ -37,7 +39,7 @@ public class PrimitiveSerializer extends BaseSerializer {
             }
             case Boolean b -> {
                 Log.i(TAG, "Serializing boolean: " + b);
-                buf.putByte(serializeBoolean(b));
+                buf.putByte(SerializationUtils.serializeBoolean(b));
             }
             case Character c -> {
                 Log.i(TAG, "Serializing char: " + c);
@@ -48,8 +50,10 @@ public class PrimitiveSerializer extends BaseSerializer {
         }
     }
 
+    @Override
     @SuppressWarnings("unchecked") // Java can't understand that e.g., the cast (T) Integer.valueOf(data.getInt()) only happens when clazz is Integer.class and T therefore is Integer
-    public <T> T deserialize(ByteBuffer data, Class<T> clazz) throws SerializationException {
+    public T deserialize(ByteBuffer data) throws SerializationException {
+        Log.i(TAG, "Deserializing primitive of type: " + clazz.getName());
         try {
             if (clazz == byte.class || clazz == Byte.class) {
                 byte value = data.get();
@@ -89,7 +93,7 @@ public class PrimitiveSerializer extends BaseSerializer {
 
             if (clazz == boolean.class || clazz == Boolean.class) {
                 byte boolByte = data.get();
-                boolean value = deserializeBoolean(boolByte);
+                boolean value = SerializationUtils.deserializeBoolean(boolByte);
                 Log.i(TAG, "Deserialized boolean: " + value);
                 return (T) Boolean.valueOf(value);
             }

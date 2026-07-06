@@ -60,6 +60,11 @@ public abstract class StoreType<T> {
         type = ((ParameterizedType) superclass).getActualTypeArguments()[0];
     }
 
+    /** Returns the stored type as a {@link TypeContainer} */
+    public TypeContainer<T> asTypeContainer() {
+        return TypeContainer.of(type);
+    }
+
     /**
      * Returns the stored type, including generic type parameters, e.g. {@code List<String>}.
      * @return The stored type.

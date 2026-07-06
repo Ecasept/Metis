@@ -97,20 +97,20 @@ public class ClientDatabaseRepository {
             for (var task : tasks) {
                 batcher.fill(
                         task.uuid(),
-                        task.title().get(),
-                        task.description().get(),
-                        task.state().get().toInt(),
-                        task.priority().get().toInt(),
-                        DateFormat.toLong(task.dueDate().get()),
-                        task.dueTime().get().map(DateFormat::toLong).orElse(null),
+                        task.getTitle(),
+                        task.getDescription(),
+                        task.getState().toInt(),
+                        task.getPriority().toInt(),
+                        DateFormat.toLong(task.getDueDate()),
+                        task.getDueTime().map(DateFormat::toLong).orElse(null),
                         DateFormat.toLong(task.title().getLastUpdated()),
                         DateFormat.toLong(task.description().getLastUpdated()),
                         DateFormat.toLong(task.state().getLastUpdated()),
                         DateFormat.toLong(task.priority().getLastUpdated()),
                         DateFormat.toLong(task.dueDate().getLastUpdated()),
                         DateFormat.toLong(task.dueTime().getLastUpdated()),
-                        task.state().get().getCompletedAt().map(DateFormat::toLong).orElse(null),
-                        task.isDeleted().get(),
+                        task.getState().getCompletedAt().map(DateFormat::toLong).orElse(null),
+                        task.getDeleted(),
                         DateFormat.toLong(task.isDeleted().getLastUpdated())
                 );
                 query.execute();
@@ -121,6 +121,26 @@ public class ClientDatabaseRepository {
     }
     public void deleteTask(UUID uuid) throws DatabaseException {
         deleteTasks(List.of(uuid));
+    }
+
+    public void deleteTasksNotPresentBefore(List<UUID> uuids, LocalDateTime before) throws DatabaseException {
+        try (var query = db
+                .delete()
+                .from("tasks")
+                .filter(it -> it.not( c -> c.eqAny("uuid", uuids))
+                        .lt("titleChanged", before)
+                        .lt("descriptionChanged", before)
+                        .lt("stateChanged", before)
+                        .lt("priorityChanged", before)
+                        .lt("dueDateChanged", before)
+                        .lt("dueTimeChanged", before)
+                        .lt("deletedChanged", before)
+                )
+                .prepare()) {
+            query.execute();
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to delete tasks from database", e);
+        }
     }
 
     public void deleteTasks(List<UUID> uuids) throws DatabaseException {
@@ -153,13 +173,13 @@ public class ClientDatabaseRepository {
                 .from("tasks")
                 .filter(it -> it
                         .defaultOr(c -> c
-                                .eq("titleChanged", lastSync)
-                                .eq("descriptionChanged", lastSync)
-                                .eq("stateChanged", lastSync)
-                                .eq("priorityChanged", lastSync)
-                                .eq("dueDateChanged", lastSync)
-                                .eq("dueTimeChanged", lastSync)
-                                .eq("deletedChanged", lastSync)
+                                .ge("titleChanged", lastSync)
+                                .ge("descriptionChanged", lastSync)
+                                .ge("stateChanged", lastSync)
+                                .ge("priorityChanged", lastSync)
+                                .ge("dueDateChanged", lastSync)
+                                .ge("dueTimeChanged", lastSync)
+                                .ge("deletedChanged", lastSync)
                         )
                 )
                 .prepare()) {

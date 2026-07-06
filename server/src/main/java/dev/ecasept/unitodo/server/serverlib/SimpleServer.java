@@ -12,6 +12,7 @@ import java.util.HashMap;
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
 import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
+import dev.ecasept.unitodo.shared.serialization.adapters.Any;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.utils.Log;
 
@@ -19,7 +20,7 @@ public class SimpleServer {
     private static final String TAG = "SimpleHttpsServer";
     private final HttpServer server;
     private final HashMap<RouteKey, Route<?, ?>> routes = new HashMap<>();
-    private final Serializer defaultSerializer = Serializer.createDefault().adapter(ApiResponseAdapter.class, ApiResponse.class);
+    private final Serializer defaultSerializer = Serializer.createDefault().adapter(ApiResponseAdapter<Any>::new, new StoreType<>(){});
 
     public SimpleServer(String keystorePassword, String keystoreLocation, boolean useHttps) {
         if (useHttps) {
@@ -76,7 +77,7 @@ public class SimpleServer {
         var response = ApiResponse.error(errorMsg);
         byte[] rawResponseBody;
         try {
-            rawResponseBody = serializer.serialize(response);
+            rawResponseBody = serializer.serialize(response, new StoreType<>(){});
         } catch (Exception e) {
             Log.e(TAG, "Failed to serialize API error response", e);
             sendError(exchange, 500, "Internal server error");

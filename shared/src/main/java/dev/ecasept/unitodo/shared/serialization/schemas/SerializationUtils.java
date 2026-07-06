@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.shared.serialization.serializers;
+package dev.ecasept.unitodo.shared.serialization.schemas;
 
 import dev.ecasept.unitodo.shared.serialization.GrowableBuffer;
 import dev.ecasept.unitodo.shared.serialization.SerializationException;
@@ -10,30 +10,17 @@ import java.nio.ByteBuffer;
 /**
  * Provides helper methods for other Serializers
  */
-public abstract class BaseSerializer {
-
-    /** Checks if the given class is a wrapper type for a primitive (e.g. Integer for int) */
-    protected static boolean isWrapper(Class<?> clazz) {
-        return clazz.equals(Byte.class)
-                || clazz.equals(Short.class)
-                || clazz.equals(Integer.class)
-                || clazz.equals(Long.class)
-                || clazz.equals(Float.class)
-                || clazz.equals(Double.class)
-                || clazz.equals(Boolean.class)
-                || clazz.equals(Character.class);
-    }
-
+public final class SerializationUtils {
     /** Serializes a value at the current position that indicates the length of some other data */
-    protected void serializeLength(int length, GrowableBuffer buf) {
+    public static void serializeLength(int length, GrowableBuffer buf) {
         buf.putInt(length);
     }
     /** Serializes a value at the specified position that indicates the length of some other data */
-    protected void serializeLength(int length, int pos, GrowableBuffer buf) {
+    public static void serializeLength(int length, int pos, GrowableBuffer buf) {
         buf.putInt(pos, length);
     }
     /** Deserializes a value at the current position that indicates the length of some other data */
-    protected int deserializeLength(ByteBuffer buf) throws SerializationException {
+    public static int deserializeLength(ByteBuffer buf) throws SerializationException {
         try {
             return buf.getInt();
         } catch (BufferUnderflowException e) {
@@ -41,7 +28,7 @@ public abstract class BaseSerializer {
         }
     }
 
-    protected <T> T instatiateSerializableObject(Class<T> clazz) {
+    public static <T> T instantiateSerializableObject(Class<T> clazz) {
         T o;
         try {
             var constructor = clazz.getDeclaredConstructor();
@@ -55,14 +42,23 @@ public abstract class BaseSerializer {
         return o;
     }
 
-    protected boolean deserializeBoolean(byte b) throws SerializationException {
+    /** Deserializes a byte into a boolean value
+     * @param b The byte that represents the boolean value
+     * @return The byte interpreted as a byte
+     * @throws SerializationException If the byte does not represent a valid boolean value
+     */
+    public static boolean deserializeBoolean(byte b) throws SerializationException {
         if (b != 0 && b != (byte) 0xFF) {
             throw new SerializationException("Invalid byte value for boolean: " + String.format("0x%02X", b));
         }
         return b != 0;
     }
 
-    protected byte serializeBoolean(boolean value) {
+    /** Serializes a boolean value into a byte
+     * @param value The boolean value to serialize
+     * @return The byte representation of the boolean value
+     */
+    public static byte serializeBoolean(boolean value) {
         return (byte) (value ? 0xFF : 0x00);
     }
 }

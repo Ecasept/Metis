@@ -42,6 +42,15 @@ public class ConditionCreator {
         addNewCondition(new EqualsCondition<>(column, value));
         return this;
     }
+    public ConditionCreator not(Consumer<ConditionCreator> conditionFn) {
+        var conditionCreator = new ConditionCreator();
+        conditionFn.accept(conditionCreator);
+        if (conditionCreator.getCondition() == null) {
+            throw new IllegalArgumentException("Condition cannot be null");
+        }
+        addNewCondition(new NotCondition(conditionCreator.getCondition()));
+        return this;
+    }
     public <T> ConditionCreator contains(String column, String pattern) {
         addNewCondition(new LikeCondition(column, "%" + pattern + "%"));
         return this;
@@ -56,6 +65,10 @@ public class ConditionCreator {
     }
     public <T> ConditionCreator ge(String column, T value) {
         addNewCondition(new GreaterThanOrEqualsCondition<>(column, value));
+        return this;
+    }
+    public <T> ConditionCreator lt(String column, T value) {
+        addNewCondition(new LessThanCondition<>(column, value));
         return this;
     }
     public Condition getCondition() {

@@ -42,7 +42,7 @@ public @interface Field {
      *
      * <ul>
      *   <li>{@code x} itself may be {@code null}, depending on the field's
-     *       {@code nullable} property.</li>
+     *       {@code nullableType} property.</li>
      *   <li>{@code x[i]} may be {@code null}.</li>
      *   <li>{@code x[i][j]} may not be {@code null}.</li>
      *   <li>{@code x[i][j][k]} may be {@code null}.</li>

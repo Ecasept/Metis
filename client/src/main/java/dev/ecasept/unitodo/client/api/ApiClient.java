@@ -37,21 +37,19 @@ public class ApiClient {
         this.sessionToken = token;
     }
 
-    public String login(String username, String password) throws ApiException {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
-        return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, requestBody, false));
+    public String login(String username, Password password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, password);
+        return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
-    public String register(String username, String password) throws ApiException {
-        var requestBody = new UsernameAndPassword(username, new Password(password));
-        return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, requestBody, false));
+    public String register(String username, Password password) throws ApiException {
+        var requestBody = new UsernameAndPassword(username, password);
+        return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
-    public void deleteAccount(String password) throws ApiException {
-        try (var requestBody = new Password(password)) {
-            dispatch(() -> sendPost("/users/delete", new StoreType<>() {}, requestBody, true));
-        }
+    public void deleteAccount(Password password) throws ApiException {
+        dispatch(() -> sendPost("/users/delete", new StoreType<ApiResponse<Void>>() {}, new StoreType<>() {}, password, true));
     }
     public SyncResponse sync(SyncRequest request) throws ApiException {
-        return dispatch(() -> sendPost("/data/sync", new StoreType<>() {}, request, true));
+        return dispatch(() -> sendPost("/data/sync", new StoreType<>() {}, new StoreType<>() {}, request, true));
     }
 
     private <T> T dispatch(ApiCall<ApiResponse<T>> apiCall) throws ApiException {
@@ -68,8 +66,8 @@ public class ApiClient {
         }
     }
 
-    private <RequestType, ResponseType> ResponseType sendPost(String endpoint, StoreType<ResponseType> responseType, RequestType requestBody, boolean authorized) throws SerializationException, ApiNetworkException {
-        return sendRequest(endpoint, responseType, req -> req.POST(HttpRequest.BodyPublishers.ofByteArray(serializer.serialize(requestBody))), authorized);
+    private <RequestType, ResponseType> ResponseType sendPost(String endpoint, StoreType<ResponseType> responseType, StoreType<RequestType> requestType, RequestType requestBody, boolean authorized) throws SerializationException, ApiNetworkException {
+        return sendRequest(endpoint, responseType, req -> req.POST(HttpRequest.BodyPublishers.ofByteArray(serializer.serialize(requestBody, requestType))), authorized);
     }
 
     private <ResponseType> ResponseType sendRequest(String endpoint, StoreType<ResponseType> responseType, UnaryOperator<HttpRequest.Builder> method, boolean authorized) throws ApiNetworkException, SerializationException {

@@ -33,7 +33,7 @@ import java.util.UUID;
  * between pending and finished tasks, creating new tasks and the searchbar.
  * In Addition this class manages the user interactions with all buttons in the JMenuBar.
  */
-@SuppressWarnings("LanguageDetectionInspection")
+
 public class MainFrame extends JFrame {
     private static final String TAG = "MainFrame";
 
@@ -57,14 +57,6 @@ public class MainFrame extends JFrame {
     private DefaultListModel<String> titles;
     JPanel mainPanelLeft;
     JPanel mainPanelRight;
-
-    // Buttons
-    private JButton logout;
-    private JButton delAcc;
-    private JButton sync;
-    private JButton showPending;
-    private JButton showFinished;
-    private JButton newTask;
 
     // Lables für Übersicht
     JLabel mainPanelRightLabel;
@@ -188,12 +180,6 @@ public class MainFrame extends JFrame {
      */
     public MainFrame(DataManager dataManger) {
         this.dataManger = dataManger;
-        dataManger.setAsyncErrorHandler(
-                e -> {
-                    JOptionPane.showMessageDialog(this, "Fehler! Die Daten konnten nicht korrekt synchronisiert werden", "Fehler", JOptionPane.ERROR_MESSAGE);
-                    Log.e(TAG, "Error during asynchronous operation", e);
-                }
-        );
         try {
             dataManger.initialize();
             loggedIn = dataManger.isLoggedIn();
@@ -644,7 +630,7 @@ public class MainFrame extends JFrame {
         panelOne.setLayout(new BoxLayout(panelOne, BoxLayout.X_AXIS));
         panelOne.add(new JLabel("Titel:"));
         JTextField textfieldTitle = new JTextField();
-        textfieldTitle.setText(task.title().get());
+        textfieldTitle.setText(task.getTitle());
         panelOne.add(textfieldTitle);
         mainPanel.add(panelOne);
 
@@ -655,11 +641,11 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel(new GridLayout(1,2));
         String[] priorityList = {"niedrig", "mittel", "hoch"};
         JComboBox<String> priorityBox = new JComboBox<>(priorityList);
-        if (task.priority().get().equals(TaskPriority.Low)) {
+        if (task.getPriority().equals(TaskPriority.Low)) {
             priorityBox.setSelectedIndex(0);
-        } else if (task.priority().get().equals(TaskPriority.Mid)) {
+        } else if (task.getPriority().equals(TaskPriority.Mid)) {
             priorityBox.setSelectedIndex(1);
-        } else if (task.priority().get().equals(TaskPriority.High)) {
+        } else if (task.getPriority().equals(TaskPriority.High)) {
             priorityBox.setSelectedIndex(2);
         }
         JPanel subPanel1 = new JPanel(new FlowLayout());
@@ -668,10 +654,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().isPending()) {
+        if (task.getState().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().isFinished()) {
+        if (task.getState().isFinished()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -690,10 +676,10 @@ public class MainFrame extends JFrame {
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderDate = task.getDueDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         String placeholderTime = "hh:mm";
-        if (task.dueTime().get().isPresent()) {
-            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (task.getDueTime().isPresent()) {
+            placeholderTime = task.getDueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
         }
 
         JTextField textfieldDueDate = new JTextField(placeholderDate);
@@ -759,7 +745,7 @@ public class MainFrame extends JFrame {
         middlePanel.add(new JLabel("Beschreibung:"));
         mainPanel.add(middlePanel);
         JTextArea descriptionArea = new JTextArea(15, 30);
-        descriptionArea.setText(task.description().get());
+        descriptionArea.setText(task.getDescription());
         JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
 
 
@@ -780,6 +766,7 @@ public class MainFrame extends JFrame {
         ActionListener saveListener = new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
+                var t = task;
                 // Prüfen, dass Title nicht leer und nicht zu lang ist
                 String title = textfieldTitle.getText();
                 if (title.length() == 0) {
@@ -789,16 +776,7 @@ public class MainFrame extends JFrame {
                     JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDer Titel darf höchstens 50 Zeichen lang sein.\nAktuell: " + title.length() + " Zeichen.");
                     return;
                 }
-                // Wenn sich neuer Titel von altem unterscheidet, dann neuen Titel setzen
-                if (!title.equals(task.title().get())) {
-                    task.title().set(title);
-                }
-
-
-
-
-
-
+                t = t.withTitle(title);
 
                 // Prüfen, dass Fälligkeitsdatum nicht leer oder ungültig ist oder in der Vergangenheit liegt
                 String dueDateString = textfieldDueDate.getText();
@@ -809,51 +787,30 @@ public class MainFrame extends JFrame {
 
                 LocalTime dueTime = null;
                 if (!(dueTimeString.equals("hh:mm") || dueTimeString.equals(""))) {
-                    dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                    try {
+                        dueTime = TimeUtils.checkDueTime(dueTimeString, dueDate);
+                    } catch (IllegalArgumentException ex) {
+                        return;
+                    }
                 }
 
-                // Wenn sich neues Fälligkeitsdatum von altem unterscheidet, dann neues Fälligkeitsdatum setzen
-                if (!dueDate.equals(task.dueDate().get())) {
-                    task.dueDate().set(dueDate);
-                }
-                if (!Optional.ofNullable(dueTime).equals(task.dueTime().get())) {
-                    task.dueTime().set(Optional.ofNullable(dueTime));
-                }
-
-
-
-
-
-
-
-
-
+                t = t.withDueDate(dueDate).withDueTime(Optional.ofNullable(dueTime));
 
                 // Priorität auslesen
                 String selectedPriority = (String) priorityBox.getSelectedItem();
-                // Wenn sich neue Priorität von alter unterscheidet, dann neue Priorität setzen
-                if (!selectedPriority.equals(task.priority().get().toString())) {
-                    if (selectedPriority.equals("niedrig")) {
-                        task.priority().set(TaskPriority.Low);
-                    }
-                    if (selectedPriority.equals("mittel")) {
-                        task.priority().set(TaskPriority.Mid);
-                    }
-                    if (selectedPriority.equals("hoch")) {
-                        task.priority().set(TaskPriority.High);
-                    }
+                switch (selectedPriority) {
+                    case "niedrig" -> t = t.withPriority(TaskPriority.Low);
+                    case "mittel" -> t = t.withPriority(TaskPriority.Mid);
+                    case "hoch" -> t = t.withPriority(TaskPriority.High);
                 }
 
                 // Beschreibung auslesen
                 String description = descriptionArea.getText();
-                // Wenn sich neue Beschreibung von alter unterscheidet, dann neue Beschreibung setzen
-                if (!description.equals(task.description().get())) {
-                    task.description().set(description);
-                }
+                t = t.withDescription(description);
 
                 // Änderungen in db speichern
                 try {
-                    dataManger.upsertTask(task);
+                    dataManger.upsertTask(t);
                     setOverview();
                 } catch (DatabaseException dbEx) {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler\nDie Aufgabe konnte nicht gespeichert werden.\nBitte versuchen sie es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -924,7 +881,7 @@ public class MainFrame extends JFrame {
         panelOne.setLayout(new BoxLayout(panelOne, BoxLayout.X_AXIS));
         panelOne.add(new JLabel("Titel:"));
         JTextField textfieldTitle = new JTextField();
-        textfieldTitle.setText(task.title().get());
+        textfieldTitle.setText(task.getTitle());
         textfieldTitle.setEditable(false);
         panelOne.add(textfieldTitle);
         mainPanel.add(panelOne);
@@ -936,11 +893,11 @@ public class MainFrame extends JFrame {
         JPanel panel = new JPanel(new GridLayout(1,2));
         String[] priorityList = {"niedrig", "mittel", "hoch"};
         JTextField priorityField = new JTextField();
-        if (task.priority().get().equals(TaskPriority.Low)) {
+        if (task.getPriority().equals(TaskPriority.Low)) {
             priorityField.setText("niedrig");
-        } else if (task.priority().get().equals(TaskPriority.Mid)) {
+        } else if (task.getPriority().equals(TaskPriority.Mid)) {
             priorityField.setText("mittel");
-        } else if (task.priority().get().equals(TaskPriority.High)) {
+        } else if (task.getPriority().equals(TaskPriority.High)) {
             priorityField.setText("hoch");
         }
         priorityField.setEditable(false);
@@ -950,10 +907,10 @@ public class MainFrame extends JFrame {
         panel.add(subPanel1);
         JLabel taskStateLabel = new JLabel("Status:");
         JTextField taskStateField = new JTextField();
-        if (task.state().get().isPending()) {
+        if (task.getState().isPending()) {
             taskStateField.setText("Ausstehend");
         }
-        if (task.state().get().isPending()) {
+        if (task.getState().isFinished()) {
             taskStateField.setText("Erledigt");
         }
 
@@ -972,10 +929,10 @@ public class MainFrame extends JFrame {
         JPanel panelTwo = new JPanel();
         panelTwo.setLayout(new BoxLayout(panelTwo, BoxLayout.X_AXIS));
         panelTwo.add(new JLabel("Fälligkeitsdatum:"));
-        String placeholderDate = task.dueDate().get().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
+        String placeholderDate = task.getDueDate().format(DateTimeFormatter.ofPattern("dd.MM.yyyy"));
         String placeholderTime = "hh:mm";
-        if (task.dueTime().get().isPresent()) {
-            placeholderTime = task.dueTime().get().get().format(DateTimeFormatter.ofPattern("HH:mm"));
+        if (task.getDueTime().isPresent()) {
+            placeholderTime = task.getDueTime().get().format(DateTimeFormatter.ofPattern("HH:mm"));
         }
 
         JTextField textfieldDueDate = new JTextField(placeholderDate);
@@ -1003,7 +960,7 @@ public class MainFrame extends JFrame {
         middlePanel.add(new JLabel("Beschreibung:"));
         mainPanel.add(middlePanel);
         JTextArea descriptionArea = new JTextArea(15, 30);
-        descriptionArea.setText(task.description().get());
+        descriptionArea.setText(task.getDescription());
         descriptionArea.setEditable(false);
         JScrollPane descriptionAreaScrollPane = new JScrollPane(descriptionArea);
 
@@ -1052,7 +1009,7 @@ public class MainFrame extends JFrame {
      * @param row the row in the JTable the user clicked the delete-icon for
      */
     public void deleteTaskClicked(int row) {
-        System.out.println("Löschen von Zeile " + row);
+        Log.i(TAG, "Löschen von Zeile " + row);
 
         if (!currentlyShownTasks.isEmpty()) {
             ClientTask deleteThis  = currentlyShownTasks.get(row);
@@ -1090,16 +1047,15 @@ public class MainFrame extends JFrame {
      * @param row the row in the JTable the user clicked the checkbox for.
      */
     public void changeStateTaskClicked(int row) {
-       System.out.println("Status ändern von Zeile " + row);
+       Log.i(TAG, "Status ändern von Zeile " + row);
 
        if (!currentlyShownTasks.isEmpty()) {
            ClientTask task = currentlyShownTasks.get(row);
 
 
-           if (task.state().get().isPending()) {
-               task.state().set(new TaskState.Finished(LocalDateTime.now()));
+           if (task.getState().isPending()) {
                try {
-                   dataManger.upsertTask(task);
+                   dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())));
                    if (last == LAST_WAS_ALL) {
                        showAll();
                    } else if (last == LAST_WAS_FINISHED){
@@ -1114,10 +1070,9 @@ public class MainFrame extends JFrame {
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
                }
-           } else if (task.state().get().isFinished()) {
-               task.state().set(new TaskState.Pending());
+           } else if (task.getState().isFinished()) {
                try {
-                   dataManger.upsertTask(task);
+                   dataManger.upsertTask(task.withState(new TaskState.Pending()));
                    if (last == LAST_WAS_ALL) {
                        showAll();
                    } else {

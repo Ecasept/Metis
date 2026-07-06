@@ -7,6 +7,7 @@ import java.nio.CharBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+/** Auto-closable shreddable password class */
 @Serializable
 public record Password(@Field(tag = 1) char[] pw) implements AutoCloseable {
     public Password(String pw) {
@@ -16,7 +17,7 @@ public record Password(@Field(tag = 1) char[] pw) implements AutoCloseable {
      * Shreds the password by filling the char array with spaces. This removes it from memory.
      */
     public void shred() {
-        Arrays.fill(pw, ' ');
+        Arrays.fill(pw, '\0');
     }
 
     /**
@@ -35,5 +36,10 @@ public record Password(@Field(tag = 1) char[] pw) implements AutoCloseable {
     @Override
     public void close() {
         shred();
+    }
+
+    /** Returns whether the password is empty (i.e. has length 0) */
+    public boolean isEmpty() {
+        return pw.length == 0;
     }
 }
