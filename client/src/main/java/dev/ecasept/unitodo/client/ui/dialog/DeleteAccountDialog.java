@@ -12,13 +12,22 @@ import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.concurrent.CompletionException;
 
+/**
+ * This class is responsible for creating the (modal) dialog box where the user can delete their account.
+ */
 public class DeleteAccountDialog extends JDialog {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
 
-
+    /**
+     * Creates an new dialog box where the user can delete their account.
+     *
+     * @param x the parent frame.
+     * @param modal true if the dialog should be modal, false otherwise.
+     * @param dataManager the DataManager-Object which manages the account and login status.
+     */
     public DeleteAccountDialog(Frame x, boolean modal, DataManager dataManager) {
         super(x, "Account löschen", modal);
         this.dataManager = dataManager;
@@ -62,7 +71,7 @@ public class DeleteAccountDialog extends JDialog {
     }
 
 
-    ActionListener deleteButtonListener = new ActionListener() {
+    private ActionListener deleteButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             // Prüfung password leer ist
@@ -96,7 +105,7 @@ public class DeleteAccountDialog extends JDialog {
         }
     };
 
-    ActionListener cancelButtonListener = new ActionListener() {
+    private ActionListener cancelButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             dispose();

@@ -12,13 +12,22 @@ import java.awt.event.ActionListener;
 import java.util.Arrays;
 import java.util.concurrent.CompletionException;
 
+/**
+ * This class is responsible for creating a (modal) dialog box where the user can log in with their account.
+ */
 public class LoginDialog extends JDialog {
 
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
 
-
+    /**
+     * Creates an new dialog box where the user can log in with their account.
+     *
+     * @param x the parent frame.
+     * @param modal true if the dialog should be modal, false otherwise.
+     * @param dataManager the DataManager-Object which manages the account and login status.
+     */
     public LoginDialog(Frame x, boolean modal, DataManager dataManager) {
         super(x, "Anmelden", modal);
         this.dataManager = dataManager;
@@ -63,7 +72,7 @@ public class LoginDialog extends JDialog {
     }
 
 
-    ActionListener loginButtonListener = new ActionListener() {
+    private ActionListener loginButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             // Prüfung ob username und password leer sind
@@ -101,7 +110,7 @@ public class LoginDialog extends JDialog {
         }
     };
 
-    ActionListener cancelButtonListener = new ActionListener() {
+    private ActionListener cancelButtonListener = new ActionListener() {
         @Override
         public void actionPerformed(ActionEvent e) {
             dispose();
