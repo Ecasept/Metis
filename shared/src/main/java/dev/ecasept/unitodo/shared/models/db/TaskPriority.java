@@ -19,10 +19,12 @@ public enum TaskPriority {
         this.value = value;
     }
 
+    /** Returns the enum as an unambiguous integer */
     public int toInt() {
         return value;
     }
 
+    /** Converts back from the integer representation obtained through {@link TaskPriority#toInt()} */
     public static TaskPriority fromInt(int value) {
         return switch (value) {
             case 0 -> High;

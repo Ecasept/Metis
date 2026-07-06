@@ -6,6 +6,10 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.ByteBuffer;
 
+/** Includes the instructions for how to (de-)serialize a wrapper type like {@link java.lang.Integer}
+ *
+ * @param <T> The wrapper type
+ */
 public class WrapperSchema<T> implements Schema<T> {
     private static final String TAG = "WrapperSerializer";
     private final PrimitiveSchema<T> primitiveSchema;

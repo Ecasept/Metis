@@ -14,21 +14,30 @@ import java.util.UUID;
 
 @Serializable
 public record ClientTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField<String> title, @Field(tag=3) TimestampedField<String> description, @Field(tag=4) TimestampedField<TaskState> state, @Field(tag=5) TimestampedField<TaskPriority> priority, @Field(tag=6) TimestampedField<LocalDate> dueDate, @Field(tag=7) TimestampedField<Optional<LocalTime>> dueTime, @Field(tag=8) TimestampedField<Boolean> isDeleted) implements Task<ClientTask> {
+    /** Creates a new ClientTask with a random UUID and the current timestamp for all fields. */
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
     public static ClientTask create(String title, String description, TaskState state, TaskPriority priority, LocalDate dueDate, Optional<LocalTime> dueTime) {
         return new ClientTask(UUID.randomUUID(),  new TimestampedField<>(title), new TimestampedField<>(description), new TimestampedField<>(state), new TimestampedField<>(priority), new TimestampedField<>(dueDate), new TimestampedField<>(dueTime), new TimestampedField<>(false));
     }
 
+    /** Returns an Optional containing a LocalTime if the column is not null, or an empty Optional if it is null. */
     private static Optional<LocalTime> nullableTime(ResultSet rs, String col) throws SQLException {
         long raw = rs.getLong(col);
         return rs.wasNull() ? Optional.empty() : Optional.of(DateFormat.timeFromLong(raw));
     }
 
+    /** Returns an Optional containing a LocalDateTime if the column is not null, or an empty Optional if it is null. */
     private static Optional<LocalDateTime> nullableDateTime(ResultSet rs, String col) throws SQLException {
         long raw = rs.getLong(col);
         return rs.wasNull() ? Optional.empty() : Optional.of(DateFormat.fromLong(raw));
     }
 
+    /** Creates a ClientTask from a ResultSet obtained from a database query.
+     *
+     * @param rs The ResultSet to read from
+     * @return A ClientTask object populated with the data from the ResultSet
+     * @throws SQLException If the ResultSet does not contain the expected columns or if there is an error reading from it
+     */
     public static ClientTask fromResultSet(ResultSet rs) throws SQLException {
         return new ClientTask(
                 UUID.fromString(rs.getString("uuid")),
@@ -63,9 +72,6 @@ public record ClientTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField
         );
     }
 
-    public UUID getUUID() {
-        return uuid;
-    }
     public ClientTask withTitle(String newTitle) {
         return new ClientTask(uuid, new TimestampedField<>(newTitle), description, state, priority, dueDate, dueTime, isDeleted);
     }
@@ -86,6 +92,10 @@ public record ClientTask(@Field(tag=1) UUID uuid, @Field(tag=2) TimestampedField
     }
     public ClientTask withDeleted(boolean newIsDeleted) {
         return new ClientTask(uuid, title, description, state, priority, dueDate, dueTime, new TimestampedField<>(newIsDeleted));
+    }
+
+    public UUID getUUID() {
+        return uuid;
     }
 
     public String getTitle() {

@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.serialization.schemas.Schema;
 import java.lang.reflect.Field;
 import java.nio.ByteBuffer;
 
+/** Includes the instructions for how to (de-)serialize fields of an object */
 public record FieldSchema<T>(Field field, Schema<T> schema, boolean optional, int tag) implements Schema<T> {
     @Override
     public void serialize(T o, GrowableBuffer buf) {

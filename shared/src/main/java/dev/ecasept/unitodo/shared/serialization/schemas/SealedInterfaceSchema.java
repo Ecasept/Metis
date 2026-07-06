@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.ByteBuffer;
 import java.util.Map;
 
+/** The instructions for (de-)serializing a sealed interface */
 public record SealedInterfaceSchema<T>(Map<Class<?>, Implementation<?>> implementationsByClass, boolean nullable) implements Schema<T> {
 
     public record Implementation<R>(int tag, Schema<R> schema) {}

@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+/** Includes the instructions for how to (de-)serialize objects */
 public record ObjectSchema<T>(NullableTypeContainer<T> nullableType, ArrayList<FieldSchema<?>> fieldSchemas) implements Schema<T> {
     private static final String TAG = "ObjectSerializer";
 

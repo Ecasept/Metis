@@ -8,6 +8,7 @@ import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.RecordComponent;
 import java.nio.ByteBuffer;
 
+/** Includes the instructions for how to (de-)serialize record components */
 public record RecordComponentSchema<T>(RecordComponent component, Schema<T> schema, int tag) implements Schema<T> {
     public T getValue(Object record) throws IllegalAccessException, InvocationTargetException {
         //noinspection unchecked

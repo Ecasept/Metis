@@ -12,6 +12,13 @@ public class SqlRunner {
     public SqlRunner(Connection connection) {
         this.connection = connection;
     }
+
+    /** Runs an SQL file on the database
+     *
+     * @param classLoader The classloader with access to the SQL file as a resource
+     * @param path The path to the SQL file as a resource
+     * @throws DatabaseException If an error occurs
+     */
     public void runSql(ClassLoader classLoader, String path) throws DatabaseException {
         try (InputStream is = classLoader.getResourceAsStream(path)) {
             if (is == null) {

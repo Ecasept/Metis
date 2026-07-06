@@ -13,8 +13,10 @@ import java.util.UUID;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
+/** Shared synchronization logic */
 public class Synchronizer {
 
+    /** Returns the newer of two TimestampedField values, preferring the server's value in case of a tie */
     private <V> TimestampedField<V> pickNewer(TimestampedField<V> server, TimestampedField<V> client) {
         var serverDate = server.getLastUpdated();
         var clientDate = client.getLastUpdated();
@@ -29,6 +31,7 @@ public class Synchronizer {
         }
     }
 
+    /** Resolves whether to delete a task when one side has deleted it and the other might have edited it */
     private Task<?> resolveDeletion(Task<?> deletedTask, Task<?> existingTask) {
         var maxTimestamp = Stream.of(
                         existingTask.title(), existingTask.description(), existingTask.state(), existingTask.priority(), existingTask.dueDate(), existingTask.dueTime()
@@ -45,6 +48,7 @@ public class Synchronizer {
 
     }
 
+    /** Merges the data of two different tasks on a field level, smartly resolving issues like deletion */
     private <T extends Task<T>> T merge(T server, ClientTask client) {
         var title = pickNewer(server.title(), client.title());
         var description = pickNewer(server.description(), client.description());
@@ -65,6 +69,14 @@ public class Synchronizer {
     }
 
 
+    /** Merges a set of changes from one side into the current set of tasks.
+     *
+     * @param cur Our tasks
+     * @param other The delta from the other side
+     * @param taskConverter A way to convert the other side's task type into our system's task type
+     * @return A list of merged tasks
+     * @param <T> The type of task that our system uses
+     */
     private <T extends Task<T>> List<T> synchronize(Map<UUID, T> cur, Map<UUID, ClientTask> other, Function<ClientTask, T> taskConverter) {
         ArrayList<T> newTasks = new ArrayList<>();
 
@@ -85,10 +97,12 @@ public class Synchronizer {
         return newTasks;
     }
 
+    /** Merges a delta received from the server into the client's set of tasks */
     public List<ClientTask> synchronizeClient(Map<UUID, ClientTask> clientTasks, Map<UUID, ClientTask> serverTasks) {
         return synchronize(clientTasks, serverTasks, t -> t);
     }
 
+    /** Merges a delta received from the client into the server's set of tasks */
     public List<ServerTask> synchronizeServer(Map<UUID, ServerTask> serverTasks, Map<UUID, ClientTask> clientTasks, UUID userId) {
         return synchronize(serverTasks, clientTasks, task -> ServerTask.fromClientTask(task, userId));
     }

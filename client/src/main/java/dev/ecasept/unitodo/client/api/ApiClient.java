@@ -17,6 +17,7 @@ import java.net.http.HttpResponse;
 import java.util.Optional;
 import java.util.function.UnaryOperator;
 
+/** Dispatches API calls for this application */
 public class ApiClient {
     private static final String TAG = "ApiClient";
     private final HttpClient httpClient;
@@ -33,21 +34,50 @@ public class ApiClient {
     private Optional<String> getSessionToken() {
         return Optional.ofNullable(sessionToken);
     }
+    /** Sets the session token that is included in necessary requests */
     public void setSessionToken(String token) {
         this.sessionToken = token;
     }
 
+    /** Sends credentials to the server and receives a session token.
+     *
+     * @param username The username to send to the server
+     * @param password The password to send to the server
+     * @return The session token received from the server if the login was successful
+     * @throws ApiException If the login was unsuccessful or any other error occurred
+     */
     public String login(String username, Password password) throws ApiException {
         var requestBody = new UsernameAndPassword(username, password);
         return dispatch(() -> sendPost("/auth/login", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
+
+    /** Sends credentials to the server to create a new account and receives a session token.
+     *
+     * @param username The username to send to the server
+     * @param password The password to send to the server
+     * @return The session token received from the server if the registration was successful
+     * @throws ApiException If the registration was unsuccessful or any other error occurred
+     */
     public String register(String username, Password password) throws ApiException {
         var requestBody = new UsernameAndPassword(username, password);
         return dispatch(() -> sendPost("/auth/register", new StoreType<>() {}, new StoreType<>() {}, requestBody, false));
     }
+
+    /** Sends a request to the server to delete the account associated with the current session token.
+     *
+     * @param password The password to send to the server for verification
+     * @throws ApiException If the deletion was unsuccessful or any other error occurred
+     */
     public void deleteAccount(Password password) throws ApiException {
         dispatch(() -> sendPost("/users/delete", new StoreType<ApiResponse<Void>>() {}, new StoreType<>() {}, password, true));
     }
+
+    /** Sends a request to the server to synchronize data between the client and server.
+     *
+     * @param request The synchronization request containing the data to be synchronized
+     * @return The synchronization response containing the new data from the server
+     * @throws ApiException If the server-side synchronization was unsuccessful or any other error occurred
+     */
     public SyncResponse sync(SyncRequest request) throws ApiException {
         return dispatch(() -> sendPost("/data/sync", new StoreType<>() {}, new StoreType<>() {}, request, true));
     }

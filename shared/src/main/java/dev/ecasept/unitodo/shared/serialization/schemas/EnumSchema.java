@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
 
+/** The instructions for (de-)serializing enums */
 public record EnumSchema<T>(HashMap<T, Integer> enumToTag, boolean nullable) implements Schema<T> {
     private static final String TAG = "EnumSchema";
     @Override

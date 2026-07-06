@@ -11,6 +11,7 @@ import java.lang.reflect.Array;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
+/** Includes the instructions for how to (de-)serialize arrays */
 public record ArraySchema<T>(TypeContainer<T> type, Schema<?> componentSchema) implements Schema<T> {
 
     private static final String TAG = "ArraySchema";

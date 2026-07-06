@@ -5,6 +5,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.nio.ByteBuffer;
 
+/** The instructions for (de-)serializing the void type */
 public class VoidSchema implements Schema<Void> {
     private static final String TAG = "VoidSchema";
     @Override

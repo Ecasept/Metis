@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
+/** The instructions for (de-)serializing a primitive type */
 public record PrimitiveSchema<T>(Class<T> clazz) implements Schema<T> {
     private static final String TAG = "PrimitiveSerializer";
 

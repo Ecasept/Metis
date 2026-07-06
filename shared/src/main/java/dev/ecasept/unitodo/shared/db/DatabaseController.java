@@ -8,6 +8,7 @@ import java.sql.DriverManager;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+/** Controller for the database that manages the connection and provides methods for executing SQL statements. */
 public class DatabaseController implements AutoCloseable {
     private final Connection connection;
     private static final String TAG = "DatabaseController";
@@ -30,6 +31,7 @@ public class DatabaseController implements AutoCloseable {
         }
     }
 
+    /** Prepares a given SQL statement */
     public PreparedStatement prepareStatement(String sql) throws DatabaseException {
         try {
             Log.i(TAG, "Preparing SQL statement: " + sql);
@@ -39,6 +41,9 @@ public class DatabaseController implements AutoCloseable {
         }
     }
 
+    /** Changes the auto commit configuration of the database connection.
+     * See {@link Connection#setAutoCommit(boolean)} for more information.
+     */
     public void setAutoCommit(boolean autoCommit) throws DatabaseException {
         try {
             connection.setAutoCommit(autoCommit);
@@ -46,6 +51,8 @@ public class DatabaseController implements AutoCloseable {
             throw new DatabaseException("Failed to set auto-commit to " + autoCommit, e);
         }
     }
+
+    /** Commits the curren transaction */
     public void commitTransaction() throws DatabaseException {
         try {
             connection.commit();
@@ -53,6 +60,8 @@ public class DatabaseController implements AutoCloseable {
             throw new DatabaseException("Failed to commit transaction", e);
         }
     }
+
+    /** Rolls back the current transaction */
     public void rollbackTransaction() throws DatabaseException {
         try {
             connection.rollback();
@@ -61,6 +70,7 @@ public class DatabaseController implements AutoCloseable {
         }
     }
 
+    /** Closes the database connection */
     @Override
     public void close() throws DatabaseException {
         try {

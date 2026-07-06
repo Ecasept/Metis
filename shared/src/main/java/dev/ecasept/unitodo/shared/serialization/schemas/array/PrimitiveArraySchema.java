@@ -10,6 +10,7 @@ import dev.ecasept.unitodo.shared.utils.Log;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
+/** Includes the instructions for how to (de-)serialize primitive arrays */
 public record PrimitiveArraySchema<T>(TypeContainer<T> type) implements Schema<T> {
 
     private static final String TAG = "PrimitiveArraySchema";

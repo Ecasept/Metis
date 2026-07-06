@@ -8,7 +8,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
 /**
- * Provides helper methods for other Serializers
+ * Provides helper methods for schemas
  */
 public final class SerializationUtils {
     /** Serializes a value at the current position that indicates the length of some other data */
@@ -28,6 +28,13 @@ public final class SerializationUtils {
         }
     }
 
+    /** Instantiates a new object of the specified class using its no-arg constructor.
+     * @param clazz The class to instantiate
+     * @param <T> The type of the class
+     * @return A new instance of the specified class
+     * @throws IllegalArgumentException If the class cannot be instantiated
+     * @throws IllegalStateException If the class has no no-arg constructor
+     */
     public static <T> T instantiateSerializableObject(Class<T> clazz) {
         T o;
         try {

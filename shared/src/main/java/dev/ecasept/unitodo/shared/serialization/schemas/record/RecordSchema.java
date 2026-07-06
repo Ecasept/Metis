@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 
+/** Includes the instructions for how to (de-)serialize records */
 public record RecordSchema<T>(NullableTypeContainer<T> nullable, ArrayList<RecordComponentSchema<?>> componentSchemas, Constructor<T> canonicalCtor) implements Schema<T> {
     private static final String TAG = "RecordSerializer";
 

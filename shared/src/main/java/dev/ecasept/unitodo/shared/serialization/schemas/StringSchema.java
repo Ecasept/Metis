@@ -8,6 +8,7 @@ import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 
+/** The instructions for (de-)serializing a string */
 public record StringSchema(boolean nullable) implements Schema<String> {
     private static final String TAG = "StringSchema";
     @Override

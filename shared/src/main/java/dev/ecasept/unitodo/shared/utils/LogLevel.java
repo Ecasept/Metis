@@ -1,5 +1,8 @@
 package dev.ecasept.unitodo.shared.utils;
 
+/**
+ * Represents the severity level of a log message.
+ */
 public enum LogLevel {
     DEBUG,
     INFO,
