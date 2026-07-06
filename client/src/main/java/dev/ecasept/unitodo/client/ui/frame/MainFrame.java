@@ -40,13 +40,18 @@ public class MainFrame extends JFrame {
 
     private final DataManager dataManger;
 
-    // Aktuelle Ansicht (Pending oder Finished)
+    // Aktuelle Ansicht in der Overview (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
     private static final int LAST_WAS_PENDING = 2;
     private static final int LAST_WAS_ALL = 3;
     private static final int LAST_WAS_SEARCHED = 4;
     private static String lastSearchString;
-    private int last;
+    // Aktuelle Ansicht (Overview oder Einzelansicht eines Tasks)
+    private static final int LAST_WAS_OVERVIEW = 0;
+    private static final int LAST_WAS_SINGLE_TASK = -1;
+    private int last_table;
+    private int last_view;
+
 
     // Anmeldestatus + Buttons zur Accountverwaltung
     private boolean loggedIn = false;
@@ -72,15 +77,17 @@ public class MainFrame extends JFrame {
     // SyncResponse, um setOverview nach sync aufzurufen
     SyncResponse syncResponse = new SyncResponse() {
         @Override
-        public void syncFinished() {
-            if (last == LAST_WAS_ALL) {
-                showAll();
-            } else if (last == LAST_WAS_FINISHED){
-                showFinished();
-            } else if (last == LAST_WAS_PENDING){
-                showPending();
-            } else {
-                showSearched(lastSearchString);
+        public void refreshUI() {
+            if (last_view == LAST_WAS_OVERVIEW) {
+                if (last_table == LAST_WAS_ALL) {
+                    showAll();
+                } else if (last_table == LAST_WAS_FINISHED) {
+                    showFinished();
+                } else if (last_table == LAST_WAS_PENDING) {
+                    showPending();
+                } else {
+                    showSearched(lastSearchString);
+                }
             }
         }
     };
@@ -125,7 +132,7 @@ public class MainFrame extends JFrame {
                         UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
                     } else {
                         SwingUtilities.invokeLater(() -> {
-                            syncResponse.syncFinished();
+                            syncResponse.refreshUI();
                         });
                     }
                 });
@@ -170,6 +177,7 @@ public class MainFrame extends JFrame {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+                setOverview();
             } else if (e.getActionCommand().equals("Account löschen")) {
                 DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManger);
                 try {
@@ -178,6 +186,7 @@ public class MainFrame extends JFrame {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
+                setOverview();
             }
         }
     };
@@ -197,7 +206,7 @@ public class MainFrame extends JFrame {
         }
 
 
-        last = LAST_WAS_ALL;
+        last_table = LAST_WAS_ALL;
 
         // Frame vorbereiten
         this.setTitle("To-Do Liste");
@@ -216,6 +225,7 @@ public class MainFrame extends JFrame {
      * and always when the user returns from one of the views to add, edit or show a task.
      */
     public void setOverview() {
+        last_view = LAST_WAS_OVERVIEW;
         this.getContentPane().removeAll();
 
         // Menüleiste hinzufügen
@@ -280,13 +290,13 @@ public class MainFrame extends JFrame {
         };
 
 
-        if (last == LAST_WAS_PENDING) {
+        if (last_table == LAST_WAS_PENDING) {
             currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
-        } else if (last == LAST_WAS_FINISHED) {
+        } else if (last_table == LAST_WAS_FINISHED) {
             currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
-        } else if (last == LAST_WAS_ALL){
+        } else if (last_table == LAST_WAS_ALL){
             currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
-        } else if (last == LAST_WAS_SEARCHED){
+        } else if (last_table == LAST_WAS_SEARCHED){
             currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManger, lastSearchString);
         }
 
@@ -306,21 +316,23 @@ public class MainFrame extends JFrame {
 
         // Panel rechts im Bild
         mainPanelRight = new JPanel();
-        mainPanelRight.setLayout(new BoxLayout(mainPanelRight, BoxLayout.Y_AXIS));
+        mainPanelRight.setLayout(new BorderLayout());
         JPanel upperPanel = new JPanel();
         upperPanel.setLayout(new BorderLayout());
-        if (last == LAST_WAS_PENDING) {
+        if (last_table == LAST_WAS_PENDING) {
             mainPanelRightLabel = new JLabel("Ausstehende Aufgaben");
-        } else if (last == LAST_WAS_FINISHED) {
+        } else if (last_table == LAST_WAS_FINISHED) {
             mainPanelRightLabel = new JLabel("Erledigte Aufgaben");
         } else {
             mainPanelRightLabel = new JLabel("Alle Aufgaben");
         }
         mainPanelRightLabel.setFont(new Font("Arial", Font.BOLD, 15));
         mainPanelRightLabel.setHorizontalAlignment(SwingConstants.CENTER);
+
         upperPanel.add(mainPanelRightLabel, BorderLayout.CENTER);
-        mainPanelRight.add(upperPanel);
-        mainPanelRight.add(scrollPaneTasks);
+
+        mainPanelRight.add(upperPanel, BorderLayout.NORTH);
+        mainPanelRight.add(scrollPaneTasks, BorderLayout.CENTER);
 
 
         // Panels zu Frame hinzufügen und Frame sichtbar machen
@@ -335,7 +347,7 @@ public class MainFrame extends JFrame {
      * Sets the JTable displaying the users tasks to show all tasks regardless of their state.
      */
     public void showAll() {
-        last = LAST_WAS_ALL;
+        last_table = LAST_WAS_ALL;
 
         if (taskTable.isEditing()) {
             taskTable.getCellEditor().stopCellEditing();
@@ -351,7 +363,7 @@ public class MainFrame extends JFrame {
      * based on what the user searched for in the search bar.
      */
     public void showSearched(String searchString) {
-        last = LAST_WAS_SEARCHED;
+        last_table = LAST_WAS_SEARCHED;
         lastSearchString = searchString;
 
         if (taskTable.isEditing()) {
@@ -369,7 +381,7 @@ public class MainFrame extends JFrame {
      */
     public void showPending() {
         // Variable für letzte Seite auf Pending stellen
-        last = LAST_WAS_PENDING;
+        last_table = LAST_WAS_PENDING;
 
         if (taskTable.isEditing()) {
             taskTable.getCellEditor().stopCellEditing(); // oder .cancelCellEditing();
@@ -390,7 +402,7 @@ public class MainFrame extends JFrame {
      */
     public void showFinished() {
         // Variable für letzte Seite auf Finished stellen
-        last = LAST_WAS_FINISHED;
+        last_table = LAST_WAS_FINISHED;
 
         if (taskTable.isEditing()) {
             taskTable.getCellEditor().stopCellEditing(); // oder .cancelCellEditing();
@@ -407,6 +419,7 @@ public class MainFrame extends JFrame {
      * Shows the view where the user can add a new task.
      */
     public void showAddTask() {
+        last_view = LAST_WAS_SINGLE_TASK;
         this.getContentPane().removeAll();
 
 
@@ -566,7 +579,7 @@ public class MainFrame extends JFrame {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
                             } else {
                                 SwingUtilities.invokeLater(() -> {
-                                    syncResponse.syncFinished();
+                                    syncResponse.refreshUI();
                                 });
                             }
                         });
@@ -605,6 +618,7 @@ public class MainFrame extends JFrame {
      * @param uuid the unique uuid of the task the user wants to edit.
      */
     public void showChangeTask(UUID uuid) {
+        last_view = LAST_WAS_SINGLE_TASK;
         this.getContentPane().removeAll();
 
         // Taskobjekt aus DB auslesen
@@ -827,7 +841,7 @@ public class MainFrame extends JFrame {
                                 UIErrorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
                             } else {
                                 SwingUtilities.invokeLater(() -> {
-                                    syncResponse.syncFinished();
+                                    syncResponse.refreshUI();
                                 });
                             }
                         });
@@ -865,6 +879,7 @@ public class MainFrame extends JFrame {
      * @param uuid the unique uuid of the task the user wants to display.
      */
     public void showOnlyTask(UUID uuid) {
+        last_view = LAST_WAS_SINGLE_TASK;
         this.getContentPane().removeAll();
 
         // Taskobjekt aus DB auslesen
@@ -1044,11 +1059,11 @@ public class MainFrame extends JFrame {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden");
                             } else {
                                 SwingUtilities.invokeLater(() -> {
-                                    syncResponse.syncFinished();
+                                    syncResponse.refreshUI();
                                 });
                             }
                         });
-                    syncResponse.syncFinished();
+                    syncResponse.refreshUI();
                 } else {
                     return;
                 }
@@ -1058,11 +1073,11 @@ public class MainFrame extends JFrame {
                 return;
             }
 
-            if (last == LAST_WAS_ALL) {
+            if (last_table == LAST_WAS_ALL) {
                 showAll();
-            } else if (last == LAST_WAS_PENDING) {
+            } else if (last_table == LAST_WAS_PENDING) {
                 showPending();
-            } else if (last == LAST_WAS_FINISHED){
+            } else if (last_table == LAST_WAS_FINISHED){
                 showFinished();
             } else {
                 showSearched(lastSearchString);
@@ -1089,11 +1104,11 @@ public class MainFrame extends JFrame {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
                             } else {
                                 SwingUtilities.invokeLater(() -> {
-                                    syncResponse.syncFinished();
+                                    syncResponse.refreshUI();
                                 });
                             }
                         });
-                   syncResponse.syncFinished();
+                   syncResponse.refreshUI();
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -1107,11 +1122,11 @@ public class MainFrame extends JFrame {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden");
                             } else {
                                 SwingUtilities.invokeLater(() -> {
-                                    syncResponse.syncFinished();
+                                    syncResponse.refreshUI();
                                 });
                             }
                         });
-                    syncResponse.syncFinished();
+                    syncResponse.refreshUI();
                 } catch (DatabaseException ex) {
                     Log.e("Main", "error", ex);
                     JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
