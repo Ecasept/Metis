@@ -95,6 +95,14 @@ public class LoginDialog extends JDialog {
                 return;
             }
 
+            // Abfrage ob lokale Daten verworfen werden sollen oder mit dem Server zusammengeführt werden sollen
+            int discardLocalChangesOption = JOptionPane.showConfirmDialog(null, "Möchten sie die lokalen Daten und die des Servers zusammenführen?\n(Andernfalls wird der lokale Datenstand verworfen und der des Servers hergestellt)", "Synchronisation", JOptionPane.YES_NO_OPTION);
+            boolean discardLocalChanges;
+            if (discardLocalChangesOption == JOptionPane.YES_OPTION) {
+                discardLocalChanges = false;
+            } else {
+                discardLocalChanges = true;
+            }
             dataManager.login(username, password)
                 .whenComplete((r, t) -> {
                     password.shred();
