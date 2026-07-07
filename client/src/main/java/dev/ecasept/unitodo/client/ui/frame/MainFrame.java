@@ -38,7 +38,7 @@ import java.util.UUID;
 public class MainFrame extends JFrame {
     private static final String TAG = "MainFrame";
 
-    private final DataManager dataManger;
+    private final DataManager dataManager;
 
     // Aktuelle Ansicht in der Overview (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
@@ -128,7 +128,7 @@ public class MainFrame extends JFrame {
                 return;
             } else {
                 try {
-                    dataManger.synchronize().whenComplete((changed, t) -> {
+                    dataManager.synchronize().whenComplete((changed, t) -> {
                         if (t != null) {
                             UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
                         } else if (changed) {
@@ -146,9 +146,9 @@ public class MainFrame extends JFrame {
         public void actionPerformed(ActionEvent e) {
            if (logInOutMenuItem.getActionCommand().equals("Anmelden")) {
 
-               LoginDialog loginFrame = new LoginDialog(null, true, dataManger);
+               LoginDialog loginFrame = new LoginDialog(null, true, dataManager);
                try {
-                   loggedIn = dataManger.isLoggedIn();
+                   loggedIn = dataManager.isLoggedIn();
                } catch (DatabaseException ex) {
                    JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                    return;
@@ -157,8 +157,8 @@ public class MainFrame extends JFrame {
 
            } else if (logInOutMenuItem.getActionCommand().equals("Abmelden")) {
                try {
-                   dataManger.logout();
-                   loggedIn = dataManger.isLoggedIn();
+                   dataManager.logout();
+                   loggedIn = dataManager.isLoggedIn();
                } catch (DatabaseException ex) {
                    JOptionPane.showMessageDialog(null, "Abmelden nicht möglich. Bitte versuchen sie es erneut.", "Abmelden nicht möglich", JOptionPane.ERROR_MESSAGE);
                    return;
@@ -172,18 +172,18 @@ public class MainFrame extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand().equals("Registrieren")) {
-                RegisterDialog registerDialog = new RegisterDialog(null, true, dataManger);
+                RegisterDialog registerDialog = new RegisterDialog(null, true, dataManager);
                 try {
-                    loggedIn = dataManger.isLoggedIn();
+                    loggedIn = dataManager.isLoggedIn();
                 } catch (DatabaseException ex) {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     return;
                 }
                 setOverview();
             } else if (e.getActionCommand().equals("Account löschen")) {
-                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManger);
+                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManager);
                 try {
-                    loggedIn = dataManger.isLoggedIn();
+                    loggedIn = dataManager.isLoggedIn();
                 } catch (DatabaseException ex) {
                     JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
                     return;
@@ -196,12 +196,12 @@ public class MainFrame extends JFrame {
 
     /**
      * Creates a new MainFrame-Object
-     * @param dataManger the DataManager-Object that manages the login status and the users tasks.
+     * @param dataManager the DataManager-Object that manages the login status and the users tasks.
      */
-    public MainFrame(DataManager dataManger) {
-        this.dataManger = dataManger;
+    public MainFrame(DataManager dataManager) {
+        this.dataManager = dataManager;
         try {
-            loggedIn = dataManger.isLoggedIn();
+            loggedIn = dataManager.isLoggedIn();
         } catch (DatabaseException e) {
             JOptionPane.showMessageDialog(this, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
             return;
@@ -293,13 +293,13 @@ public class MainFrame extends JFrame {
 
 
         if (last_table == LAST_WAS_PENDING) {
-            currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManager);
         } else if (last_table == LAST_WAS_FINISHED) {
-            currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManager);
         } else if (last_table == LAST_WAS_ALL){
-            currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManager);
         } else if (last_table == LAST_WAS_SEARCHED){
-            currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManger, lastSearchString);
+            currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManager, lastSearchString);
         }
 
         // JTable erstellen und in ScrollPane einbetten
@@ -356,7 +356,7 @@ public class MainFrame extends JFrame {
         }
 
         tableModel.setRowCount(0);
-        currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManger);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelAll(tableModel, dataManager);
         mainPanelRightLabel.setText("Alle Aufgaben");
     }
 
@@ -373,7 +373,7 @@ public class MainFrame extends JFrame {
         }
 
         tableModel.setRowCount(0);
-        currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManger, searchString);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelSearched(tableModel, dataManager, searchString);
         mainPanelRightLabel.setText("Suchergebnisse: " + searchString);
     }
 
@@ -393,7 +393,7 @@ public class MainFrame extends JFrame {
 
 
 
-        currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManger);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelPending(tableModel, dataManager);
 
         mainPanelRightLabel.setText("Ausstehende Aufgaben");
     }
@@ -413,7 +413,7 @@ public class MainFrame extends JFrame {
         tableModel.setRowCount(0);
 
 
-        currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManger);
+        currentlyShownTasks = FrameUtils.fillListAndTableModelFinished(tableModel, dataManager);
         mainPanelRightLabel.setText("Erledigte Aufgaben");
     }
 
@@ -575,7 +575,7 @@ public class MainFrame extends JFrame {
                         default -> TaskPriority.Low;
                     };
 
-                    dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), priority, dueDate, Optional.ofNullable(dueTime)))
+                    dataManager.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), priority, dueDate, Optional.ofNullable(dueTime)))
                         .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
@@ -624,7 +624,7 @@ public class MainFrame extends JFrame {
         // Taskobjekt aus DB auslesen
         ClientTask task;
         try {
-            task = this.dataManger.getTask(uuid.toString()).get();
+            task = this.dataManager.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -835,7 +835,7 @@ public class MainFrame extends JFrame {
 
                 // Änderungen in db speichern
                 try {
-                    dataManger.upsertTask(t)
+                    dataManager.upsertTask(t)
                         .whenComplete((changed, ex) -> {
                             if (ex != null) {
                                 UIErrorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
@@ -883,7 +883,7 @@ public class MainFrame extends JFrame {
         // Taskobjekt aus DB auslesen
         ClientTask task;
         try {
-            task = this.dataManger.getTask(uuid.toString()).get();
+            task = this.dataManager.getTask(uuid.toString()).get();
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return;
@@ -1051,7 +1051,7 @@ public class MainFrame extends JFrame {
             try {
                 int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
                 if (x == JOptionPane.YES_OPTION) {
-                    dataManger.deleteTask(deleteThis)
+                    dataManager.deleteTask(deleteThis)
                         .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden");
@@ -1094,7 +1094,7 @@ public class MainFrame extends JFrame {
 
            if (task.getState().isPending()) {
                try {
-                    dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
+                    dataManager.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
                          .whenComplete((changed, t) -> {
                              if (t != null) {
                                  UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
@@ -1110,7 +1110,7 @@ public class MainFrame extends JFrame {
                }
            } else if (task.getState().isFinished()) {
                 try {
-                    dataManger.upsertTask(task.withState(new TaskState.Pending()))
+                    dataManager.upsertTask(task.withState(new TaskState.Pending()))
                         .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden");
