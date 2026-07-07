@@ -127,13 +127,17 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
                 return;
             } else {
-                dataManger.synchronize().whenComplete((changed, t) -> {
-                    if (t != null) {
-                        UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
-                    } else if (changed) {
-                        SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
-                    }
-                });
+                try {
+                    dataManger.synchronize().whenComplete((changed, t) -> {
+                        if (t != null) {
+                            UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
+                        } else if (changed) {
+                            SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
+                        }
+                    });
+                } catch (DatabaseException ex) {
+                    JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte versuchen sie es erneut.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
+                }
             }
         }
     };
@@ -252,7 +256,7 @@ public class MainFrame extends JFrame {
         mainMenuBar.add(viewMenu);
 
         // Button, um zu aynchronisieren
-        JButton syncMenuItem = new JButton("Sync");
+        JButton syncMenuItem = new JButton("Full Sync");
         mainMenuBar.add(syncMenuItem);
 
         // Button, um neuen Task anzulegen
@@ -1098,6 +1102,7 @@ public class MainFrame extends JFrame {
                                  SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                              }
                          });
+                    syncResponse.refreshUI();
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);

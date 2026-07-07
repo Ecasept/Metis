@@ -1,5 +1,7 @@
 package dev.ecasept.unitodo.client.api.exception;
 
+import dev.ecasept.unitodo.shared.models.api.ErrorCode;
+
 public class ApiException extends Exception {
     public ApiException(String message) {
         super(message);
@@ -12,4 +14,11 @@ public class ApiException extends Exception {
     }
     public ApiException() {
         super();
-    }}
+    }
+
+    public ErrorCode getErrorCode() {
+        return ErrorCode.UNKNOWN;
+    }
+}
+
+

@@ -22,6 +22,7 @@ public class ApiResponseAdapter<T> implements Adapter<ApiResponse<T>> {
         //noinspection unchecked
         var dataType = (TypeContainer<T>) nullableType.type().getGenericArgument(0);
         var dataSchema = daddyCompiler.compileToSchema(NullableTypeContainer.of(dataType, false));
+        var errorCodeSchema = daddyCompiler.compileToSchema(NullableTypeContainer.of(ErrorCode.class, false));
         var stringSchema = daddyCompiler.compileToSchema(NullableTypeContainer.of(String.class, false));
         return new Schema<>() {
             @Override
@@ -31,9 +32,10 @@ public class ApiResponseAdapter<T> implements Adapter<ApiResponse<T>> {
                             buf.putByte((byte) 0x00);
                             dataSchema.serialize(data, buf);
                         },
-                        error -> {
+                        (msg, code) -> {
                             buf.putByte((byte) 0x01);
-                            stringSchema.serialize(error, buf);
+                            stringSchema.serialize(msg, buf);
+                            errorCodeSchema.serialize(code, buf);
                         }
                 );
             }
@@ -46,7 +48,8 @@ public class ApiResponseAdapter<T> implements Adapter<ApiResponse<T>> {
                     return ApiResponse.success(successData);
                 } else if (success == (byte) 0x01) {
                     String errorMessage = stringSchema.deserialize(data);
-                    return ApiResponse.error(errorMessage);
+                    ErrorCode errorCode = errorCodeSchema.deserialize(data);
+                    return ApiResponse.error(errorMessage, errorCode);
                 } else {
                     throw new SerializationException("Invalid ApiResponse tag: " + String.format("0x%02X", success));
                 }

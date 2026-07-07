@@ -20,6 +20,7 @@ import java.util.concurrent.*;
 
 public class DataManager {
     private static final String TAG = "DataManager";
+    private static final LocalDateTime LOWEST_SYNC_TIME = LocalDateTime.of(1970, 1, 1, 0, 0);
     private final ClientDatabaseRepository db;
     private final ApiClient apiClient;
     private final SyncService syncService;
@@ -61,16 +62,16 @@ public class DataManager {
                 apiClient.setSessionToken(sessionToken);
                 if (discardLocalChanges) {
                     db.deleteAllTasks();
+                    unsynced.clear();
                 }
-                 sync();
             } catch (ApiException | DatabaseException e) {
                 Log.e(TAG, "Login failed", e);
-                throw new RuntimeException(e);
+                throw new CompletionException(e);
             } catch (Throwable t) {
                 Log.e(TAG, "Unexpected error during login", t);
                 throw t;
             }
-        }, syncExecutor).thenCompose(v -> sync().thenApply(changed -> null));
+        }, syncExecutor).thenCompose(v -> sync(true).thenApply(changed -> null));
     }
     public CompletableFuture<Void> register(String username, Password password) {
         return CompletableFuture.runAsync(() -> {
@@ -80,12 +81,12 @@ public class DataManager {
                 apiClient.setSessionToken(sessionToken);
             } catch (ApiException | DatabaseException e) {
                 Log.e(TAG, "Registration failed", e);
-                throw new RuntimeException(e);
+                throw new CompletionException(e);
             } catch (Throwable t) {
                 Log.e(TAG, "Unexpected error during registration", t);
                 throw t;
             }
-        }, syncExecutor);
+        }, syncExecutor).thenCompose(v -> sync(true).thenApply(changed -> null));
     }
     public void logout() throws DatabaseException {
         try {
@@ -103,7 +104,7 @@ public class DataManager {
                 logout();
             } catch (ApiException | DatabaseException e) {
                 Log.e(TAG, "Account deletion failed", e);
-                throw new RuntimeException(e);
+                throw new CompletionException(e);
             } catch (Throwable t) {
                 Log.e(TAG, "Unexpected error during account deletion", t);
                 throw t;
@@ -111,13 +112,33 @@ public class DataManager {
         }, syncExecutor);
     }
 
-    public CompletableFuture<Boolean> synchronize() {
-        return sync();
+    /** Forcibly synchronizes the whole client state with the server */
+    public CompletableFuture<Boolean> synchronize() throws DatabaseException {
+        if (!isLoggedIn()) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return sync(true);
     }
 
     private CompletableFuture<Boolean> sync() {
+        return sync(false);
+    }
+
+    private CompletableFuture<Boolean> sync(boolean full) {
         Log.i(TAG, "Starting synchronization of " + unsynced.size() + " tasks");
         var syncStart = LocalDateTime.now();
+
+        if (full) {
+            try {
+                unsynced.clear();
+                var allTasks = db.getAllTasks();
+                for (var task : allTasks) {
+                    unsynced.put(task.uuid(), task);
+                }
+            } catch (DatabaseException e) {
+                return CompletableFuture.failedFuture(new CompletionException(e));
+            }
+        }
 
         var unsyncedSnapshot = Map.copyOf(unsynced);
         unsynced.clear();
@@ -129,7 +150,7 @@ public class DataManager {
 
          return CompletableFuture.supplyAsync(() -> {
             try {
-                var lastSyncTime = getLastSyncTime();
+                var lastSyncTime = full ? Optional.of(LOWEST_SYNC_TIME) : getLastSyncTime();
                 try {
                     boolean changed = syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, syncStart);
                     setLastSyncTime(syncStart);
@@ -147,7 +168,7 @@ public class DataManager {
             } catch (DatabaseException e) {
                 Log.e(TAG, "Failed to access database during synchronization", e);
                 restoreSync.run();
-                throw new RuntimeException(e);
+                throw new CompletionException(e);
             } catch (Throwable t) {
                 Log.e(TAG, "Unexpected error during synchronization", t);
                 restoreSync.run();
@@ -170,7 +191,11 @@ public class DataManager {
     public CompletableFuture<Boolean> upsertTask(ClientTask task) throws DatabaseException {
         db.upsertTask(task);
         unsynced.put(task.uuid(), task);
-        return sync();
+        if (isLoggedIn()) {
+            return sync();
+        } else {
+            return CompletableFuture.completedFuture(false);
+        }
     }
 
     /**

@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.client.ui;
 
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
+import dev.ecasept.unitodo.shared.utils.Log;
 
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
@@ -21,8 +22,8 @@ public class UIErrorHandler {
         String message;
 
         // Determine the specific error message
-        if (cause instanceof ApiException) {
-            message = "Netzwerk Fehler beim " + actionName + ". Bitte versuchen Sie es erneut.";
+        if (cause instanceof ApiException c) {
+            message = "Netzwerk Fehler beim " + actionName + ". Bitte versuchen Sie es erneut. Fehler: " + c.getErrorCode().getMessage();
         } else if (cause instanceof DatabaseException) {
             message = "Datenbankfehler beim " + actionName + ". Bitte versuchen Sie es erneut.";
         } else {

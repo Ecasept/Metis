@@ -86,9 +86,9 @@ public class ApiClient {
         try {
             return apiCall.get().on(
                     data -> data,
-                    error -> {
-                        Log.e(TAG, "API call failed: " + error);
-                        throw new ApiServerErrorException("API call failed: " + error);
+                    (msg, code) -> {
+                        Log.e(TAG, "API call failed: " + msg);
+                        throw new ApiServerErrorException("API call failed: " + msg, code);
                     }
             );
         } catch (SerializationException e) {

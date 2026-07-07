@@ -11,6 +11,7 @@ import java.util.HashMap;
 
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
 import dev.ecasept.unitodo.shared.models.api.ApiResponseAdapter;
+import dev.ecasept.unitodo.shared.models.api.ErrorCode;
 import dev.ecasept.unitodo.shared.serialization.Serializer;
 import dev.ecasept.unitodo.shared.serialization.adapters.Any;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
@@ -74,7 +75,7 @@ public class SimpleServer {
     }
 
     public void sendApiError(HttpExchange exchange, int responseCode, String errorMsg, Serializer serializer) {
-        var response = ApiResponse.error(errorMsg);
+        var response = ApiResponse.error(errorMsg, ErrorCode.UNKNOWN);
         byte[] rawResponseBody;
         try {
             rawResponseBody = serializer.serialize(response, new StoreType<>(){});

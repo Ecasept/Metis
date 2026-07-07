@@ -2,7 +2,7 @@ package dev.ecasept.unitodo.client.db;
 
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.C;
-import dev.ecasept.unitodo.shared.utils.ThrowingSupplier2;
+import dev.ecasept.unitodo.shared.utils.ThrowingBiSupplier;
 import dev.ecasept.unitodo.shared.db.querybuilder.batch.Batcher;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
@@ -286,7 +286,7 @@ public class ClientDatabaseRepository {
 
 
 
-    public <T> T transaction(ThrowingSupplier2<T, DatabaseException, SQLException> function) throws DatabaseException, SQLException {
+    public <T> T transaction(ThrowingBiSupplier<T, DatabaseException, SQLException> function) throws DatabaseException, SQLException {
         return db.transaction(function);
     }
 

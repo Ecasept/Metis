@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.server.security.SignedTokenService;
 import dev.ecasept.unitodo.server.serverlib.Response;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
+import dev.ecasept.unitodo.shared.models.api.ErrorCode;
 import dev.ecasept.unitodo.shared.models.api.SyncRequest;
 import dev.ecasept.unitodo.shared.models.api.SyncResponse;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
@@ -35,7 +36,7 @@ public class SyncService {
     public Response<ApiResponse<SyncResponse>> syncRequest(SyncRequest request, Headers headers) throws DatabaseException {
         var userIdOptional = Auth.verifyAuth(headers, tokenService, config.SECRET_KEY());
         if (userIdOptional.isEmpty()) {
-            return new Response<>(401, ApiResponse.error("Unauthorized: Invalid session token"));
+            return new Response<>(401, ApiResponse.error("Unauthorized: Invalid session token", ErrorCode.AUTH_TOKEN_INVALID));
         }
         var userId = userIdOptional.get();
 
