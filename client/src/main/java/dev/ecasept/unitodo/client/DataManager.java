@@ -53,16 +53,16 @@ public class DataManager {
         this.syncService = syncService;
     }
 
-    public CompletableFuture<Void> login(String username, Password password) {
+    public CompletableFuture<Void> login(String username, Password password, boolean discardLocalChanges) {
         return CompletableFuture.runAsync(() -> {
             try {
                 var sessionToken = apiClient.login(username, password);
                 db.setSessionToken(sessionToken);
                 apiClient.setSessionToken(sessionToken);
-                if (shouldDelet) {
-                    db.deletAllTasks
+                if (discardLocalChanges) {
+                    db.deleteAllTasks();
                 }
-                 sync()
+                 sync();
             } catch (ApiException | DatabaseException e) {
                 Log.e(TAG, "Login failed", e);
                 throw new RuntimeException(e);

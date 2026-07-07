@@ -103,7 +103,7 @@ public class LoginDialog extends JDialog {
             } else {
                 discardLocalChanges = true;
             }
-            dataManager.login(username, password)
+            dataManager.login(username, password, discardLocalChanges)
                 .whenComplete((r, t) -> {
                     password.shred();
 

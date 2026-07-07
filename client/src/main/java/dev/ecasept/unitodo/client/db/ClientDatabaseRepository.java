@@ -204,6 +204,19 @@ public class ClientDatabaseRepository {
         }
     }
 
+    /** Deletes all tasks from the db */
+    public boolean deleteAllTasks() throws DatabaseException {
+        try (var query = db
+                .delete()
+                .from("tasks")
+                .prepare()) {
+            int rows = query.execute();
+            return rows > 0;
+        } catch (SQLException | DatabaseException e) {
+            throw new DatabaseException("Failed to delete all tasks from database", e);
+        }
+    }
+
     /** Deletes all tasks that are marked as deleted and have not been modified since the given timestamp. */
     public boolean deleteTombstonesOlderThan(LocalDateTime before) throws DatabaseException {
         try (var query = db
