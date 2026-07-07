@@ -59,6 +59,10 @@ public class DataManager {
                 var sessionToken = apiClient.login(username, password);
                 db.setSessionToken(sessionToken);
                 apiClient.setSessionToken(sessionToken);
+                if (shouldDelet) {
+                    db.deletAllTasks
+                }
+                 sync()
             } catch (ApiException | DatabaseException e) {
                 Log.e(TAG, "Login failed", e);
                 throw new RuntimeException(e);

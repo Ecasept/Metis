@@ -104,9 +104,14 @@ public class ApiClient {
         var builder = method.apply(HttpRequest.newBuilder()
                 .uri(java.net.URI.create(baseUrl + endpoint)));
         var sessionToken = getSessionToken();
-        if (authorized && sessionToken.isPresent()) {
-            builder.header("Authorization", "Bearer " + sessionToken.get());
+        if (authorized) {
+            if (sessionToken.isEmpty()) {
+                throw new IllegalArgumentException("sessionToken must be present for authorized calls");
+            } else {
+                builder.header("Authorization", "Bearer " + sessionToken.get());
+            }
         }
+
         var request = builder.build();
         HttpResponse<byte[]> response;
         try {
