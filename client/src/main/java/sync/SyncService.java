@@ -28,12 +28,12 @@ public class SyncService {
 
 
     @SuppressWarnings("OptionalUsedAsFieldOrParameterType")
-    public void synchronize(ClientTask[] modifiedTasks, Optional<LocalDateTime> lastSyncTime, LocalDateTime syncStart) throws ApiException, DatabaseException {
+    public boolean synchronize(ClientTask[] modifiedTasks, Optional<LocalDateTime> lastSyncTime, LocalDateTime syncStart) throws ApiException, DatabaseException {
         var syncRequest = new SyncRequest(modifiedTasks, lastSyncTime);
         var res = apiClient.sync(syncRequest);
 
         try {
-            db.transaction(
+            var changed = db.transaction(
                     () -> {
                         var clientTaskList = db.getTasks(Arrays.stream(res.tasks()).map(ClientTask::uuid).toList());
                         var clientTasks = clientTaskList.stream().collect(Collectors.toUnmodifiableMap(ClientTask::uuid, Function.identity()));
@@ -42,15 +42,17 @@ public class SyncService {
                         var newTasks = synchronizer.synchronizeClient(clientTasks, serverTasks);
                         Log.i("Synchronizer", "Merged tasks: " + newTasks.size());
 
-                        db.upsertTasksWhithOldFields(newTasks);
+                        db.upsertTasksWithOlderFields(newTasks);
 
+                        boolean deletedAnything = false;
                         if (res.presentList().isPresent()) {
-                            db.deleteTasksNotPresentAndOlderThan(Arrays.asList(res.presentList().get()), syncStart);
+                            deletedAnything = db.deleteTasksNotPresentAndOlderThan(Arrays.asList(res.presentList().get()), syncStart);
                         }
 
-                        return null;
+                        return !newTasks.isEmpty() || deletedAnything;
                     }
             );
+            return changed;
         } catch (SQLException e) {
             throw new DatabaseException("Failed to synchronize tasks", e);
         }

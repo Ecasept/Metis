@@ -4,14 +4,12 @@ import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
-import dev.ecasept.unitodo.shared.db.querybuilder.conditions.AndCondition;
-import dev.ecasept.unitodo.shared.db.querybuilder.conditions.Condition;
-import dev.ecasept.unitodo.shared.db.querybuilder.conditions.ConditionCreator;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.TableContext;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.Condition;
 
 import java.sql.PreparedStatement;
-import java.util.Arrays;
 import java.util.List;
-import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
@@ -27,16 +25,15 @@ public class SelectQueryBuilder {
     }
     private Condition condition = null;
 
-    public SelectQueryBuilder filter(Consumer<ConditionCreator> conditionFn) {
-        var conditionCreator = new ConditionCreator();
-        conditionFn.accept(conditionCreator);
-        if (conditionCreator.getCondition() == null) {
+    public SelectQueryBuilder filter(Function<TableContext, Condition> conditionFn) {
+        var condition = conditionFn.apply(new TableContext(table));
+        if (condition == null) {
             throw new IllegalArgumentException("Condition can't be null");
         }
         if (this.condition == null) {
-            this.condition = conditionCreator.getCondition();
+            this.condition = condition;
         } else {
-             this.condition = new AndCondition(this.condition, conditionCreator.getCondition());
+             this.condition = this.condition.and(condition);
         }
          return this;
     }

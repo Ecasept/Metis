@@ -8,7 +8,7 @@ package dev.ecasept.unitodo.shared.utils;
  * @param <E> Type of the exception that can be thrown
  */
 @FunctionalInterface
-public interface ThrowableFunction<T, R, E extends Throwable> {
+public interface ThrowingFunction<T, R, E extends Throwable> {
     /** Process the input parameter and return a value, or throw an exception
      * @param t Input parameter
      * @return Return value

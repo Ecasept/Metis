@@ -52,7 +52,7 @@ public class DatabaseController implements AutoCloseable {
         }
     }
 
-    /** Commits the curren transaction */
+    /** Commits the current transaction */
     public void commitTransaction() throws DatabaseException {
         try {
             connection.commit();

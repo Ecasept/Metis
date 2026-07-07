@@ -5,6 +5,7 @@ import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.delete.DeleteQueryConfigurator;
 import dev.ecasept.unitodo.shared.db.querybuilder.insert.InsertQueryConfigurator;
 import dev.ecasept.unitodo.shared.db.querybuilder.select.SelectQueryConfigurator;
+import dev.ecasept.unitodo.shared.utils.ThrowingSupplier2;
 
 import java.sql.SQLException;
 
@@ -27,12 +28,12 @@ public class QueryBuilder {
         return new DeleteQueryConfigurator(controller);
     }
 
-    public <T> T transaction(TransactionFunction<T> fn) throws DatabaseException, SQLException {
+    public <T> T transaction(ThrowingSupplier2<T, DatabaseException, SQLException> fn) throws DatabaseException, SQLException {
         controller.setAutoCommit(false);
 
         Throwable rootException = null;
         try {
-            var res = fn.run();
+            var res = fn.get();
             controller.commitTransaction();
             return res;
         } catch (Throwable e) {

@@ -1,7 +1,8 @@
 package dev.ecasept.unitodo.server.db;
 
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.querybuilder.TransactionFunction;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.C;
+import dev.ecasept.unitodo.shared.utils.ThrowingSupplier2;
 import dev.ecasept.unitodo.shared.db.querybuilder.batch.Batcher;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
@@ -27,8 +28,8 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it ->
-                        it.eq("uuid", uuid).eq("userId", userId)
+                .filter(t ->
+                        C.eq("uuid", uuid).eq("userId", userId)
                 )
                 .prepare()) {
             return query.executeSingle(ServerTask::fromResultSet);
@@ -41,8 +42,8 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it ->
-                        it.eqAny("uuid", uuids).eq("userId", userId)
+                .filter(t ->
+                        C.eqAny("uuid", uuids).eq("userId", userId)
                 )
                 .prepare()) {
             return query.executeMulti(ServerTask::fromResultSet);
@@ -55,7 +56,7 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it.eq("userId", userId))
+                .filter(t -> C.eq("userId", userId))
                 .prepare()) {
             return query.executeMulti(ServerTask::fromResultSet).toArray(new ServerTask[0]);
         } catch (SQLException | DatabaseException e) {
@@ -67,7 +68,7 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it.eq("state", state.toInt()))
+                .filter(t -> C.eq("state", state.toInt()))
                 .orderBy(order)
                 .prepare()) {
             return query.executeMulti(ServerTask::fromResultSet);
@@ -103,7 +104,7 @@ public class ServerDatabaseRepository {
                 .v("userId", batcher.placeholder())
                 .into("tasks")
                 .onConflict("uuid")
-                .doUpdate(it -> it.copy(
+                .doUpdate((cr, t) -> cr.copy(
                         "title", "description", "state", "priority", "dueDate", "dueTime", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "dueTimeChanged", "completedAt", "isDeleted", "deletedChanged", "userId"
                 ));
 
@@ -150,12 +151,13 @@ public class ServerDatabaseRepository {
             throw new DatabaseException("Failed to create user in database", e);
         }
     }
-    public void  deleteUser(UUID userId) throws DatabaseException {
+    public boolean deleteUser(UUID userId) throws DatabaseException {
         try (var query = db.delete()
                 .from("users")
-                .filter(it -> it.eq("uuid", userId))
+                .filter(t -> C.eq("uuid", userId))
                 .prepare()) {
-            query.execute();
+            int rows = query.execute();
+            return rows > 0;
         } catch (SQLException | DatabaseException e) {
             throw new DatabaseException("Failed to delete user from database", e);
         }
@@ -164,7 +166,7 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("users")
-                .filter(it -> it.eq("uuid", userId))
+                .filter(t -> C.eq("uuid", userId))
                 .prepare()) {
             return query.executeSingle(User::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -175,7 +177,7 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select()
                 .from("users")
-                .filter(it -> it.eq("username", username))
+                .filter(t -> C.eq("username", username))
                 .prepare()) {
             return query.executeSingle(User::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -183,7 +185,7 @@ public class ServerDatabaseRepository {
         }
     }
 
-    public <T> T transaction(TransactionFunction<T> function) throws DatabaseException, SQLException {
+    public <T> T transaction(ThrowingSupplier2<T, DatabaseException, SQLException> function) throws DatabaseException, SQLException {
         return db.transaction(function);
     }
 
@@ -193,7 +195,7 @@ public class ServerDatabaseRepository {
         try (var query = db
                 .select("uuid")
                 .from("tasks")
-                .filter(it -> it.eq("userId", userId))
+                .filter(t -> C.eq("userId", userId))
                 .prepare()
         ) {
             return query.executeMulti(rs -> UUID.fromString(rs.getString("uuid")));
@@ -205,21 +207,23 @@ public class ServerDatabaseRepository {
     public ServerTask[] getTasksModifiedSince(LocalDateTime lastSyncTime, UUID userId) throws DatabaseException {
         long lastSync = DateFormat.toLong(lastSyncTime);
         try (var query = db
-                .select()
-                .from("tasks")
-                .filter(it -> it
-                        .eq("userId", userId)
-                        .defaultOr(c -> c
-                                .ge("titleChanged", lastSync)
-                                .ge("descriptionChanged", lastSync)
-                                .ge("stateChanged", lastSync)
-                                .ge("priorityChanged", lastSync)
-                                .ge("dueDateChanged", lastSync)
-                                .ge("dueTimeChanged", lastSync)
-                                .ge("deletedChanged", lastSync)
-                        )
+            .select()
+            .from("tasks")
+            .filter(cols ->
+                C.and(
+                    C.eq(cols.col("userId"), userId),
+                    C.or(
+                        C.ge("titleChanged", lastSync),
+                        C.ge("descriptionChanged", lastSync),
+                        C.ge("stateChanged", lastSync),
+                        C.ge("priorityChanged", lastSync),
+                        C.ge("dueDateChanged", lastSync),
+                        C.ge("dueTimeChanged", lastSync),
+                        C.ge("deletedChanged", lastSync)
+                    )
                 )
-                .prepare()) {
+            )
+            .prepare()) {
             return query.executeMulti(ServerTask::fromResultSet).toArray(new ServerTask[0]);
         } catch (SQLException | DatabaseException e) {
             throw new DatabaseException("Failed to get modified tasks from database", e);

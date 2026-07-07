@@ -1,6 +1,6 @@
 package dev.ecasept.unitodo.shared.models.api;
 
-import dev.ecasept.unitodo.shared.utils.ThrowableFunction;
+import dev.ecasept.unitodo.shared.utils.ThrowingFunction;
 
 import java.util.function.Consumer;
 
@@ -35,7 +35,7 @@ public class ApiResponse<T> {
      * @param <E> The type of exception that can be thrown by the executed function
      * @throws E If the executed function throws an exception
      */
-        public <R, E extends Throwable> R on(ThrowableFunction<T, R, E> onSuccess, ThrowableFunction<String, R, E> onError) throws E {
+        public <R, E extends Throwable> R on(ThrowingFunction<T, R, E> onSuccess, ThrowingFunction<String, R, E> onError) throws E {
             if (success) {
                 return onSuccess.apply(data);
             } else {

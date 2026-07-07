@@ -127,13 +127,11 @@ public class MainFrame extends JFrame {
                 JOptionPane.showMessageDialog(null, "Synchronisation nicht möglich. Bitte melden sie sich an.", "Synchronisation nicht möglich", JOptionPane.ERROR_MESSAGE);
                 return;
             } else {
-                dataManger.synchronize().whenComplete((r, t) -> {
+                dataManger.synchronize().whenComplete((changed, t) -> {
                     if (t != null) {
                         UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
-                    } else {
-                        SwingUtilities.invokeLater(() -> {
-                            syncResponse.refreshUI();
-                        });
+                    } else if (changed) {
+                        SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                     }
                 });
             }
@@ -574,13 +572,11 @@ public class MainFrame extends JFrame {
                     };
 
                     dataManger.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), priority, dueDate, Optional.ofNullable(dueTime)))
-                        .whenComplete((r, t) -> {
+                        .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
-                            } else {
-                                SwingUtilities.invokeLater(() -> {
-                                    syncResponse.refreshUI();
-                                });
+                            } else if (changed) {
+                                SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
                         });
                         setOverview();
@@ -836,13 +832,11 @@ public class MainFrame extends JFrame {
                 // Änderungen in db speichern
                 try {
                     dataManger.upsertTask(t)
-                        .whenComplete((r, ex) -> {
+                        .whenComplete((changed, ex) -> {
                             if (ex != null) {
                                 UIErrorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
-                            } else {
-                                SwingUtilities.invokeLater(() -> {
-                                    syncResponse.refreshUI();
-                                });
+                            } else if (changed) {
+                                SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
                         });
                     setOverview();
@@ -1054,13 +1048,11 @@ public class MainFrame extends JFrame {
                 int x = JOptionPane.showConfirmDialog(null, "Möchten sie die Aufgabe wirklich löschen?");
                 if (x == JOptionPane.YES_OPTION) {
                     dataManger.deleteTask(deleteThis)
-                        .whenComplete((r, t) -> {
+                        .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden");
-                            } else {
-                                SwingUtilities.invokeLater(() -> {
-                                    syncResponse.refreshUI();
-                                });
+                            } else if (changed) {
+                                SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
                         });
                     syncResponse.refreshUI();
@@ -1098,17 +1090,14 @@ public class MainFrame extends JFrame {
 
            if (task.getState().isPending()) {
                try {
-                   dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
-                        .whenComplete((r, t) -> {
-                            if (t != null) {
-                                UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
-                            } else {
-                                SwingUtilities.invokeLater(() -> {
-                                    syncResponse.refreshUI();
-                                });
-                            }
-                        });
-                   syncResponse.refreshUI();
+                    dataManger.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
+                         .whenComplete((changed, t) -> {
+                             if (t != null) {
+                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
+                             } else if (changed) {
+                                 SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
+                             }
+                         });
                } catch (DatabaseException ex) {
                    Log.e("Main", "error", ex);
                    JOptionPane.showMessageDialog(this, "Datenbankfehler! Der Status der Aufgabe konnte nicht geändert werden. Bitte versuchen sei es erneut.", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -1117,13 +1106,11 @@ public class MainFrame extends JFrame {
            } else if (task.getState().isFinished()) {
                 try {
                     dataManger.upsertTask(task.withState(new TaskState.Pending()))
-                        .whenComplete((r, t) -> {
+                        .whenComplete((changed, t) -> {
                             if (t != null) {
                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden");
-                            } else {
-                                SwingUtilities.invokeLater(() -> {
-                                    syncResponse.refreshUI();
-                                });
+                            } else if (changed) {
+                                SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
                         });
                     syncResponse.refreshUI();

@@ -1,4 +1,4 @@
-package dev.ecasept.unitodo.shared.db.querybuilder.conditions;
+package dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions;
 
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 

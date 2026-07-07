@@ -3,6 +3,7 @@ package dev.ecasept.unitodo.shared.db.querybuilder.insert;
 import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.TableContext;
 
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -26,7 +27,7 @@ public class InsertQueryBuilder {
     public ConflictResolverCreator onConflict(String... keys) {
         conflictResolver = new ConflictResolver(List.of(keys));
         return new ConflictResolverCreator(resolverInit -> {
-            resolverInit.accept(conflictResolver);
+            resolverInit.accept(conflictResolver, new TableContext(table));
             return this;
         });
     }
@@ -60,6 +61,9 @@ public class InsertQueryBuilder {
             int index = startIndex;
             for (Object value : values) {
                 BuilderUtils.bindParameter(statement, index++, value);
+            }
+            if (conflictResolver != null) {
+                index = conflictResolver.fillParameters(statement, index);
             }
             return index;
         } catch (SQLException e) {

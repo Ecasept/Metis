@@ -1,7 +1,8 @@
 package dev.ecasept.unitodo.client.db;
 
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.db.querybuilder.TransactionFunction;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.C;
+import dev.ecasept.unitodo.shared.utils.ThrowingSupplier2;
 import dev.ecasept.unitodo.shared.db.querybuilder.batch.Batcher;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
@@ -28,7 +29,7 @@ public class ClientDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it.eq("uuid", uuid))
+                .filter(t -> C.eq("uuid", uuid))
                 .prepare()) {
             return query.executeSingle(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -40,7 +41,7 @@ public class ClientDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it.eqAny("uuid", uuids))
+                .filter(t -> C.eqAny("uuid", uuids))
                 .prepare()) {
             return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -52,9 +53,9 @@ public class ClientDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it.eq("state", state.toInt()))
+                .filter(t -> C.eq("state", state.toInt()))
                 .orderBy(order)
-                .when(!includeDeleted, it -> it.filter(i -> i.eq("isDeleted", false)))
+                .when(!includeDeleted, it -> it.filter(t -> C.eq("isDeleted", false)))
                 .prepare()) {
             return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -88,7 +89,7 @@ public class ClientDatabaseRepository {
                 .v("deletedChanged", batcher.placeholder())
                 .into("tasks")
                 .onConflict("uuid")
-                .doUpdate(it -> it.copy(
+                .doUpdate((cr, t) -> cr.copy(
                         "title", "description", "state", "priority", "dueDate", "dueTime", "titleChanged", "descriptionChanged", "stateChanged", "priorityChanged", "dueDateChanged", "dueTimeChanged", "completedAt", "isDeleted", "deletedChanged"
                 ));
 
@@ -120,12 +121,74 @@ public class ClientDatabaseRepository {
         }
     }
 
+    /** Creates a new task or updates the fields of an existing task that were changed before the field of the provided task */
+    public void upsertTasksWithOlderFields(List<ClientTask> tasks) throws DatabaseException {
+        var batcher = new Batcher();
+        var queryBuilder = db
+                .insert()
+                .v("uuid", batcher.placeholder())
+                .v("title", batcher.placeholder())
+                .v("description", batcher.placeholder())
+                .v("state", batcher.placeholder())
+                .v("priority", batcher.placeholder())
+                .v("dueDate", batcher.placeholder())
+                .v("dueTime", batcher.placeholder())
+                .v("titleChanged", batcher.placeholder())
+                .v("descriptionChanged", batcher.placeholder())
+                .v("stateChanged", batcher.placeholder())
+                .v("priorityChanged", batcher.placeholder())
+                .v("dueDateChanged", batcher.placeholder())
+                .v("dueTimeChanged", batcher.placeholder())
+                .v("completedAt", batcher.placeholder())
+                .v("isDeleted", batcher.placeholder())
+                .v("deletedChanged", batcher.placeholder())
+                .into("tasks")
+                .onConflict("uuid")
+                .doUpdate((cr, t) ->
+                        cr.setIfNewer(t, "title", "titleChanged")
+                                .setIfNewer(t, "description", "descriptionChanged")
+                                .setIfNewer(t, "state", "stateChanged")
+                                .setIfNewer(t, "priority", "priorityChanged")
+                                .setIfNewer(t, "dueDate", "dueDateChanged")
+                                .setIfNewer(t, "dueTime", "dueTimeChanged")
+                                .setIfNewer(t, "completedAt", "stateChanged")
+                                .setIfNewer(t, "isDeleted", "deletedChanged")
+                );
+
+        try (var query = queryBuilder.prepare()) {
+            for (var task : tasks) {
+                batcher.fill(
+                        task.uuid(),
+                        task.getTitle(),
+                        task.getDescription(),
+                        task.getState().toInt(),
+                        task.getPriority().toInt(),
+                        DateFormat.toLong(task.getDueDate()),
+                        task.getDueTime().map(DateFormat::toLong).orElse(null),
+                        DateFormat.toLong(task.title().getLastUpdated()),
+                        DateFormat.toLong(task.description().getLastUpdated()),
+                        DateFormat.toLong(task.state().getLastUpdated()),
+                        DateFormat.toLong(task.priority().getLastUpdated()),
+                        DateFormat.toLong(task.dueDate().getLastUpdated()),
+                        DateFormat.toLong(task.dueTime().getLastUpdated()),
+                        task.getState().getCompletedAt().map(DateFormat::toLong).orElse(null),
+                        task.getDeleted(),
+                        DateFormat.toLong(task.isDeleted().getLastUpdated())
+                );
+                query.execute();
+            }
+        } catch (SQLException e) {
+            throw new DatabaseException("Failed to store new task", e);
+        }
+    }
+
     /** Deletes all tasks that are not present in the given list of UUIDs and have not been modified since the given timestamp. */
-    public void deleteTasksNotPresentAndOlderThan(List<UUID> uuids, LocalDateTime before) throws DatabaseException {
+    public boolean deleteTasksNotPresentAndOlderThan(List<UUID> uuids, LocalDateTime before) throws DatabaseException {
         try (var query = db
                 .delete()
                 .from("tasks")
-                .filter(it -> it.not( c -> c.eqAny("uuid", uuids))
+                .filter(t ->
+                        C.not(C.eqAny("uuid", uuids))
                         .lt("titleChanged", before)
                         .lt("descriptionChanged", before)
                         .lt("stateChanged", before)
@@ -133,24 +196,24 @@ public class ClientDatabaseRepository {
                         .lt("dueDateChanged", before)
                         .lt("dueTimeChanged", before)
                         .lt("deletedChanged", before)
-                )
-                .prepare()) {
-            query.execute();
+                ).prepare()) {
+            int rows = query.execute();
+            return rows > 0;
         } catch (SQLException | DatabaseException e) {
             throw new DatabaseException("Failed to delete tasks from database", e);
         }
     }
 
     /** Deletes all tasks that are marked as deleted and have not been modified since the given timestamp. */
-    public void deleteTombstonesOlderThan(LocalDateTime before) throws DatabaseException {
+    public boolean deleteTombstonesOlderThan(LocalDateTime before) throws DatabaseException {
         try (var query = db
                 .delete()
                 .from("tasks")
-                .filter(it -> it.eq("isDeleted", true)
+                .filter(t -> C.eq("isDeleted", true)
                         .lt("deletedChanged", before)
-                )
-                .prepare()) {
-            query.execute();
+                ).prepare()) {
+            int rows = query.execute();
+            return rows > 0;
         } catch (SQLException | DatabaseException e) {
             throw new DatabaseException("Failed to delete tombstones from database", e);
         }
@@ -172,17 +235,15 @@ public class ClientDatabaseRepository {
         try (var query = db
                 .select()
                 .from("tasks")
-                .filter(it -> it
-                        .defaultOr(c -> c
-                                .ge("titleChanged", lastSync)
-                                .ge("descriptionChanged", lastSync)
-                                .ge("stateChanged", lastSync)
-                                .ge("priorityChanged", lastSync)
-                                .ge("dueDateChanged", lastSync)
-                                .ge("dueTimeChanged", lastSync)
-                                .ge("deletedChanged", lastSync)
-                        )
-                )
+                .filter(t -> C.or(
+                        C.ge("titleChanged", lastSync),
+                        C.ge("descriptionChanged", lastSync),
+                        C.ge("stateChanged", lastSync),
+                        C.ge("priorityChanged", lastSync),
+                        C.ge("dueDateChanged", lastSync),
+                        C.ge("dueTimeChanged", lastSync),
+                        C.ge("deletedChanged", lastSync)
+                ))
                 .prepare()) {
             return query.executeMulti(ClientTask::fromResultSet);
         } catch (SQLException | DatabaseException e) {
@@ -194,12 +255,14 @@ public class ClientDatabaseRepository {
         try (var q = db
                 .select()
                 .from("tasks")
-                .filter(it -> it
-                        .eq("isDeleted", false)
-                        .or(
-                                c -> c.contains("title", query),
-                                c -> c.contains("description", query)
+                .filter(cols ->
+                    C.and(
+                        C.eq("isDeleted", false),
+                        C.or(
+                            C.contains("title", query),
+                            C.contains("description", query)
                         )
+                    )
                 )
                 .prepare()) {
             return q.executeMulti(ClientTask::fromResultSet);
@@ -210,7 +273,7 @@ public class ClientDatabaseRepository {
 
 
 
-    public <T> T transaction(TransactionFunction<T> function) throws DatabaseException, SQLException {
+    public <T> T transaction(ThrowingSupplier2<T, DatabaseException, SQLException> function) throws DatabaseException, SQLException {
         return db.transaction(function);
     }
 
@@ -221,7 +284,7 @@ public class ClientDatabaseRepository {
         try (var query = db
                 .select("value")
                 .from("variables")
-                .filter(it -> it.eq("key", key))
+                .filter(t -> C.eq("key", key))
                 .prepare()) {
             return query.executeSingle(it -> it.getString("value"));
         }
@@ -233,18 +296,19 @@ public class ClientDatabaseRepository {
                 .v("value", value)
                 .into("variables")
                 .onConflict("key")
-                .doUpdate(it -> it.copy("value"))
+                .doUpdate((cr, t) -> cr.copy("value"))
                 .prepare()) {
             query.execute();
         }
     }
-    private void deleteVariable(String key) throws DatabaseException, SQLException {
+    private boolean deleteVariable(String key) throws DatabaseException, SQLException {
         try (var query = db
                 .delete()
                 .from("variables")
-                .filter(it -> it.eq("key", key))
+                .filter(t -> C.eq("key", key))
                 .prepare()) {
-            query.execute();
+            int rows = query.execute();
+            return rows > 0;
         }
     }
 

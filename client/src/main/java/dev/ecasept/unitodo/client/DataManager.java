@@ -70,7 +70,7 @@ public class DataManager {
                 Log.e(TAG, "Unexpected error during login", t);
                 throw t;
             }
-        }, syncExecutor).thenCompose(v -> sync());
+        }, syncExecutor).thenCompose(v -> sync().thenApply(changed -> null));
     }
     public CompletableFuture<Void> register(String username, Password password) {
         return CompletableFuture.runAsync(() -> {
@@ -111,11 +111,11 @@ public class DataManager {
         }, syncExecutor);
     }
 
-    public CompletableFuture<Void> synchronize() {
+    public CompletableFuture<Boolean> synchronize() {
         return sync();
     }
 
-    private CompletableFuture<Void> sync() {
+    private CompletableFuture<Boolean> sync() {
         Log.i(TAG, "Starting synchronization of " + unsynced.size() + " tasks");
         var syncStart = LocalDateTime.now();
 
@@ -127,19 +127,22 @@ public class DataManager {
             unsyncedSnapshot.forEach(unsynced::putIfAbsent);
         };
 
-         return CompletableFuture.runAsync(() -> {
+         return CompletableFuture.supplyAsync(() -> {
             try {
                 var lastSyncTime = getLastSyncTime();
                 try {
-                    syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, syncStart);
+                    boolean changed = syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, syncStart);
                     setLastSyncTime(syncStart);
 
                     // Delete tombstones from the database after successful sync
-                    db.deleteTombstonesOlderThan(syncStart);
+                    boolean deleted = db.deleteTombstonesOlderThan(syncStart);
+
+                    return changed || deleted;
 
                 } catch (ApiException e) {
                     Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
                     restoreSync.run();
+                    return false;
                 }
             } catch (DatabaseException e) {
                 Log.e(TAG, "Failed to access database during synchronization", e);
@@ -164,7 +167,7 @@ public class DataManager {
      * @param task The task that should be created or updated
      * @throws DatabaseException If any database access fails
      */
-    public CompletableFuture<Void> upsertTask(ClientTask task) throws DatabaseException {
+    public CompletableFuture<Boolean> upsertTask(ClientTask task) throws DatabaseException {
         db.upsertTask(task);
         unsynced.put(task.uuid(), task);
         return sync();
@@ -176,7 +179,7 @@ public class DataManager {
      * @param task The task that should be deleted
      * @throws DatabaseException If any database access fails
      */
-    public CompletableFuture<Void> deleteTask(ClientTask task) throws DatabaseException {
+    public CompletableFuture<Boolean> deleteTask(ClientTask task) throws DatabaseException {
         return upsertTask(task.withDeleted(true));
     }
 
@@ -205,7 +208,7 @@ public class DataManager {
         apiClient.setSessionToken(sessionToken.orElse(null));
         if (sessionToken.isPresent()) {
             // Sync with server to get any changes that might have happened while the client was offline
-            return sync();
+            return sync().thenApply(changed -> null);
         }
         return CompletableFuture.completedFuture(null);
     }

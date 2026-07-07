@@ -3,11 +3,11 @@ package dev.ecasept.unitodo.shared.db.querybuilder.delete;
 import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
-import dev.ecasept.unitodo.shared.db.querybuilder.conditions.Condition;
-import dev.ecasept.unitodo.shared.db.querybuilder.conditions.ConditionCreator;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.TableContext;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.Condition;
 
 import java.sql.PreparedStatement;
-import java.util.function.Consumer;
+import java.util.function.Function;
 
 public class DeleteQueryBuilder {
     private final DatabaseController controller;
@@ -18,13 +18,16 @@ public class DeleteQueryBuilder {
     }
     private Condition condition = null;
 
-    public DeleteQueryBuilder filter(Consumer<ConditionCreator> conditionFn) {
-        var conditionCreator = new ConditionCreator();
-        conditionFn.accept(conditionCreator);
-        if (conditionCreator.getCondition() == null) {
+    public DeleteQueryBuilder filter(Function<TableContext, Condition> conditionFn) {
+        var condition = conditionFn.apply(new TableContext(table));
+        if (condition == null) {
             throw new IllegalArgumentException("Condition can't be null");
         }
-        this.condition = conditionCreator.getCondition();
+        if (this.condition == null) {
+            this.condition = condition;
+        } else {
+            this.condition = this.condition.and(condition);
+        }
         return this;
     }
 

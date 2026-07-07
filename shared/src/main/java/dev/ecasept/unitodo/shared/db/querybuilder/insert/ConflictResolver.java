@@ -1,6 +1,12 @@
 package dev.ecasept.unitodo.shared.db.querybuilder.insert;
 
 import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.E;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.SqlExpression;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.TableContext;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.C;
+import dev.ecasept.unitodo.shared.db.querybuilder.expressions.conditions.Condition;
+
 import java.util.LinkedHashMap;
 import java.util.List;
 
@@ -25,9 +31,22 @@ public class ConflictResolver {
         return this;
     }
 
-    public ConflictResolver set(String column, String expression) {
+
+
+    public ConflictResolver set(String column, SqlExpression expression) {
         if (ops != null) ops.put(column, new ConflictResolveOperation.Set(expression));
         return this;
+    }
+
+    public ConflictResolver setIfNewer(TableContext t, String valueColumn, String changedColumn) {
+        Condition isNewer = C.lt(t.col(changedColumn), t.excluded(changedColumn));
+        return this
+                .set(valueColumn, E.caseWithoutBase()
+                        .when(isNewer, t.excluded(valueColumn))
+                        .elseCase(t.col(valueColumn)))
+                .set(changedColumn, E.caseWithoutBase()
+                        .when(isNewer, t.excluded(changedColumn))
+                        .elseCase(t.col(changedColumn)));
     }
 
     public StringBuilder asSql() {
@@ -55,11 +74,22 @@ public class ConflictResolver {
                 sb.append("    ").append(BuilderUtils.quoteIdentifier(entry.getKey())).append(" = ");
                 switch (entry.getValue()) {
                     case ConflictResolveOperation.Copy c -> sb.append("EXCLUDED.").append(BuilderUtils.quoteIdentifier(entry.getKey()));
-                    case ConflictResolveOperation.Set set -> sb.append(set.expression());
+                    case ConflictResolveOperation.Set set -> sb.append(set.expression().asParameterizedSql());
                 }
                 i++;
             }
         }
         return sb;
+    }
+
+    public int fillParameters(java.sql.PreparedStatement statement, int startIndex) throws dev.ecasept.unitodo.shared.db.DatabaseException {
+        int index = startIndex;
+        for (var entry : ops.entrySet()) {
+            switch (entry.getValue()) {
+                case ConflictResolveOperation.Set set -> index = set.expression().fillParameters(statement, index);
+                case ConflictResolveOperation.Copy c -> {}
+            }
+        }
+        return index;
     }
 }
