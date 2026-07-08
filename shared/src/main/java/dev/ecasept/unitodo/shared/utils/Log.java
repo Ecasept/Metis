@@ -1,6 +1,8 @@
 package dev.ecasept.unitodo.shared.utils;
 
 
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.function.UnaryOperator;
@@ -14,13 +16,36 @@ public class Log {
 
     private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
 
-    private static void log(String tag, String message, UnaryOperator<String> colorer, String levelName) {
-        String sb = "[" + LocalTime.now().format(TIME_FORMAT) + "] " +
-                "[" + levelName + "] " +
-                "[" + tag + "] " +
-                message;
+    private static void log(String tag, String message, UnaryOperator<String> colorer, LogLevel level) {
+        log(tag, message, colorer, level, "");
+    }
 
-        System.out.println(colorer.apply(sb));
+    private static void log(String tag, String message, UnaryOperator<String> colorer, LogLevel level, String cause) {
+        if (!level.isAtLeast(LOG_LEVEL)) {
+            return;
+        }
+        var sb = new StringBuilder();
+        sb.append("[")
+                .append(LocalTime.now().format(TIME_FORMAT))
+                .append("] [")
+                .append(level)
+                .append("] [")
+                .append(Thread.currentThread().getName())
+                .append("] [")
+                .append(tag)
+                .append("] ")
+                .append(message);
+        if (cause != null && !cause.isEmpty()) {
+            sb.append("\n").append(cause);
+        }
+
+        var stream = switch (level) {
+            case ERROR, WARNING -> System.err;
+            default -> System.out;
+        };
+
+        stream.println(colorer.apply(sb.toString()));
+        stream.flush();
     }
 
     /**
@@ -29,9 +54,7 @@ public class Log {
      * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
      */
     public static void d(String tag, Object message) {
-        if (LogLevel.DEBUG.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::g, "DEBUG");
-        }
+        log(tag, message.toString(), Color::g, LogLevel.DEBUG);
     }
 
     /**
@@ -40,9 +63,7 @@ public class Log {
      * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
      */
     public static void w(String tag, Object message) {
-        if (LogLevel.WARNING.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::y, "WARNING");
-        }
+        log(tag, message.toString(), Color::y, LogLevel.WARNING);
     }
 
     /**
@@ -52,11 +73,7 @@ public class Log {
      * @param t The throwable to log. The stack trace of this throwable will be printed to standard error along with the message.
      */
     public static void w(String tag, Object message, Throwable t) {
-        if (LogLevel.WARNING.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::y, "WARNING");
-            System.out.println(Color.y("Cause: " + t.getClass().getName() + ": " + t.getMessage()));
-            t.printStackTrace(System.out);
-        }
+            log(tag, message.toString(), Color::y, LogLevel.WARNING, formatThrowable(t));
     }
 
     /**
@@ -65,9 +82,7 @@ public class Log {
      * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
      */
     public static void i(String tag, Object message) {
-        if (LogLevel.INFO.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::lb, "INFO");
-        }
+        log(tag, message.toString(), Color::lb, LogLevel.INFO);
     }
 
     /**
@@ -77,11 +92,14 @@ public class Log {
      * @param t The throwable to log. The stack trace of this throwable will be printed to standard error along with the message.
      */
     public static void e(String tag, Object message, Throwable t) {
-        if (LogLevel.ERROR.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::r, "ERROR");
-            System.err.println(Color.r("Cause: " + t.getClass().getName() + ": " + t.getMessage()));
-            t.printStackTrace(System.err);
-        }
+        log(tag, message.toString(), Color::r, LogLevel.ERROR, formatThrowable(t));
+    }
+
+
+    private static String formatThrowable(Throwable t) {
+        StringWriter sw = new StringWriter();
+        t.printStackTrace(new PrintWriter(sw));
+        return sw.toString();
     }
 
     /**
@@ -90,9 +108,7 @@ public class Log {
      * @param message The message to log. This can be any object, and its {@code toString()} method will be called to get the string representation of the message.
      */
     public static void e(String tag, Object message) {
-        if (LogLevel.ERROR.isAtLeast(LOG_LEVEL)) {
-            log(tag, message.toString(), Color::r, "ERROR");
-        }
+        log(tag, message.toString(), Color::r, LogLevel.ERROR);
     }
 
     /**
