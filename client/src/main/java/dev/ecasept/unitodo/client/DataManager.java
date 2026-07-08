@@ -9,7 +9,7 @@ import dev.ecasept.unitodo.shared.models.api.Password;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
-import sync.SyncService;
+import dev.ecasept.unitodo.client.sync.SyncService;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;

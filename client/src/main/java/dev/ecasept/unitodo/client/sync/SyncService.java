@@ -1,4 +1,4 @@
-package sync;
+package dev.ecasept.unitodo.client.sync;
 
 import dev.ecasept.unitodo.client.api.ApiClient;
 import dev.ecasept.unitodo.client.api.exception.ApiException;

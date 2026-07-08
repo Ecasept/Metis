@@ -14,7 +14,7 @@ import dev.ecasept.unitodo.shared.serialization.adapters.Any;
 import dev.ecasept.unitodo.shared.serialization.types.StoreType;
 import dev.ecasept.unitodo.shared.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.utils.Log;
-import sync.SyncService;
+import dev.ecasept.unitodo.client.sync.SyncService;
 
 import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
