@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS tasks (
-    uuid TEXT NOT NULL UNIQUE,
+    uuid TEXT NOT NULL,
     title TEXT NOT NULL,
     description TEXT NOT NULL,
     state INTEGER NOT NULL,
