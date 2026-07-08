@@ -3,6 +3,7 @@ package dev.ecasept.unitodo.shared.models.api;
 import dev.ecasept.unitodo.shared.serialization.annotations.SerialInstance;
 import dev.ecasept.unitodo.shared.serialization.annotations.Serializable;
 
+/** Error codes that the server can return over the API so the client can show relevant error messages */
 @Serializable
 public enum ErrorCode {
     @SerialInstance(tag=1)
@@ -21,6 +22,7 @@ public enum ErrorCode {
         this.message = msg;
     }
 
+    /** Returns the user-facing error message for this error code */
     public String getMessage() {
         return message;
     }

@@ -13,6 +13,7 @@ import java.security.*;
 import java.security.cert.CertificateException;
 
 public class HttpsConfiguratorFactory {
+    /** Creates an HttpsConfigurator using the specified keystore password and location. */
     public static HttpsConfigurator create(String keystorePassword, String keystoreLocation) {
         char[] pw = keystorePassword.toCharArray();
         KeyStore ks;

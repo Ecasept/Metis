@@ -7,6 +7,7 @@ import java.security.NoSuchAlgorithmException;
 
 public class CryptoUtils {
     private static final String ALGORITHM = "HmacSHA256";
+    /** Creates an HMAC of the given data using the given secret key. */
     public static byte[] calculateHmac(byte[] data, byte[] secret) throws NoSuchAlgorithmException, InvalidKeyException {
         Mac hmac = Mac.getInstance(ALGORITHM);
         SecretKeySpec secretKeySpec = new SecretKeySpec(secret, ALGORITHM);

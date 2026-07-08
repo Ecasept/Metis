@@ -8,6 +8,7 @@ import java.util.Base64;
 import java.util.Optional;
 
 public class SignedTokenService {
+    /** Generates a token containing specific payload */
     public String generateToken(String payload, byte[] secret) {
         try {
             var encodedPayload = Base64.getUrlEncoder().withoutPadding().encode(payload.getBytes(StandardCharsets.UTF_8));
@@ -21,6 +22,7 @@ public class SignedTokenService {
         }
     }
 
+    /** Verifies that a token originated from the server and returns the contained payload if it does */
     public Optional<String> verifyAndGetPayload(String token, byte[] secret) {
         if (token == null) {
             return Optional.empty();

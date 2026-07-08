@@ -7,6 +7,11 @@ import java.util.Optional;
 import java.util.UUID;
 
 public class Auth {
+    /** Verifies that the request headers have an associated valid session token.
+     *
+     * @param headers The headers of the request
+     * @return The uuid of the user, if he is authenticated, or nothing if no session token is present, or it is invalid
+     */
     public static Optional<UUID> verifyAuth(Headers headers, SignedTokenService tokenService, byte[] secretKey) {
         var authHeader = headers.getFirst("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {

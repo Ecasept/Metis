@@ -30,6 +30,7 @@ public class PasswordHasherService {
         this.pepper = configuration.PEPPER();
     }
 
+    /** Returns the hash of the specified password */
     public String hashPassword(Password password) {
         try {
             byte[] salt = new byte[SALT_LENGTH];
@@ -57,6 +58,7 @@ public class PasswordHasherService {
         return hash;
     }
 
+    /** Verifies that a provided password matches up with the stored password hash */
     public boolean verifyPassword(Password password, String storedPasswordHash) {
         try {
             String[] parts = storedPasswordHash.split(":");
@@ -82,12 +84,10 @@ public class PasswordHasherService {
     }
 
     private char[] toChars(byte[] bytes) {
-        ByteBuffer byteBuffer = ByteBuffer.wrap(bytes);
-        CharBuffer charBuffer = StandardCharsets.UTF_8.decode(byteBuffer);
-
-        char[] chars = Arrays.copyOfRange(charBuffer.array(), charBuffer.position(), charBuffer.limit());
-        Arrays.fill(charBuffer.array(), '\0');
-
+        char[] chars = new char[bytes.length];
+        for (int i = 0; i < bytes.length; i++) {
+            chars[i] = (char) (bytes[i]);
+        }
         return chars;
     }
 }

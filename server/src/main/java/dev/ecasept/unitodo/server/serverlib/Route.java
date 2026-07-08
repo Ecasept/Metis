@@ -28,6 +28,12 @@ public record Route<RequestType, ResponseType>(StoreType<RequestType> requestTyp
         }
         var response = func.handle(requestBody, exchange.getRequestHeaders());
         var rawResponseBody = serializer.serialize(response.body(), responseType);
+
+        var exchangeHeaders = exchange.getResponseHeaders();
+        for (var header : response.headers().entrySet()) {
+            exchangeHeaders.set(header.getKey(), header.getValue());
+        }
+
         exchange.sendResponseHeaders(response.code(), rawResponseBody.length);
         try(OutputStream os = exchange.getResponseBody()) {
             os.write(rawResponseBody);

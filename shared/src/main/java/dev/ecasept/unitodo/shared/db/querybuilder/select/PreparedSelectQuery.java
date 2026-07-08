@@ -2,6 +2,7 @@ package dev.ecasept.unitodo.shared.db.querybuilder.select;
 
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.FillParameters;
+import dev.ecasept.unitodo.shared.utils.ThrowingFunction;
 
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -21,18 +22,18 @@ public class PreparedSelectQuery implements AutoCloseable {
         fn.fillParameters(statement, 1);
         return statement.executeQuery();
     }
-    public <T> Optional<T> executeSingle(Converter<ResultSet, T> converter) throws SQLException, DatabaseException {
+    public <T> Optional<T> executeSingle(ThrowingFunction<ResultSet, T, SQLException> converter) throws SQLException, DatabaseException {
         var rs = execute();
         if (!rs.next()) {
             return Optional.empty();
         }
-        return Optional.of(converter.convert(rs));
+        return Optional.of(converter.apply(rs));
     }
-    public <T> ArrayList<T> executeMulti(Converter<ResultSet, T> converter) throws SQLException, DatabaseException {
+    public <T> ArrayList<T> executeMulti(ThrowingFunction<ResultSet, T, SQLException> converter) throws SQLException, DatabaseException {
         var rs = execute();
         var items = new ArrayList<T>();
         while (rs.next()) {
-            items.add(converter.convert(rs));
+            items.add(converter.apply(rs));
         }
         return items;
     }

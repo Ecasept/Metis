@@ -24,20 +24,8 @@ public class ServerDatabaseRepository {
         this.db = db;
     }
 
-    public Optional<ServerTask> getTask(String uuid, UUID userId) throws DatabaseException {
-        try (var query = db
-                .select()
-                .from("tasks")
-                .filter(t ->
-                        C.eq("uuid", uuid).eq("userId", userId)
-                )
-                .prepare()) {
-            return query.executeSingle(ServerTask::fromResultSet);
-        } catch (SQLException | DatabaseException e) {
-            throw new DatabaseException("Failed to get task from database", e);
-        }
-    }
 
+    /** Returns a list of tasks with the specified uuids belonging to the specified user */
     public ArrayList<ServerTask> getTasks(List<UUID> uuids, UUID userId) throws DatabaseException {
         try (var query = db
                 .select()
@@ -52,6 +40,7 @@ public class ServerDatabaseRepository {
         }
     }
 
+    /** Returns all tasks belonging to the specified user */
     public ServerTask[] getAllTasks(UUID userId) throws DatabaseException {
         try (var query = db
                 .select()
@@ -64,23 +53,7 @@ public class ServerDatabaseRepository {
         }
     }
 
-    public ArrayList<ServerTask> getTasks(TaskState state, SortOrder order) throws DatabaseException {
-        try (var query = db
-                .select()
-                .from("tasks")
-                .filter(t -> C.eq("state", state.toInt()))
-                .orderBy(order)
-                .prepare()) {
-            return query.executeMulti(ServerTask::fromResultSet);
-        } catch (SQLException | DatabaseException e) {
-            throw new DatabaseException("Failed to get tasks from database", e);
-        }
-    }
-
-    public void upsertTask(ServerTask task) throws DatabaseException {
-        upsertTasks(List.of(task));
-    }
-
+    /** Inserts, or, if already present, updates the provided tasks into the database */
     public void upsertTasks(List<ServerTask> tasks) throws DatabaseException {
         var batcher = new Batcher();
         var queryBuilder = db
@@ -137,6 +110,7 @@ public class ServerDatabaseRepository {
         }
     }
 
+    /** Creates a new user with the specified username and password hash and returns their new uuid */
     public UUID createUser(String username, String passwordHash) throws DatabaseException {
         var uuid = UUID.randomUUID();
         try (var query = db.insert()
@@ -151,6 +125,8 @@ public class ServerDatabaseRepository {
             throw new DatabaseException("Failed to create user in database", e);
         }
     }
+
+    /** Deletes the user with the specified id and returns if such a user existed */
     public boolean deleteUser(UUID userId) throws DatabaseException {
         try (var query = db.delete()
                 .from("users")
@@ -162,6 +138,8 @@ public class ServerDatabaseRepository {
             throw new DatabaseException("Failed to delete user from database", e);
         }
     }
+
+    /** Tries to find and return the user with the specified id */
     public Optional<User> getUser(UUID userId) throws DatabaseException {
         try (var query = db
                 .select()
@@ -173,6 +151,8 @@ public class ServerDatabaseRepository {
             throw new DatabaseException("Failed to get user from database", e);
         }
     }
+
+    /** Tries to find and return the user with the specified username */
     public Optional<User> getUserByUsername(String username) throws DatabaseException {
         try (var query = db
                 .select()
@@ -185,12 +165,13 @@ public class ServerDatabaseRepository {
         }
     }
 
+    /** Wrapper for {@link QueryBuilder#transaction(ThrowingBiSupplier)} */
     public <T> T transaction(ThrowingBiSupplier<T, DatabaseException, SQLException> function) throws DatabaseException, SQLException {
         return db.transaction(function);
     }
 
 
-
+    /** Returns a list of uuids of all the tasks the specified user id has associated with them */
     public List<UUID> getAllTaskUUIDs(UUID userId) throws DatabaseException {
         try (var query = db
                 .select("uuid")
@@ -204,6 +185,7 @@ public class ServerDatabaseRepository {
         }
     }
 
+    /** Returns all tasks belonging to the specified user that have been modified since the specified timestamp */
     public ServerTask[] getTasksModifiedSince(LocalDateTime lastSyncTime, UUID userId) throws DatabaseException {
         long lastSync = DateFormat.toLong(lastSyncTime);
         try (var query = db

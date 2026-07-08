@@ -4,6 +4,7 @@ import dev.ecasept.unitodo.server.api.SyncService;
 import dev.ecasept.unitodo.server.db.ServerDatabaseRepository;
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
 import dev.ecasept.unitodo.server.security.SignedTokenService;
+import dev.ecasept.unitodo.server.serverlib.RouteHandler;
 import dev.ecasept.unitodo.shared.db.DatabaseController;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.QueryBuilder;
@@ -15,6 +16,8 @@ import dev.ecasept.unitodo.server.serverlib.Response;
 import dev.ecasept.unitodo.server.serverlib.SimpleServer;
 import dev.ecasept.unitodo.shared.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.utils.Log;
+
+import java.io.IOException;
 
 public class Main {
     private static final String TAG = "Main";
@@ -43,6 +46,10 @@ public class Main {
             server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::registerRequest);
             server.addRoute("/api/users/delete", "POST", new StoreType<Password>() {}, new StoreType<ApiResponse<Void>>() {}, authService::deleteAccountRequest);
             server.addRoute("/api/data/sync", "POST", new StoreType<SyncRequest>() {}, new StoreType<ApiResponse<SyncResponse>>() {}, syncService::syncRequest);
+
+            server.addRoute("/about", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, serveStaticHTMLFile("about.html"));
+            server.addRoute("/build", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, serveStaticHTMLFile("build.html"));
+
             server.run(config.PORT());
         } catch (Exception e) {
             try {
@@ -52,5 +59,23 @@ public class Main {
             }
             Log.e(TAG, "An error occurred while running the server", e);
         }
+    }
+
+    private static RouteHandler<Void, RawData> serveStaticHTMLFile(String filePath) {
+        return (request, headers) -> {
+            try (var file = Main.class.getClassLoader().getResourceAsStream(filePath)) {
+                if (file == null) {
+                    Log.e(TAG, filePath + " not found");
+                    return new Response<>(404, RawData.fromString("Not Found"));
+                }
+                var content = new String(file.readAllBytes());
+                var res = new Response<>(200, RawData.fromString(content));
+                res.headers().put("Content-Type", "text/html; charset=UTF-8");
+                return res;
+            } catch (IOException e) {
+                Log.e(TAG, "Failed to read " + filePath, e);
+                return new Response<>(500, RawData.fromString("Internal Server Error"));
+            }
+        };
     }
 }

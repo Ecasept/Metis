@@ -13,6 +13,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
+/** A builder that allows you to build a SELECT query with various options */
 public class SelectQueryBuilder {
     private final DatabaseController controller;
     private final String table;
@@ -25,6 +26,10 @@ public class SelectQueryBuilder {
     }
     private Condition condition = null;
 
+    /** Applies a filter to the query, manifesting as a WHERE clause in the SQL statement.
+     * If the query already has a filter, both the original filter and this filter will be applied using an AND operator.
+     * @param conditionFn A function receiving the context of the current table and returning the condition to apply
+     */
     public SelectQueryBuilder filter(Function<TableContext, Condition> conditionFn) {
         var condition = conditionFn.apply(new TableContext(table));
         if (condition == null) {
@@ -38,6 +43,12 @@ public class SelectQueryBuilder {
          return this;
     }
 
+    /** Only applies the given function to the query builder if the given condition is true.
+     *
+     * @param condition Whether to apply the function
+     * @param thenFn A function that modifies the query builder and returns it
+     * @return The modified query builder if the condition is true, otherwise the original query builder
+     */
     public SelectQueryBuilder when(boolean condition, UnaryOperator<SelectQueryBuilder> thenFn) {
         if (condition) {
             return thenFn.apply(this);
@@ -46,6 +57,7 @@ public class SelectQueryBuilder {
         }
     }
 
+    /** Orders the results of the query by the given sort order */
     public SelectQueryBuilder orderBy(SortOrder sortOrder) {
         this.sortOrder = sortOrder;
         return this;
@@ -82,6 +94,7 @@ public class SelectQueryBuilder {
         return i;
     }
 
+    /** Prepares the query for execution by building the SQL string */
     public PreparedSelectQuery prepare() throws DatabaseException {
         var statement = controller.prepareStatement(asSql());
         return new PreparedSelectQuery(statement, this::fillParameters);

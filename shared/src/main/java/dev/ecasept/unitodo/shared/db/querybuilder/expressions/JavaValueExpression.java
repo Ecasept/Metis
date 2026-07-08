@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.db.querybuilder.BuilderUtils;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
+/** Represents a Java value as an SQl expression */
 public class JavaValueExpression<T> implements SqlExpression {
     private final T value;
     public JavaValueExpression(T value) {

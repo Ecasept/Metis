@@ -41,11 +41,22 @@ public class CaseExpressionWithoutBase implements SqlExpression {
         return i;
     }
 
+    /** Adds a WHEN clause to the CASE expression.
+     *
+     * @param condition The condition for the WHEN clause
+     * @param result The result to return if the condition is true
+     * @return itself
+     */
     public CaseExpressionWithoutBase when(Condition condition, SqlExpression result) {
         cases.add(new CaseWhen(condition, result));
         return this;
     }
 
+    /** Adds an ELSE clause to the CASE expression.
+     *
+     * @param elseCase The result to return if none of the WHEN conditions are true
+     * @return itself
+     */
     public CaseExpressionWithoutBase elseCase(SqlExpression elseCase) {
         this.elseCase = elseCase;
         return this;

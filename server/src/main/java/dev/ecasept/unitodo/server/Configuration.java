@@ -12,18 +12,19 @@ import java.time.temporal.TemporalAmount;
 import java.util.HashMap;
 import java.util.Map;
 
+/** Stores the configuration for the server */
 public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, TemporalAmount TOMBSTONE_TTL, boolean USE_HTTPS) {
     private static final String TAG = "Configuration";
-    public static final int DEFAULT_PORT = 6767;
-    public static final String DEFAULT_SECRET_KEY = "testing123";
-    public static final String DEFAULT_PEPPER = "pepper123";
-    public static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
-    public static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
-    public static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
-    public static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofMonths(1);
-    public static final boolean DEFAULT_USE_HTTPS = true;
+    private static final int DEFAULT_PORT = 6767;
+    private static final String DEFAULT_SECRET_KEY = "testing123";
+    private static final String DEFAULT_PEPPER = "pepper123";
+    private static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
+    private static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
+    private static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
+    private static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofMonths(1);
+    private static final boolean DEFAULT_USE_HTTPS = true;
 
-    public Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl, boolean useHttps) {
+    private Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl, boolean useHttps) {
          this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl, useHttps);
     }
 
@@ -35,6 +36,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
         });
     }
 
+    /** Loads the configuration from the .env file, or uses defaults if the file is missing or invalid, and returns it */
     public static Configuration load() {
         var envPath = Path.of(".env");
         Map<String, String> env;
