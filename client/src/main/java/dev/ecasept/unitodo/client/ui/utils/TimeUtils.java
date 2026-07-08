@@ -106,8 +106,18 @@ public class TimeUtils {
 
 
         if (LocalDateTime.of(dueDate, dueTime).isBefore(LocalDateTime.now())) {
-            JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie gewählte Fälligkeitsuhrzeit liegt in der Vergangenheit.");
-            throw new IllegalArgumentException("Illegal Time Format");
+            if (dueDate.equals(LocalDate.now())) {
+                if (dueTime.getHour() == LocalTime.now().getHour() && dueTime.getMinute() == LocalTime.now().getMinute()) {
+
+                } else {
+                    JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie gewählte Fälligkeitsuhrzeit liegt in der Vergangenheit.");
+                    throw new IllegalArgumentException("Illegal Time Format");
+                }
+            } else {
+                JOptionPane.showMessageDialog(null, "Ungültige Eingabe:\nDie gewählte Fälligkeitsuhrzeit liegt in der Vergangenheit.");
+                throw new IllegalArgumentException("Illegal Time Format");
+            }
+
         }
 
         return dueTime;
