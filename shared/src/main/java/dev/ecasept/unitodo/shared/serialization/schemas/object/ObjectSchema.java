@@ -82,7 +82,6 @@ public record ObjectSchema<T>(NullableTypeContainer<T> nullableType, ArrayList<F
         if (count < 0) {
             throw new SerializationException("Negative field count " + count + " found while deserializing object of class " + clazz.getName());
         }
-        Log.d(TAG, "count: " + count);
 
         T o = nullableType.type().cast(SerializationUtils.instantiateSerializableObject(clazz));
 

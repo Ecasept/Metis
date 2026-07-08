@@ -39,6 +39,7 @@ public record ArraySchema<T>(TypeContainer<T> type, Schema<?> componentSchema) i
         int len;
         try {
             len = SerializationUtils.deserializeLength(data);
+            Log.i(TAG, "Deserialized array length: " + len);
         } catch (BufferUnderflowException e) {
             throw new SerializationException("Unexpected end of data while trying to read length for array of class " + clazz.getName(), e);
         }

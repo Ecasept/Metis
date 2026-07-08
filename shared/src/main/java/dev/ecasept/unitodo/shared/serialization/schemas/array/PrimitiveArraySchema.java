@@ -7,6 +7,7 @@ import dev.ecasept.unitodo.shared.serialization.schemas.SerializationUtils;
 import dev.ecasept.unitodo.shared.serialization.types.TypeContainer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
+import java.lang.reflect.Array;
 import java.nio.BufferUnderflowException;
 import java.nio.ByteBuffer;
 
@@ -18,7 +19,7 @@ public record PrimitiveArraySchema<T>(TypeContainer<T> type) implements Schema<T
     @Override
     public void serialize(T o, GrowableBuffer buf) {
         Class<?> cmpType = type.asClass().getComponentType();
-        Log.i(TAG, "Serializing primitive array with component type: " + cmpType.getName());
+        Log.i(TAG, "Serializing primitive array of length " + Array.getLength(o) + " with component type: " + cmpType.getName());
 
         if (cmpType == byte.class)    { byte[] arr = (byte[]) o;       SerializationUtils.serializeLength(arr.length, buf); for (byte b : arr) buf.putByte(b); return; }
         if (cmpType == int.class)     { int[] arr = (int[]) o;         SerializationUtils.serializeLength(arr.length, buf); for (int v : arr) buf.putInt(v); return; }
@@ -40,6 +41,7 @@ public record PrimitiveArraySchema<T>(TypeContainer<T> type) implements Schema<T
         int len;
         try {
             len = SerializationUtils.deserializeLength(data);
+            Log.i(TAG, "Deserialized length for primitive array of type " + clazz.getName() + ": " + len);
         } catch (BufferUnderflowException e) {
             throw new SerializationException("Unexpected end of data while trying to read length for primitive array of type " + clazz.getName(), e);
         }
