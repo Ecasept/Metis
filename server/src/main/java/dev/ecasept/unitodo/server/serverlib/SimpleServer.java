@@ -75,7 +75,7 @@ public class SimpleServer {
     }
 
     public void sendApiError(HttpExchange exchange, int responseCode, String errorMsg, Serializer serializer) {
-        var response = ApiResponse.error(errorMsg, ErrorCode.UNKNOWN);
+        ApiResponse<Void> response = ApiResponse.error(errorMsg, ErrorCode.UNKNOWN);
         byte[] rawResponseBody;
         try {
             rawResponseBody = serializer.serialize(response, new StoreType<>(){});
