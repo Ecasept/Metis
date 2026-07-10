@@ -26,13 +26,25 @@ public record SortOrder(List<Entry> entries) {
     }
 
     /** Creates a new sort order where all the columns provided are sorted in ascending order */
-    public static SortOrder ascending(String... columns) {
-        return new SortOrder(Stream.of(columns).map(Ascending::new).collect(Collectors.toList()));
+    public static SortOrder ofAscending(String... columns) {
+        return SortOrder.of().ascending(columns);
     }
 
     /** Creates a new sort order where all the columns provided are sorted in descending order */
-    public static SortOrder descending(String... columns) {
-        return new SortOrder(Stream.of(columns).map(Descending::new).collect(Collectors.toList()));
+    public static SortOrder ofDescending(String... columns) {
+        return SortOrder.of().descending(columns);
+    }
+
+    /** Sorts the provided strings in ascending order, potentially as a fallback to already existing columns. Earlier columns will be prioritized */
+    public SortOrder ascending(String... columns) {
+        entries.addAll(Stream.of(columns).map(Ascending::new).toList());
+        return this;
+    }
+
+    /** Sorts the provided strings in descending order, potentially as a fallback to already existing columns. Earlier columns will be prioritized */
+    public SortOrder descending(String... columns) {
+        entries.addAll(Stream.of(columns).map(Descending::new).toList());
+        return this;
     }
 
     /** Implements a sort order for a single column in ascending order */

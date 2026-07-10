@@ -91,7 +91,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelPending(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Pending(), SortOrder.ascending("dueDate", "dueTime"), false);
+            list = dataManager.getTasks(new TaskState.Pending(), SortOrder.ofAscending("dueDate", "dueTime", "title", "uuid"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -117,7 +117,7 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelFinished(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Finished(null), SortOrder.descending("completedAt", "dueDate", "dueTime"), false);
+            list = dataManager.getTasks(new TaskState.Finished(null), SortOrder.ofDescending("completedAt", "dueDate", "dueTime").ascending("title", "uuid"), false);
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             JOptionPane.showMessageDialog(null, "Datenbankfehler! Die Daten konnten nicht korrekt geladen werden", "Datenbankfehler", JOptionPane.ERROR_MESSAGE);
@@ -139,8 +139,8 @@ public class FrameUtils {
     public static ArrayList<ClientTask> fillListAndTableModelAll(DefaultTableModel tableModel, DataManager dataManager) {
         ArrayList<ClientTask> list;
         try {
-            list = dataManager.getTasks(new TaskState.Pending(), SortOrder.ascending("dueDate", "dueTime"), false);
-            list.addAll(dataManager.getTasks(new TaskState.Finished(null), SortOrder.descending("completedAt", "dueDate", "dueTime"), false));
+            list = dataManager.getTasks(new TaskState.Pending(), SortOrder.ofAscending("dueDate", "dueTime", "title", "uuid"), false);
+            list.addAll(dataManager.getTasks(new TaskState.Finished(null), SortOrder.ofDescending("completedAt", "dueDate", "dueTime").ascending("title", "uuid"), false));
         } catch (DatabaseException e) {
             Log.e("Main", "error", e);
             return new ArrayList<ClientTask>();
