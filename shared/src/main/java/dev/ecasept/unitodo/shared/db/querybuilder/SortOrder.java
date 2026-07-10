@@ -1,5 +1,6 @@
 package dev.ecasept.unitodo.shared.db.querybuilder;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -37,14 +38,16 @@ public record SortOrder(List<Entry> entries) {
 
     /** Sorts the provided strings in ascending order, potentially as a fallback to already existing columns. Earlier columns will be prioritized */
     public SortOrder ascending(String... columns) {
-        entries.addAll(Stream.of(columns).map(Ascending::new).toList());
-        return this;
+        var newEntries = new ArrayList<>(entries);
+        newEntries.addAll(Stream.of(columns).map(Ascending::new).toList());
+        return new SortOrder(List.copyOf(newEntries));
     }
 
     /** Sorts the provided strings in descending order, potentially as a fallback to already existing columns. Earlier columns will be prioritized */
     public SortOrder descending(String... columns) {
-        entries.addAll(Stream.of(columns).map(Descending::new).toList());
-        return this;
+        var newEntries = new ArrayList<>(entries);
+        newEntries.addAll(Stream.of(columns).map(Descending::new).toList());
+        return new SortOrder(List.copyOf(newEntries));
     }
 
     /** Implements a sort order for a single column in ascending order */
