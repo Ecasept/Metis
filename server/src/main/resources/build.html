@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Building the Project</title>
+    <style>
+        body {
+            margin: 20px;
+        }
+        * {
+            font-family: 'Helvetica Neue', Helvetica, sans-serif;
+            line-height: 1.6em;
+        }
+        h2 {
+            border-left: #005500 4px solid;
+            padding-left: 8px;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0;
+        }
+        p, ul, table, pre {
+            font-size: .8em;
+        }
+        @page {
+            size: A4;
+            margin: 20mm 15mm;
+            background-color: #ffffff;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f2f2f2;
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        pre {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: #f2f2f2;
+            padding: 8px;
+            border-radius: 3px;
+            white-space: pre-wrap;
+        }
+        a {
+            color: #005500;
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<h1>Building the project</h1>
+<p>This project uses <code>gradle</code> as its build system.<br>
+    It is split into two projects, <code>server</code> and <code>client</code>, plus a <code>shared</code> project for shared classes.</p>
+
+<p>The build process is set up to support two kinds of environments:</p>
+<ul>
+    <li>local development</li>
+    <li>production deployment</li>
+</ul>
+
+<p>The main difference is that the production deployment should use a real SSL certificate and might be behind a reverse proxy.</p>
+
+<h2>Running the server</h2>
+<p>The server requires two files for configuration:</p>
+<ul>
+    <li>a keystore file, which contains the SSL certificate used for HTTPS (except for when <code>USE_HTTPS</code> is set to <code>false</code> in the <code>.env</code> file, which is useful for reverse proxies that handle SSL by themselves)</li>
+    <li>a <code>.env</code> file, containing configuration parameters (not strictly necessary as the server provides insecure defaults). The <code>.env</code> file should be placed inside the current working directory of the server, which is usually the directory that you execute the <code>.jar</code> file from, or the <code>server</code> project directory if you use gradle to execute the server.</li>
+</ul>
+
+<p>The server can be run using <code>./gradlew :server:run</code>.<br>
+    It is also possible to create an executable <code>.jar</code> with all dependencies included using <code>./gradlew :server:jar</code></p>
+
+<h3><code>keystore.jks</code> configuration</h3>
+
+<h4>Production</h4>
+<p>When you host the production server, it is likely that you will be using a reverse proxy that handles SSL for you.<br>
+    In this case, set <code>USE_HTTPS</code> to <code>false</code> in the <code>.env</code> file. The reverse proxy will handle the SSL certificate, and the server doesn't need a keystore.<br>
+    Otherwise, you should use a real SSL certificate, e.g. by Let's Encrypt.</p>
+
+<h4>Local</h4>
+<p>For local development, you can use a self-signed SSL certificate.<br>
+    You can generate a new debug SSL certificate called <code>keystore.jks</code> with the password <code>changeit</code> using this command:</p>
+<pre>keytool -genkeypair -alias local-backend -keyalg RSA -keysize 4096 -validity 365 -keystore keystore.jks -storepass changeit -keypass changeit -dname "CN=localhost, OU=Dev, O=UniTodo, L=Munich, C=DE" -ext "SAN=dns:localhost,ip:127.0.0.1"</pre>
+<p>In this case, remember to compile the client with support for trusting all certificates, or otherwise the client will reject any connections to the server with a self-signed certificate.</p>
+
+<h3><code>.env</code> configuration</h3>
+<p>You should include a few keys in your config:</p>
+<ul>
+    <li><code>SECRET_KEY</code>: used for signing and verifying that a session token was created by the server</li>
+    <li><code>PEPPER</code>: used during password hashing for more security</li>
+    <li><code>PORT</code>: the port to run your server on</li>
+    <li><code>KEYSTORE_PASSWORD</code>: the password for your keystore file. If you generated it using the above command, this needs to be set to <code>changeit</code>.</li>
+    <li><code>KEYSTORE_LOCATION</code>: the location of the keystore file relative to the current working directory of the server.</li>
+    <li><code>DB_URL</code>: the location of your sqlite database, e.g. <code>jdbc:sqlite:database.db</code>. The database file will be created if it does not exist.</li>
+    <li><code>TOMBSTONE_TTL</code>: the time in days that a tombstone (a marker for a deleted item) should be kept in the database before it is permanently deleted. Clients whose last sync was before the tombstone was created, and sync again after it was deleted won't be aware of its existence and will require a full sync to reconcile their state with the server.</li>
+    <li><code>USE_HTTPS</code>: enables or disables https support. Use this if SSL is taken care of by a reverse proxy.</li>
+</ul>
+
+<h2>Running the client</h2>
+<p>The client does not require any configuration at runtime.<br>
+    However, there are a few flags that you can/should set during build time in the <code>gradle.properties</code> file:</p>
+<ul>
+    <li><code>baseUrl</code>: the base URL of the server. For local development, this should be set to <code>https://localhost:{PORT}/api</code> with <code>{PORT}</code> replaced by the port you set in the server's <code>.env</code> file.</li>
+    <li><code>trustAllCertificates</code>: set to <code>true</code> if you want the client to trust all SSL certificates, including self-signed ones. This is useful for local development, but should be set to <code>false</code> in production.</li>
+</ul>
+
+<h2>JDK version</h2>
+<p>The project has only been tested with JDK 21. JDK 25 does not seem to be supported by the gradle version being used.</p>
+
+</body>
+</html>
