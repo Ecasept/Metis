@@ -10,12 +10,26 @@ application {
 // Fix IntelliJ warning
 tasks.register("prepareKotlinBuildScriptModel"){}
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "dev.ecasept.unitodo.client.Main"
+tasks {
+    val fatJar = register<Jar>("fatJar") {
+        archiveClassifier.set("all")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        manifest {
+            attributes["Main-Class"] = "dev.ecasept.unitodo.client.Main"
+        }
+
+        from(sourceSets.main.get().output)
+        from(project(":shared").sourceSets.main.get().output)
+
+        from(configurations.runtimeClasspath.get()
+            .filter { it.exists() }
+            .map { if (it.isDirectory) it else zipTree(it) })
     }
 
-    from(project(":shared").sourceSets.main.get().output)
+    build {
+        dependsOn(fatJar)
+    }
 }
 
 
@@ -45,8 +59,11 @@ dependencies {
 
 val generateBuildConfig by tasks.registering {
     val outputDir = layout.buildDirectory.dir("generated/sources/buildConfig/java/main")
+    // Force the delegate to be resolved so no hidden references are carried along
+    @Suppress("REDUNDANT_CALL_OF_CONVERSION_METHOD")
+    val resolvedBaseUrl = baseUrl.toString()
 
-    inputs.property("baseUrl", baseUrl)
+    inputs.property("baseUrl", resolvedBaseUrl)
     outputs.dir(outputDir)
 
     doLast {
@@ -56,7 +73,7 @@ val generateBuildConfig by tasks.registering {
             package dev.ecasept.unitodo.build;
 
             public class BuildConfig {
-                public static final String BASE_URL = "$baseUrl";
+                public static final String BASE_URL = "$resolvedBaseUrl";
             }
         """.trimIndent())
     }

@@ -13,10 +13,22 @@ dependencies {
 
 tasks.register("prepareKotlinBuildScriptModel"){}
 
-tasks.jar {
-    manifest {
-        attributes["Main-Class"] = "dev.ecasept.unitodo.server.Main"
+tasks {
+    val fatJar = register<Jar>("fatJar") {
+        archiveClassifier.set("all")
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+
+        manifest {
+            attributes["Main-Class"] = "dev.ecasept.unitodo.server.Main"
+        }
+
+        from(sourceSets.main.get().output)
+
+        from(configurations.runtimeClasspath.get()
+            .map { if (it.isDirectory) it else zipTree(it) })
     }
 
-    from(project(":shared").sourceSets.main.get().output)
+    build {
+        dependsOn(fatJar)
+    }
 }
