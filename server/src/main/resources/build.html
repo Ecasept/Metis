@@ -4,15 +4,36 @@
     <meta charset="UTF-8">
     <title>Building the Project</title>
     <style>
+        :root {
+            --light-accent: #eeffdd;
+            --dark-accent: #005500;
+            --code-bg: #f2f2f2;
+            --bg: #ffffff;
+            --fg: #000000;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --light-accent: #223322;
+                --dark-accent: #99ff00;
+                --code-bg: #333333;
+                --bg: #191a1c;
+                --fg: #ffffff;
+            }
+        }
+
+
         body {
             margin: 20px;
+            background-color: var(--bg);
+            color: var(--fg);
         }
         * {
             font-family: 'Helvetica Neue', Helvetica, sans-serif;
             line-height: 1.6em;
         }
         h2 {
-            border-left: #005500 4px solid;
+            border-left: var(--dark-accent) 4px solid;
             padding-left: 8px;
         }
         h1, h2, h3, h4, h5, h6 {
@@ -24,23 +45,23 @@
         @page {
             size: A4;
             margin: 20mm 15mm;
-            background-color: #ffffff;
+            background-color: var(--bg);
         }
         code {
             font-family: 'Courier New', Courier, monospace;
-            background-color: #f2f2f2;
+            background-color: var(--code-bg);
             padding: 2px 4px;
             border-radius: 3px;
         }
         pre {
             font-family: 'Courier New', Courier, monospace;
-            background-color: #f2f2f2;
+            background-color: var(--code-bg);
             padding: 8px;
             border-radius: 3px;
             white-space: pre-wrap;
         }
         a {
-            color: #005500;
+            color: var(--dark-accent);
             text-decoration: none;
         }
     </style>
