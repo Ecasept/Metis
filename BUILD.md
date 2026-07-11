@@ -7,11 +7,11 @@ The build process is set up to support two kinds of environments:
 - local development
 - production deployment
  
-The main difference is that the production deployment should use a real SSL certificate and might be behind a reverse proxy.
+The main difference is that production deployments should use a real SSL certificate and might be behind a reverse proxy.
 
 ## Running the server
 The server requires two files for configuration:
-- a keystore file, which contains the SSL certificate used for HTTPS (except for when `USE_HTTPS` is set to `false` in the `.env` file, which is useful for reverse proxies that handle SSL by themselves)
+- a keystore file, which contains the SSL certificate used for HTTPS (except for when `USE_HTTPS` is set to `false` in the `.env` file, which is useful for reverse proxies that handle SSL on their own)
 - a `.env` file, containing configuration parameters (not strictly necessary as the server provides insecure defaults). The `.env` file should be placed inside the current working directory of the server, which is usually the directory that you execute the `.jar` file from, or the `server` project directory if you use gradle to execute the server.
 
 The server can be run using `./gradlew :server:run`.
@@ -19,8 +19,8 @@ It is also possible to create an executable `.jar` with all dependencies include
 
 ### `keystore.jks` configuration
 #### Production
-When you host the production server, it is likely that you will be using a reverse proxy that handles SSL for you.
-In this case, set `USE_HTTPS` to `false` in the `.env` file. The reverse proxy will handle the SSL certificate, and the server doesn't need a keystore.
+When you host the production server, you might be using a reverse proxy that handles SSL for you.
+In this case, set `USE_HTTPS` to `false` in the `.env` file. The reverse proxy will handle the SSL certificate, and the server won't need a keystore.
 Otherwise, you should use a real SSL certificate, e.g. by Let's Encrypt.
 
 #### Local
@@ -29,7 +29,7 @@ You can generate a new debug SSL certificate called `keystore.jks` with the pass
 ```sh
 keytool -genkeypair -alias local-backend -keyalg RSA -keysize 4096 -validity 365 -keystore keystore.jks -storepass changeit -keypass changeit -dname "CN=localhost, OU=Dev, O=UniTodo, L=Munich, C=DE" -ext "SAN=dns:localhost,ip:127.0.0.1"
 ```
-In this case, remember to compile the client with support for trusting all certificates, or otherwise the client will reject any connections to the server with a self-signed certificate.
+In this case, remember to include support for trusting all certificates when compiling the client, or otherwise the client will reject all connections to the server if it uses a self-signed certificate.
 
 ### `.env` configuration
 You should include a few keys in your config:
@@ -39,7 +39,7 @@ You should include a few keys in your config:
 - `KEYSTORE_PASSWORD`: the password for your keystore file. If you generated it using the above command, this needs to be set to `changeit`.
 - `KEYSTORE_LOCATION`: the location of the keystore file relative to the current working directory of the server.
 - `DB_URL`: the location of your sqlite database, e.g. `jdbc:sqlite:database.db`. The database file will be created if it does not exist.
-- `TOMBSTONE_TTL`: the time in days that a tombstone (a marker for a deleted item) should be kept in the database before it is permanently deleted. Clients whose last sync was before the tombstone was created, and sync again after it was deleted won't be aware of its existence and will require a full sync to reconcile their state with the server.
+- `TOMBSTONE_TTL`: the time in days that a tombstone (a marker for a deleted item) should be kept in the database before it is permanently deleted. Clients that last synced before the tombstone was created, and sync again after its deletion won't be aware of its existence and require a full sync to reconcile their state with the server.
 - `USE_HTTPS`: enables or disables https support. Use this if SSL is taken care of by a reverse proxy.
 
 ## Running the client
