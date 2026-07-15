@@ -14,7 +14,7 @@ public class Log {
     /** The current log level. Only messages at this level or higher will be printed. */
     public static final LogLevel LOG_LEVEL = LogLevel.DEBUG;
 
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm:ss.SSS");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
 
     private static void log(String tag, String message, UnaryOperator<String> colorer, LogLevel level) {
         log(tag, message, colorer, level, "");
