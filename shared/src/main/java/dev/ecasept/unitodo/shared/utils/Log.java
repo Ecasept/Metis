@@ -5,6 +5,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Locale;
 import java.util.function.UnaryOperator;
 
 /**
@@ -14,7 +15,7 @@ public class Log {
     /** The current log level. Only messages at this level or higher will be printed. */
     public static final LogLevel LOG_LEVEL = LogLevel.DEBUG;
 
-    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss.SSS");
+    private static final DateTimeFormatter TIME_FORMAT = DateTimeFormatter.ofPattern("yyyy-MMM-dd HH:mm:ss.SSS", Locale.US);
 
     private static void log(String tag, String message, UnaryOperator<String> colorer, LogLevel level) {
         log(tag, message, colorer, level, "");
