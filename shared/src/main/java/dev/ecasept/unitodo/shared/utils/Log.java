@@ -3,7 +3,7 @@ package dev.ecasept.unitodo.shared.utils;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.time.LocalTime;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
 import java.util.function.UnaryOperator;
@@ -27,7 +27,7 @@ public class Log {
         }
         var sb = new StringBuilder();
         sb.append("[")
-                .append(LocalTime.now().format(TIME_FORMAT))
+                .append(LocalDateTime.now().format(TIME_FORMAT))
                 .append("] [")
                 .append(level)
                 .append("] [")
