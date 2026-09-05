@@ -7,6 +7,10 @@ build
 # Ignore Kotlin plugin data
 .kotlin
 
+# Ignore IDE-specific project files
+.idea/
+*.iml
+
 # Configuration files
 **/keystore.jks
 **/.env
