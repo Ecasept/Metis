@@ -1,90 +1,76 @@
 # Metis
-Ein Todo-App Management Programm
-<hr>
+An offline-first Todo-App with optional self-hosted cloud features.
+Developed as a group project for the course "Informatik 2" at the University of Augsburg in the summer semester of 2026.
 
-| Erstellt im Rahmen der Semesteraufgabe Informatik 2 (Sommersemester 2026)                                                                                                                                              |
-|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| **Systembeschreibung:** A (Aufgabenverwaltung)                                                                                                                                                                         |
-| **Github Repository:** https://github.com/ecasept/metis (möglicherweise noch nicht öffentlich)                                                                                                                         |
+# Overview
+The source code is split into three modules:
+- `shared`: contains shared classes used by both the client and server including the serializer, the query builder, the sync logic and shared data models
+- `client`: contains the client application including the ui, api client and data manager
+- `server`: contains the server application including the https server, api router and routes and security
 
-Die Dokumentation ist verfügbar als:
-- **Markdown Dateien:** `README.md` und `BUILD.md`
-- **Website:** https://semesteraufgabe.babo.zapto.org/about und https://semesteraufgabe.babo.zapto.org/build
+![Diagram showing how the different parts of the project are connected to each other](architecture.svg)
+# Implementation
+The UI was mainly written by the other team members and won't be covered in detail here.
+## Serializer
+### Architecture
+The serializer generates and caches schemas for each class that it needs to serialize at runtime.
+The schema provides instructions for how to serialize and deserialize the class, eliminating some of the reflection overhead that would otherwise be incurred through choosing the correct schema compiler based on the class type for every single object.
+Different types need to be handled differently.
+For example, objects need to recursively serialize their fields, while sealed interfaces and enums must tag each possible option.
+Primitive arrays need special handling and records require using a different reflection API than normal classes.
+### Generic type handling
+In order to decide which compiler to use for a given class and find the right cached schema, the type of an object needs to be known at runtime.
+This presents a unique challenge for generic types, as most of the type information is erased at runtime due to JVM behavior.
+Using super type tokens as a workaround, the generic type of any object can be stored as a real Java object and manipulated at runtime.
+With this technique even nested generics and type variables can be resolved through type introspection.
+Usually these features come conveniently prepackaged in libraries like Gson or Guava, but since we were not allowed to use any external libraries besides JDBC, I had to implement them from scratch by myself.
+### Adapters
+The project comes with a modular adapter system that allows adding your own types to the serializer, including support for schema compilation.
+To add your own type, you register your adapter using super type tokens.
+This provides support for generic types and granular control over which types are supported by the adapter.
+### Binary format
+The output of the serializer is a custom binary format.
+Sealed Interfaces and enums receive a tag indicating which option is being used, while objects and records have tags indicating the following field, allowing for any order of fields and optional fields.
+Arrays are prefixed with their length, and other types have their own specific format.
+A schema must be provided during serialization and deserialization, which saved space by not requiring the schema to be transmitted with the data.
+The format is significantly more compact than equivalent JSON or XML, but is not human-readable, requires the schema to be known in advance, is less interoperable, and more challenging to debug.
+Its size could theoretically be further reduced by using variable-length integers and compression.
+## Synchronization
+The sync logic uses a timestamp-based last-write-wins strategy on each field of an object to resolve conflicts.
+This allows simultaneous edits on multiple clients to be merged without losing any data, provided that the edits are made on different fields.
+New tasks are assigned a UUID to ensure that they are unique across all clients and the server.
+When tasks are deleted, they receive a tombstone marker that is kept in the database and deleted once the deletion has been propagated to the server.
+The server stores the tombstone for a configurable amount of time to allow clients that have not synced in a while to catch up.
+If a client has not synced for longer than the tombstone's TTL, the server issues a full sync to the client.
+The client application is usable even without an account.
+Should a user have an account registered but be offline, the client will cache the changes in memory or the database and sync them once it goes back onlinle.
+## Database & Query Builder
+The database is a simple SQLite database stored as a file on the local filesystem.
+The query builder provides a convenient DSL for interacting with the database.
+The database repositories abstract away the underlying database structure into simple methods.
+The query builder uses prepared statements to avoid SQL injection, and features transaction and batching support.
+## Server & Auth
+The server is based on the `com.sun.net.httpserver` package and provides a simple API to register routes, handle requests and headers, and return responses including status codes, errors, headers and serialized java objects.
+A user must authenticate first before they can sync their data with the server.
+After registering, the password is hashed using a combination of a pepper and salt and stored in the database.
+Logging in returns a JWT-style session token encoded with the server's secret key that can be used for future synchronization attempts.
+Session tokens, however, currently lack expiration and refresh logic.
 
-## Ausführungshinweise
-Das Programm ist in zwei Teile gegliedert, den Server und den Client.
-Der Client ist das eigentliche Todo-Management Programm mit Benutzeroberfläche.
-Der Server ist ein optionales Zusatzteil, das die Speicherung von Tasks und Synchronisation mit weiteren Geräten über ein Account-System erlaubt.
 
-In der Abgabe sind zwei Ordner: `remote` und `local`.
-Der `remote` Ordner enthält eine client `.jar` Datei die ausgefürt werden kann.
-Sie enthält alle nötigen Dependencies.
-Dieser Client ist mit unserem [remote server](https://semesteraufgabe.babo.zapto.org/about) konfiguriert den wir hosten.
-Man braucht also keinen extra Server aufzusetzen.
+# Quick start
+The project has been tested with JDK 21, other versions might or might not work.
+```sh
+# Run the server (optional if you want to test out the account and sync features)
+./gradlew :server:run
+# Run the client application in a separate terminal
+./gradlew :client:run
+```
 
-Falls man dennoch einen lokalen Server testen will, kann man in den `local` ordner schauen.
-Dort sind zwei `.jars` und einige Konfigurationsdateien vorhanden.
-Die client `.jar` ist ein Client der für den lokalen server konfiguriert ist.
-Die server jar ist der Server fürs lokale Hosten.
-Jedoch braucht der Server etwas Konfiguration.
-Diese sind in Form der `.env` Datei und der `keystore.jks` schon bereitgestellt.
-Führe als ersten den Server in einen anderen Terminal aus.
-Während der Server am Laufen ist, kann nun der Client gestartet und verwendet werden.
+The repo is configured for testing and developing locally using a local server and client by default.
+If you intend to deploy the server to production, please ensure that you modify the configuration as the provided defaults are insecure.
+For further information on how to build and configure the application, please view the project's [BUILD.md](BUILD.md) file.
 
-### Selbst kompilieren
-Bitte schaue in die `BUILD.md` Datei, dort ist der gesamte Prozess beschrieben und erklärt (Wenn du kein Englisch kannst dann frag AI). Kurz gesagt:
-- Server kann mit `./gradlew :server:run` kompiliert und ausgeführt werden.
-- Client kann mit `./gradlew :client:run` kompiliert und ausgeführt werden.
-- Der Client kann mithilfe der `gradle.properties` zwischen der lokalen und der remote version konfiguriert werden.
-
-## Kurzer Überblick über die Architektur
-- `shared.serialization` enthält den Serialisierer der für Kommunikation zwischen Client und Server verwendet wird.
-- `shared.db.querybuilder` enthält den Query builder, der die Datenbankabfragen generiert.
-- `shared.sync` enthält den Kern der Synchronisationslogik, zusammen mit den beiden `SyncService` Klassen
-- `DataManager` koordiniert die meiste business logik
-- `MainFrame` enthält den Großteil des UI codes
-- `client.ui` Der Rest der UI
-- `server.api` enthält die server routes
-- `server.security` security-related code
-- `shared.models` Datenstrukturen die überall im Code verwendet werden
-- Die beiden `DatabaseRepository` übernehmen die Schnittstelle zur Datenbank.
-
-Anmerkung zu den zusätzlichen Features:
-- der query builder ist ein bisschen unnötig und nervig weil wir eigentlich ein orm machen wollten, aber compile-time code generation hat dann zeitlich doch nicht mehr so ganz hingehauen und wir wollten nicht nochmal reflection machen
-- die sync logic hat noch einige bugs und edge cases und wahrscheinlich viele antipatterns von denen wir noch nix wissen, da es das erste mal war dass wir mit distributed systems gearbeitet habe, aber wir wollten ja primär was lernen
-
-
-
-
- ## Hinweise zur Benutzung
- ### Aufgabenübersicht
- Nach dem Start des Programms erscheint zunächst die Hauptseite des Programms. Auf dieser Seite werden alle Aufgaben angezeigt, die der Benutzer angelegt hat. Jede Zeile stellt eine Aufgabe dar.  
- Die Priorität einer Aufgabe wird durch ein farbiges Quadrat markiert. Ist das Quadrat rot ist die Priorität der Aufgabe hoch, ist es gelb ist die Priorität mittel und ist keine Quadrat sichtbar, so ist die Priorität der Aufgabe niedrig.
-
- ### Ansicht wechseln
- Über den Menu-Button `Ansicht` kann ausgewählt werden, ob nur ausstehende, nur erledigte oder alle Aufgaben angezeigt werden. Außerdem kann über die Suchleiste gezielt nach Aufgaben gesucht werden.
-
- ### Aufgaben anlegen
- Über den Button `Neue Aufgabe` kann eine neue Aufgabe angelegt werden.
- Hierbei **müssen** ein Titel, eine Priorität und eine Fälligkeitsdatum angegeben werden. Das Fälligkeitsdatum darf nicht in der Vergangenheit liegen.  
- **Optional** können eine Uhrzeit zur Präzisierung des Fälligkeitsdatums und eine Beschreibung angegeben werden.
-
-### Aufgaben anzeigen, bearbeiten und löschen
-Über das Icon mit dem Stift kann eine Aufgabe bearbeitet werden. Hierzu öffnet sich eine Übersicht über die Aufgabe in der Änderungen vorgenommen werden können.
-
-Möchte man die Aufgabe hingegen nur vollständig angezeigt bekommen **ohne** sie zu ändern kann man in der Übersicht auf den Titel der Aufgabe klicken. Es öffnet sich dieselbe Ansicht wie bei der Bearbeitung einer Aufgabe, nur ohne die Möglichkeit Änderungen vorzunehmen.
-
-Möchte man eine Aufgabe löschen klickt man in der Übersicht auf den "Papierkorb"-Button und bestätigt anschließend die Aktion.
-
-### Status einer Aufgabe ändern
-Um den Status ("erldigt" oder "ausstehend") einer Aufgabe zu ändern klickt man in der Übersicht auf die Checkbox am Beginn der Zeile der jeweiligen Aufgabe.  
-Aufgaben bei denen die Checkbox nicht markiert ist haben den Status "ausstehend", Aufgaben mit markierter Checkbox den Status "erledigt".
-
-### Accountverwaltung
-Ist man angemeldet kann man sich über den Menu-Button (`Account`) entweder abmelden (`Abmelden`) oder den eigenen Account löschen (`Account löschen`).
-Ist man nicht angemeldet findet keine Synchronisation der eigenen Aufgaben mit dem Server statt.  
-Entsprechend funktioniert der Button `Sync` nur wenn man angemeldet ist. 
-
- ## Zeitliche Überschneidungen am Tag der Abnahme
-Für uns ist die Abnahme am 23.07.2026 flexibel ab 12:00 Uhr möglich.  
-Vor 12:00 Uhr ist für uns **keine Abnahme** möglich, da ein Teammitglied am Vormittag eine andere Prüfung hat.
+# Tradeoffs and known limitations
+- The query builder was a bit unnecessary because I originally wanted to implement a real ORM, but due to time constraints, I didn't manage to.
+- The reflection-based serializer is somewhat inefficient due to runtime reflection overhead even with cached schema generation. This could be solved using compile time code generation but was not within this project's scope.
+- The sync logic has some bugs and edge cases due to insufficient time for extensive testing, and likely many antipatterns that I don't know of yet, since this is my first time doing anything related to distributed systems. Still, this was a worthwhile learning experience that taught me many things you need to consider when building distributed systems.
