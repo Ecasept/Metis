@@ -38,8 +38,8 @@ public class ConflictResolver {
         return this;
     }
 
-    public ConflictResolver setIfNewer(TableContext t, String valueColumn, String changedColumn) {
-        Condition isNewer = C.lt(t.col(changedColumn), t.excluded(changedColumn));
+    public ConflictResolver setIfNewerOrEqual(TableContext t, String valueColumn, String changedColumn) {
+        Condition isNewer = C.ge(t.excluded(changedColumn), t.col(changedColumn));
         return this
                 .set(valueColumn, E.caseWithoutBase()
                         .when(isNewer, t.excluded(valueColumn))

@@ -121,8 +121,8 @@ public class ClientDatabaseRepository {
         }
     }
 
-    /** Creates a new task or updates the fields of an existing task that were changed before the field of the provided task */
-    public void upsertTasksWithOlderFields(List<ClientTask> tasks) throws DatabaseException {
+    /** Creates a new task or updates the fields of an existing task that have timestamps older than or equal to the provided task, preserving resolved ties */
+    public void upsertTasksWithOlderOrEqualFields(List<ClientTask> tasks) throws DatabaseException {
         var batcher = new Batcher();
         var queryBuilder = db
                 .insert()
@@ -145,14 +145,14 @@ public class ClientDatabaseRepository {
                 .into("tasks")
                 .onConflict("uuid")
                 .doUpdate((cr, t) ->
-                        cr.setIfNewer(t, "title", "titleChanged")
-                                .setIfNewer(t, "description", "descriptionChanged")
-                                .setIfNewer(t, "state", "stateChanged")
-                                .setIfNewer(t, "priority", "priorityChanged")
-                                .setIfNewer(t, "dueDate", "dueDateChanged")
-                                .setIfNewer(t, "dueTime", "dueTimeChanged")
-                                .setIfNewer(t, "completedAt", "stateChanged")
-                                .setIfNewer(t, "isDeleted", "deletedChanged")
+                        cr.setIfNewerOrEqual(t, "title", "titleChanged")
+                                .setIfNewerOrEqual(t, "description", "descriptionChanged")
+                                .setIfNewerOrEqual(t, "state", "stateChanged")
+                                .setIfNewerOrEqual(t, "priority", "priorityChanged")
+                                .setIfNewerOrEqual(t, "dueDate", "dueDateChanged")
+                                .setIfNewerOrEqual(t, "dueTime", "dueTimeChanged")
+                                .setIfNewerOrEqual(t, "completedAt", "stateChanged")
+                                .setIfNewerOrEqual(t, "isDeleted", "deletedChanged")
                 );
 
         try (var query = queryBuilder.prepare()) {

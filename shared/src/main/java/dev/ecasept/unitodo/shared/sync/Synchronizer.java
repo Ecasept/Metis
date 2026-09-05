@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.stream.Stream;
 
@@ -74,10 +75,11 @@ public class Synchronizer {
      * @param cur Our tasks
      * @param other The delta from the other side
      * @param taskConverter A way to convert the other side's task type into our system's task type
+     * @param taskMerger Merges our task with the incoming task, preserving server-first conflict resolution
      * @return A list of merged tasks
      * @param <T> The type of task that our system uses
      */
-    private <T extends Task<T>> List<T> synchronize(Map<UUID, T> cur, Map<UUID, ClientTask> other, Function<ClientTask, T> taskConverter) {
+    private <T extends Task<T>> List<T> synchronize(Map<UUID, T> cur, Map<UUID, ClientTask> other, Function<ClientTask, T> taskConverter, BiFunction<T, ClientTask, T> taskMerger) {
         ArrayList<T> newTasks = new ArrayList<>();
 
         for (var entry : other.entrySet()) {
@@ -90,7 +92,7 @@ public class Synchronizer {
                 newTasks.add(taskConverter.apply(otherTask));
             } else {
                 // Task exists on both sides, merge them
-                var merged = merge(thisTask, otherTask);
+                var merged = taskMerger.apply(thisTask, otherTask);
                 newTasks.add(merged);
             }
         }
@@ -99,11 +101,11 @@ public class Synchronizer {
 
     /** Merges a delta received from the server into the client's set of tasks */
     public List<ClientTask> synchronizeClient(Map<UUID, ClientTask> clientTasks, Map<UUID, ClientTask> serverTasks) {
-        return synchronize(clientTasks, serverTasks, t -> t);
+        return synchronize(clientTasks, serverTasks, t -> t, (client, server) -> merge(server, client));
     }
 
     /** Merges a delta received from the client into the server's set of tasks */
     public List<ServerTask> synchronizeServer(Map<UUID, ServerTask> serverTasks, Map<UUID, ClientTask> clientTasks, UUID userId) {
-        return synchronize(serverTasks, clientTasks, task -> ServerTask.fromClientTask(task, userId));
+        return synchronize(serverTasks, clientTasks, task -> ServerTask.fromClientTask(task, userId), this::merge);
     }
 }
