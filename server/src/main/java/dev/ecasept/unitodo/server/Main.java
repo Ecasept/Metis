@@ -40,7 +40,7 @@ public class Main {
             var synchronizer = new Synchronizer();
             var syncService = new SyncService(databaseRepository, synchronizer, tokenService, config);
 
-            var server = new SimpleServer("changeit", "keystore.jks", config.USE_HTTPS());
+            var server = new SimpleServer(config.KEYSTORE_PASSWORD(), config.KEYSTORE_LOCATION(), config.USE_HTTPS());
             server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (r, headers) -> new Response<>(200, RawData.fromString("Hello, world!")));
             server.addRoute("/api/auth/login", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::loginRequest);
             server.addRoute("/api/auth/register", "POST", new StoreType<UsernameAndPassword>() {}, new StoreType<ApiResponse<String>>() {}, authService::registerRequest);
