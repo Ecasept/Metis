@@ -76,3 +76,7 @@ For further information on how to build and configure the application, please vi
   - The application makes no attempt to correct for clock drift other than timezones
   - LWW overwrites concurrent edits to the same field
   - Stale clients can revive deleted server-side tombstones after their expiry
+
+# License
+
+This project is licensed under the GNU General Public License v3.0 or later.
