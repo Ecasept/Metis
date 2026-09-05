@@ -15,7 +15,8 @@ The server requires two files for configuration:
 - a `.env` file, containing configuration parameters (not strictly necessary as the server provides insecure defaults). The `.env` file should be placed inside the current working directory of the server, which is usually the directory that you execute the `.jar` file from, or the `server` project directory if you use gradle to execute the server.
 
 The server can be run using `./gradlew :server:run`.
-It is also possible to create an executable `.jar` with all dependencies included using `./gradlew :server:jar`
+It is also possible to create an executable `.jar` with all dependencies included using `./gradlew :server:fatJar`. Run it with `java -jar server/build/libs/server-all.jar` from the repository root (configuration files are read from the current working directory).
+The equivalent client commands are `./gradlew :client:fatJar` and `java -jar client/build/libs/client-all.jar`.
 
 ### `keystore.jks` configuration
 #### Production

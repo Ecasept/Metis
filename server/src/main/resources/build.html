@@ -88,7 +88,8 @@
 </ul>
 
 <p>The server can be run using <code>./gradlew :server:run</code>.<br>
-    It is also possible to create an executable <code>.jar</code> with all dependencies included using <code>./gradlew :server:jar</code></p>
+    It is also possible to create an executable <code>.jar</code> with all dependencies included using <code>./gradlew :server:fatJar</code>. Run it with <code>java -jar server/build/libs/server-all.jar</code> from the repository root (configuration files are read from the current working directory).
+    The equivalent client commands are <code>./gradlew :client:fatJar</code> and <code>java -jar client/build/libs/client-all.jar</code>.</p>
 
 <h3><code>keystore.jks</code> configuration</h3>
 

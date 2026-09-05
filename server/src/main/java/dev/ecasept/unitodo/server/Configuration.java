@@ -21,7 +21,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
     private static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
     private static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
     private static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
-    private static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofMonths(1);
+    private static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofDays(30);
     private static final boolean DEFAULT_USE_HTTPS = true;
 
     private Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl, boolean useHttps) {
