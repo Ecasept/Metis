@@ -74,3 +74,7 @@ For further information on how to build and configure the application, please vi
 - The query builder was a bit unnecessary because I originally wanted to implement a real ORM, but due to time constraints, I didn't manage to.
 - The reflection-based serializer is somewhat inefficient due to runtime reflection overhead even with cached schema generation. This could be solved using compile time code generation but was not within this project's scope.
 - The sync logic has some bugs and edge cases due to insufficient time for extensive testing, and likely many antipatterns that I don't know of yet, since this is my first time doing anything related to distributed systems. Still, this was a worthwhile learning experience that taught me many things you need to consider when building distributed systems.
+
+# License
+
+This project is licensed under the GNU General Public License v3.0 or later.
