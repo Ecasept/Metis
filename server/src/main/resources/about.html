@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <title>About Metis</title>
+    <style>
+        :root {
+            --light-accent: #eeffdd;
+            --dark-accent: #005500;
+            --code-bg: #f2f2f2;
+            --bg: #ffffff;
+            --fg: #000000;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --light-accent: #223322;
+                --dark-accent: #99ff00;
+                --code-bg: #333333;
+                --bg: #191a1c;
+                --fg: #ffffff;
+            }
+        }
+
+        body {
+            margin: 20px;
+            background-color: var(--bg);
+            color: var(--fg);
+        }
+        * {
+            font-family: 'Helvetica Neue', Helvetica, sans-serif;
+            line-height: 1.6em;
+        }
+        h2 {
+            border-left: var(--dark-accent) 4px solid;
+            padding-left: 8px;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            margin-bottom: 0;
+        }
+        p, ul, table {
+            font-size: 1.2em;
+        }
+        @page {
+            size: A4;
+            margin: 20mm 15mm;
+            background-color: var(--bg);
+        }
+        .overview {
+            background-color: var(--light-accent);
+            padding: 8px;
+            border-left: var(--dark-accent) 4px solid;
+            border-radius: 5px;
+        }
+        code {
+            font-family: 'Courier New', Courier, monospace;
+            background-color: var(--code-bg);
+            padding: 2px 4px;
+            border-radius: 3px;
+        }
+        .subtitle {
+            margin-bottom: 20px;
+        }
+        a {
+            color: var(--dark-accent);
+        }
+    </style>
+</head>
+<body>
+<h1>Metis</h1>
+<div class="subtitle">Ein Todo-App Management Programm</div>
+
+<table class="overview">
+    <tr>
+        <td>
+            <strong>Erstellt im Rahmen der Semesteraufgabe Informatik 2 (Sommersemester 2026)</strong><br>
+            <strong>Systembeschreibung:</strong> A (Aufgabenverwaltung)<br>
+            <strong>Github Repository:</strong> <a href="https://github.com/ecasept/metis">https://github.com/ecasept/metis</a> (möglicherweise noch nicht öffentlich)
+        </td>
+    </tr>
+</table>
+
+<p>Die Dokumentation ist verfügbar als:</p>
+<ul>
+    <li><strong>Markdown Dateien:</strong> <code>README.md</code> und <code>BUILD.md</code></li>
+    <li><strong>Website:</strong> <a href="https://semesteraufgabe.babo.zapto.org/about">https://semesteraufgabe.babo.zapto.org/about</a> und <a href="https://semesteraufgabe.babo.zapto.org/build">https://semesteraufgabe.babo.zapto.org/build</a></li>
+</ul>
+
+<h2>Ausführungshinweise</h2>
+<p>Das Programm ist in zwei Teile gegliedert, den Server und den Client. Der Client ist das eigentliche Todo-Management Programm mit Benutzeroberfläche. Der Server ist ein optionales Zusatzteil, das die Speicherung von Tasks und Synchronisation mit weiteren Geräten über ein Account-System erlaubt.</p>
+
+<p>In der Abgabe sind zwei Ordner: <code>remote</code> und <code>local</code>.</p>
+<p>Der <code>remote</code> Ordner enthält eine client <code>.jar</code> Datei die ausgefürt werden kann. Sie enthält alle nötigen Dependencies. Dieser Client ist mit unserem <a href="https://semesteraufgabe.babo.zapto.org/about">remote server</a> konfiguriert den wir hosten. Man braucht also keinen extra Server aufzusetzen.</p>
+
+<p>Falls man dennoch einen lokalen Server testen will, kann man in den <code>local</code> ordner schauen. Dort sind zwei <code>.jars</code> und einige Konfigurationsdateien vorhanden. Die client <code>.jar</code> ist ein Client der für den lokalen server konfiguriert ist. Die server jar ist der Server fürs lokale Hosten. Jedoch braucht der Server etwas Konfiguration. Diese sind in Form der <code>.env</code> Datei und der <code>keystore.jks</code> schon bereitgestellt. Führe als ersten den Server in einen anderen Terminal aus. Während der Server am Laufen ist, kann nun der Client gestartet und verwendet werden.</p>
+
+<h3>Selbst kompilieren</h3>
+<p>Bitte schaue bei den <a href="/build">Build Instructions</a> nach, dort ist der gesamte Prozess beschrieben und erklärt (Wenn du kein Englisch kannst dann frag AI). Kurz gesagt:</p>
+<ul>
+    <li>Server kann mit <code>./gradlew :server:run</code> kompiliert und ausgeführt werden.</li>
+    <li>Client kann mit <code>./gradlew :client:run</code> kompiliert und ausgeführt werden.</li>
+    <li>Der Client kann mithilfe der <code>gradle.properties</code> zwischen der lokalen und der remote version konfiguriert werden.</li>
+</ul>
+
+<h2>Kurzer Überblick über die Architektur</h2>
+<ul>
+    <li><code>shared.serialization</code> enthält den Serialisierer der für Kommunikation zwischen Client und Server verwendet wird.</li>
+    <li><code>shared.db.querybuilder</code> enthält den Query builder, der die Datenbankabfragen generiert.</li>
+    <li><code>shared.sync</code> enthält den Kern der Synchronisationslogik, zusammen mit den beiden <code>SyncService</code> Klassen</li>
+    <li><code>DataManager</code> koordiniert die meiste business logik</li>
+    <li><code>MainFrame</code> enthält den Großteil des UI codes</li>
+    <li><code>client.ui</code> Der Rest der UI</li>
+    <li><code>server.api</code> enthält die server routes</li>
+    <li><code>server.security</code> security-related code</li>
+    <li><code>shared.models</code> Datenstrukturen die überall im Code verwendet werden</li>
+    <li>Die beiden <code>DatabaseRepository</code> übernehmen die Schnittstelle zur Datenbank.</li>
+</ul>
+
+<p><strong>Anmerkung zu den zusätzlichen Features:</strong></p>
+<ul>
+    <li>der query builder ist ein bisschen unnötig und nervig weil wir eigentlich ein orm machen wollten, aber compile-time code generation hat dann zeitlich doch nicht mehr so ganz hingehauen und wir wollten nicht nochmal reflection machen</li>
+    <li>die sync logic hat noch einige bugs und edge cases und wahrscheinlich viele antipatterns von denen wir noch nix wissen, da es das erste mal war dass wir mit distributed systems gearbeitet habe, aber wir wollten ja primär was lernen</li>
+</ul>
+
+<h2>Hinweise zur Benutzung</h2>
+
+<h3>Aufgabenübersicht</h3>
+<p>Nach dem Start des Programms erscheint zunächst die Hauptseite des Programms. Auf dieser Seite werden alle Aufgaben angezeigt, die der Benutzer angelegt hat. Jede Zeile stellt eine Aufgabe dar.<br>
+    Die Priorität einer Aufgabe wird durch ein farbiges Quadrat markiert. Ist das Quadrat rot ist die Priorität der Aufgabe hoch, ist es gelb ist die Priorität mittel und ist keine Quadrat sichtbar, so ist die Priorität der Aufgabe niedrig.</p>
+
+<h3>Ansicht wechseln</h3>
+<p>Über den Menu-Button <code>Ansicht</code> kann ausgewählt werden, ob nur ausstehende, nur erledigte oder alle Aufgaben angezeigt werden. Außerdem kann über die Suchleiste gezielt nach Aufgaben gesucht werden.</p>
+
+<h3>Aufgaben anlegen</h3>
+<p>Über den Button <code>Neue Aufgabe</code> kann eine neue Aufgabe angelegt werden. Hierbei <strong>müssen</strong> ein Titel, eine Priorität und eine Fälligkeitsdatum angegeben werden. Das Fälligkeitsdatum darf nicht in der Vergangenheit liegen.<br>
+    <strong>Optional</strong> können eine Uhrzeit zur Präzisierung des Fälligkeitsdatums und eine Beschreibung angegeben werden.</p>
+
+<h3>Aufgaben anzeigen, bearbeiten und löschen</h3>
+<p>Über das Icon mit dem Stift kann eine Aufgabe bearbeitet werden. Hierzu öffnet sich eine Übersicht über die Aufgabe in der Änderungen vorgenommen werden können.</p>
+<p>Möchte man die Aufgabe hingegen nur vollständig angezeigt bekommen <strong>ohne</strong> sie zu ändern kann man in der Übersicht auf den Titel der Aufgabe klicken. Es öffnet sich dieselbe Ansicht wie bei der Bearbeitung einer Aufgabe, nur ohne die Möglichkeit Änderungen vorzunehmen.</p>
+<p>Möchte man eine Aufgabe löschen klickt man in der Übersicht auf den "Papierkorb"-Button und bestätigt anschließend die Aktion.</p>
+
+<h3>Status einer Aufgabe ändern</h3>
+<p>Um den Status ("erldigt" oder "ausstehend") einer Aufgabe zu ändern klickt man in der Übersicht auf die Checkbox am Beginn der Zeile der jeweiligen Aufgabe.<br>
+    Aufgaben bei denen die Checkbox nicht markiert ist haben den Status "ausstehend", Aufgaben mit markierter Checkbox den Status "erledigt".</p>
+
+<h3>Accountverwaltung</h3>
+<p>Ist man angemeldet kann man sich über den Menu-Button (<code>Account</code>) entweder abmelden (<code>Abmelden</code>) oder den eigenen Account löschen (<code>Account löschen</code>). Ist man nicht angemeldet findet keine Synchronisation der eigenen Aufgaben mit dem Server statt. Entsprechend funktioniert der Button <code>Sync</code> nur wenn man angemeldet ist.</p>
+
+<h2>Zeitliche Überschneidungen am Tag der Abnahme</h2>
+<p>Für uns ist die Abnahme am 23.07.2026 flexibel ab 12:00 Uhr möglich.<br>
+    Vor 12:00 Uhr ist für uns <strong>keine Abnahme</strong> möglich, da ein Teammitglied am Vormittag eine andere Prüfung hat.</p>
+</body>
+</html>
