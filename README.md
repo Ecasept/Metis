@@ -53,9 +53,7 @@ The query builder uses prepared statements to avoid SQL injection, and features 
 The server is based on the `com.sun.net.httpserver` package and provides a simple API to register routes, handle requests and headers, and return responses including status codes, errors, headers and serialized java objects.
 A user must authenticate first before they can sync their data with the server.
 After registering, the password is hashed using a combination of a pepper and salt and stored in the database.
-Logging in returns a JWT-style session token encoded with the server's secret key that can be used for future synchronization attempts.
-Session tokens, however, currently lack expiration and refresh logic.
-
+Login and registration return an HMAC-signed session token including user id and expiration date, serialized through the serializer and base64 encoded.
 
 # Quick start
 The project has been tested with JDK 21, other versions might or might not work.

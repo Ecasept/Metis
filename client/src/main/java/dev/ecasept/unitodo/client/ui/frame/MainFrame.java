@@ -39,6 +39,11 @@ public class MainFrame extends JFrame {
     private static final String TAG = "MainFrame";
 
     private final DataManager dataManager;
+    private final UIErrorHandler errorHandler = new UIErrorHandler(this::promptRelogin);
+
+    public UIErrorHandler getErrorHandler() {
+        return errorHandler;
+    }
 
     // Aktuelle Ansicht in der Overview (Pending oder Finished)
     private static final int LAST_WAS_FINISHED = 1;
@@ -130,7 +135,7 @@ public class MainFrame extends JFrame {
                 try {
                     dataManager.synchronize().whenComplete((changed, t) -> {
                         if (t != null) {
-                            UIErrorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen");
+                            errorHandler.handleAsyncError(t, "Synchronisieren", "Synchronisation fehlgeschlagen", MainFrame.this);
                         } else if (changed) {
                             SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                         }
@@ -146,7 +151,7 @@ public class MainFrame extends JFrame {
         public void actionPerformed(ActionEvent e) {
            if (logInOutMenuItem.getActionCommand().equals("Anmelden")) {
 
-               LoginDialog loginFrame = new LoginDialog(null, true, dataManager);
+               LoginDialog loginFrame = new LoginDialog(MainFrame.this, true, dataManager, errorHandler);
                try {
                    loggedIn = dataManager.isLoggedIn();
                } catch (DatabaseException ex) {
@@ -172,7 +177,7 @@ public class MainFrame extends JFrame {
         @Override
         public void actionPerformed(ActionEvent e) {
             if (e.getActionCommand().equals("Registrieren")) {
-                RegisterDialog registerDialog = new RegisterDialog(null, true, dataManager);
+                RegisterDialog registerDialog = new RegisterDialog(MainFrame.this, true, dataManager, errorHandler);
                 try {
                     loggedIn = dataManager.isLoggedIn();
                 } catch (DatabaseException ex) {
@@ -181,7 +186,7 @@ public class MainFrame extends JFrame {
                 }
                 setOverview();
             } else if (e.getActionCommand().equals("Account löschen")) {
-                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(null, true, dataManager);
+                DeleteAccountDialog deleteAccountDialog = new DeleteAccountDialog(MainFrame.this, true, dataManager, errorHandler);
                 try {
                     loggedIn = dataManager.isLoggedIn();
                 } catch (DatabaseException ex) {
@@ -222,11 +227,36 @@ public class MainFrame extends JFrame {
         this.setVisible(true);
     }
 
+    private void promptRelogin(Component parent) {
+        try {
+            if (!dataManager.isLoggedIn()) return;
+            int choice = JOptionPane.showOptionDialog(parent,
+                    "Deine Anmeldung ist abgelaufen. Möchtest du dich erneut anmelden?",
+                    "Anmeldung abgelaufen", JOptionPane.DEFAULT_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, new String[]{"Erneut anmelden", "Abbrechen"}, "Erneut anmelden");
+            if (choice != 0) return;
+
+            dataManager.logout();
+            if (parent instanceof JDialog dialog) dialog.dispose();
+            setOverview();
+            new LoginDialog(this, true, dataManager, errorHandler);
+            setOverview();
+        } catch (DatabaseException e) {
+            errorHandler.handleAsyncError(e, "Abmelden", "Abmelden fehlgeschlagen", this);
+        }
+    }
+
     /**
      * This methods sets the task overview and the JMenuBar. It is called at the programs start
      * and always when the user returns from one of the views to add, edit or show a task.
      */
     public void setOverview() {
+        try {
+            loggedIn = dataManager.isLoggedIn();
+        } catch (DatabaseException e) {
+            errorHandler.handleAsyncError(e, "Anmeldestatus laden", "Datenbankfehler", this);
+            return;
+        }
         last_view = LAST_WAS_OVERVIEW;
         this.getContentPane().removeAll();
 
@@ -578,7 +608,7 @@ public class MainFrame extends JFrame {
                     dataManager.upsertTask(ClientTask.create(title, description, new TaskState.Pending(), priority, dueDate, Optional.ofNullable(dueTime)))
                         .whenComplete((changed, t) -> {
                             if (t != null) {
-                                UIErrorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
+                                errorHandler.handleAsyncError(t, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden", MainFrame.this);
                             } else if (changed) {
                                 SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
@@ -838,7 +868,7 @@ public class MainFrame extends JFrame {
                     dataManager.upsertTask(t)
                         .whenComplete((changed, ex) -> {
                             if (ex != null) {
-                                UIErrorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden");
+                                errorHandler.handleAsyncError(ex, "Aufgabe speichern", "Aufgabe konnte nicht gespeichert werden", MainFrame.this);
                             } else if (changed) {
                                 SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
@@ -1054,7 +1084,7 @@ public class MainFrame extends JFrame {
                     dataManager.deleteTask(deleteThis)
                         .whenComplete((changed, t) -> {
                             if (t != null) {
-                                UIErrorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden");
+                                errorHandler.handleAsyncError(t, "Aufgabe löschen", "Aufgabe konnte nicht gelöscht werden", MainFrame.this);
                             } else if (changed) {
                                 SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }
@@ -1097,7 +1127,7 @@ public class MainFrame extends JFrame {
                     dataManager.upsertTask(task.withState(new TaskState.Finished(LocalDateTime.now())))
                          .whenComplete((changed, t) -> {
                              if (t != null) {
-                                 UIErrorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden");
+                                 errorHandler.handleAsyncError(t, "Aufgabe als erledigt markieren", "Aufgabe konnte nicht als erledigt markiert werden", MainFrame.this);
                              } else if (changed) {
                                  SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                              }
@@ -1113,7 +1143,7 @@ public class MainFrame extends JFrame {
                     dataManager.upsertTask(task.withState(new TaskState.Pending()))
                         .whenComplete((changed, t) -> {
                             if (t != null) {
-                                UIErrorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden");
+                                errorHandler.handleAsyncError(t, "Aufgabe als ausstehend markieren", "Aufgabe konnte nicht als ausstehend markiert werden", MainFrame.this);
                             } else if (changed) {
                                 SwingUtilities.invokeLater(() -> syncResponse.refreshUI());
                             }

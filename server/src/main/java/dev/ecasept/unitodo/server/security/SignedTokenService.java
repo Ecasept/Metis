@@ -9,9 +9,9 @@ import java.util.Optional;
 
 public class SignedTokenService {
     /** Generates a token containing specific payload */
-    public String generateToken(String payload, byte[] secret) {
+    public String generateToken(byte[] payload, byte[] secret) {
         try {
-            var encodedPayload = Base64.getUrlEncoder().withoutPadding().encode(payload.getBytes(StandardCharsets.UTF_8));
+            var encodedPayload = Base64.getUrlEncoder().withoutPadding().encode(payload);
 
             var signature = CryptoUtils.calculateHmac(encodedPayload, secret);
             signature = Base64.getUrlEncoder().withoutPadding().encode(signature);
@@ -23,11 +23,11 @@ public class SignedTokenService {
     }
 
     /** Verifies that a token originated from the server and returns the contained payload if it does */
-    public Optional<String> verifyAndGetPayload(String token, byte[] secret) {
+    public Optional<byte[]> verifyAndGetPayload(String token, byte[] secret) {
         if (token == null) {
             return Optional.empty();
         }
-        String[] parts = token.split("\\.");
+        String[] parts = token.split("\\.", -1);
         if (parts.length != 2) {
             return Optional.empty();
         }
@@ -43,7 +43,7 @@ public class SignedTokenService {
                 return Optional.empty();
             }
             byte[] decodedBytes = Base64.getUrlDecoder().decode(encodedPayload);
-            return Optional.of(new String(decodedBytes, StandardCharsets.UTF_8));
+            return Optional.of(decodedBytes);
         } catch (IllegalArgumentException e) {
             // Catches invalid Base64 padding or invalid characters
             return Optional.empty();

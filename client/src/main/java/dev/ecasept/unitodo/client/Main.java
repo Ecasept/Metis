@@ -42,8 +42,8 @@ public class Main {
         var dataManager = new DataManager(db, apiClient, syncService);
 
         try {
-            dataManager.initialize().thenAcceptAsync(
-                v -> {
+            dataManager.initialize().handleAsync(
+                (v, error) -> {
                     MainFrame frame = new MainFrame(dataManager);
 
                     frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
@@ -59,6 +59,10 @@ public class Main {
                             }
                         }
                     });
+                    if (error != null) {
+                        frame.getErrorHandler().handleAsyncError(error, "Synchronisieren", "Synchronisation fehlgeschlagen", frame);
+                    }
+                    return null;
                 }, SwingUtilities::invokeLater
             ).exceptionally(t -> {
                 Log.e("Main", "Failed to initialize DataManager", t);

@@ -15,7 +15,9 @@ public enum ErrorCode {
     @SerialInstance(tag=4)
     AUTH_TOKEN_INVALID ("Ungültiger Token. Versuche dich erneut anzumelden"),
     @SerialInstance(tag=5)
-    UNKNOWN ("Unbekannter Fehler");
+    UNKNOWN ("Unbekannter Fehler"),
+    @SerialInstance(tag=6)
+    AUTH_TOKEN_EXPIRED ("Anmeldung abgelaufen. Bitte erneut anmelden");
 
     private final String message;
     ErrorCode(String msg) {

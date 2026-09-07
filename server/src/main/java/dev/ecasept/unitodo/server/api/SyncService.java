@@ -3,7 +3,6 @@ package dev.ecasept.unitodo.server.api;
 import com.sun.net.httpserver.Headers;
 import dev.ecasept.unitodo.server.Configuration;
 import dev.ecasept.unitodo.server.db.ServerDatabaseRepository;
-import dev.ecasept.unitodo.server.security.SignedTokenService;
 import dev.ecasept.unitodo.server.serverlib.Response;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
@@ -23,22 +22,22 @@ import java.util.stream.Collectors;
 public class SyncService {
     private final String TAG = "SyncService";
     private final Synchronizer synchronizer;
-    private final SignedTokenService tokenService;
+    private final Auth auth;
     private final Configuration config;
     private final ServerDatabaseRepository db;
-    public SyncService(ServerDatabaseRepository db, Synchronizer synchronizer, SignedTokenService tokenService, Configuration config) {
+    public SyncService(ServerDatabaseRepository db, Synchronizer synchronizer, Auth auth, Configuration config) {
         this.db = db;
         this.synchronizer = synchronizer;
-        this.tokenService = tokenService;
+        this.auth = auth;
         this.config = config;
     }
 
     public Response<ApiResponse<SyncResponse>> syncRequest(SyncRequest request, Headers headers) throws DatabaseException {
-        var userIdOptional = Auth.verifyAuth(headers, tokenService, config.SECRET_KEY());
-        if (userIdOptional.isEmpty()) {
-            return new Response<>(401, ApiResponse.error("Unauthorized: Invalid session token", ErrorCode.AUTH_TOKEN_INVALID));
+        var authResult = auth.verifyAuth(headers);
+        if (!authResult.isValid()) {
+            return new Response<>(401, ApiResponse.error("Unauthorized: " + authResult.errorCode().getMessage(), authResult.errorCode()));
         }
-        var userId = userIdOptional.get();
+        var userId = authResult.userId();
 
         try {
             return db.transaction(() -> {

@@ -21,17 +21,20 @@ public class LoginDialog extends JDialog {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
+    private final UIErrorHandler errorHandler;
 
     /**
      * Creates an new dialog box where the user can log in with their account.
      *
      * @param x the parent frame.
      * @param modal true if the dialog should be modal, false otherwise.
+     * @param errorHandler the shared error handler for the main window
      * @param dataManager the DataManager-Object which manages the account and login status.
      */
-    public LoginDialog(Frame x, boolean modal, DataManager dataManager) {
+    public LoginDialog(Frame x, boolean modal, DataManager dataManager, UIErrorHandler errorHandler) {
         super(x, "Anmelden", modal);
         this.dataManager = dataManager;
+        this.errorHandler = errorHandler;
         this.setLocation(550, 320);
 
         JPanel usernamePanel = new JPanel();
@@ -103,7 +106,7 @@ public class LoginDialog extends JDialog {
                     password.shred();
 
                     if (t != null) {
-                        UIErrorHandler.handleAsyncError(t, "Anmelden", "Anmeldung fehlgeschlagen");
+                        errorHandler.handleAsyncError(t, "Anmelden", "Anmeldung fehlgeschlagen", LoginDialog.this);
                     } else {
                         SwingUtilities.invokeLater(() -> {
                             dispose();

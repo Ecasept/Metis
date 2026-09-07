@@ -21,17 +21,20 @@ public class DeleteAccountDialog extends JDialog {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
+    private final UIErrorHandler errorHandler;
 
     /**
-     * Creates an new dialog box where the user can delete their account.
+     * Creates a new dialog box where the user can delete their account.
      *
      * @param x the parent frame.
      * @param modal true if the dialog should be modal, false otherwise.
+     * @param errorHandler the shared error handler for the main window
      * @param dataManager the DataManager-Object which manages the account and login status.
      */
-    public DeleteAccountDialog(Frame x, boolean modal, DataManager dataManager) {
+    public DeleteAccountDialog(Frame x, boolean modal, DataManager dataManager, UIErrorHandler errorHandler) {
         super(x, "Account löschen", modal);
         this.dataManager = dataManager;
+        this.errorHandler = errorHandler;
         this.setLocation(550, 320);
 
         JPanel usernamePanel = new JPanel();
@@ -93,7 +96,7 @@ public class DeleteAccountDialog extends JDialog {
             dataManager.deleteAccount(password).whenComplete((r, t) -> {
                 password.shred();
                 if (t != null) {
-                    UIErrorHandler.handleAsyncError(t, "Löschen des Accounts", "Account löschen fehlgeschlagen");
+                    errorHandler.handleAsyncError(t, "Löschen des Accounts", "Account löschen fehlgeschlagen", DeleteAccountDialog.this);
                 } else {
                     SwingUtilities.invokeLater(() -> {
                         dispose();

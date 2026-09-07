@@ -7,13 +7,41 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Period;
+import java.time.Duration;
 import java.time.temporal.ChronoUnit;
 import java.time.temporal.TemporalAmount;
 import java.util.HashMap;
 import java.util.Map;
 
 /** Stores the configuration for the server */
-public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, TemporalAmount TOMBSTONE_TTL, boolean USE_HTTPS) {
+public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String KEYSTORE_PASSWORD, String KEYSTORE_LOCATION, String DB_URL, Period TOMBSTONE_TTL, boolean USE_HTTPS, Duration SESSION_TTL) {
+    public Configuration {
+        if (PORT <= 0) {
+            throw new IllegalArgumentException("PORT must be a positive integer");
+        }
+        if (SECRET_KEY == null || SECRET_KEY.length == 0) {
+            throw new IllegalArgumentException("SECRET_KEY must be a non-empty byte array");
+        }
+        if (PEPPER == null || PEPPER.length == 0) {
+            throw new IllegalArgumentException("PEPPER must be a non-empty byte array");
+        }
+        if (KEYSTORE_PASSWORD == null || KEYSTORE_PASSWORD.isEmpty()) {
+            throw new IllegalArgumentException("KEYSTORE_PASSWORD must be a non-empty string");
+        }
+        if (KEYSTORE_LOCATION == null || KEYSTORE_LOCATION.isEmpty()) {
+            throw new IllegalArgumentException("KEYSTORE_LOCATION must be a non-empty string");
+        }
+        if (DB_URL == null || DB_URL.isEmpty()) {
+            throw new IllegalArgumentException("DB_URL must be a non-empty string");
+        }
+        if (TOMBSTONE_TTL == null || TOMBSTONE_TTL.isZero() || TOMBSTONE_TTL.isNegative()) {
+            throw new IllegalArgumentException("TOMBSTONE_TTL must be a positive number of days");
+        }
+        if (SESSION_TTL == null || SESSION_TTL.isZero() || SESSION_TTL.isNegative()) {
+            throw new IllegalArgumentException("SESSION_TTL must be a positive number of days");
+        }
+    }
+
     private static final String TAG = "Configuration";
     private static final int DEFAULT_PORT = 6767;
     private static final String DEFAULT_SECRET_KEY = "testing123";
@@ -21,11 +49,13 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
     private static final String DEFAULT_KEYSTORE_PASSWORD = "changeit";
     private static final String DEFAULT_KEYSTORE_LOCATION = "keystore.jks";
     private static final String DEFAULT_DB_URL = "jdbc:sqlite:unitodo.db";
-    private static final TemporalAmount DEFAULT_TOMBSTONE_TTL = Period.ofDays(30);
+    private static final Period DEFAULT_TOMBSTONE_TTL = Period.ofDays(30);
+    private static final Duration DEFAULT_SESSION_TTL = Duration.ofDays(30);
     private static final boolean DEFAULT_USE_HTTPS = true;
 
-    private Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, TemporalAmount tombstoneTtl, boolean useHttps) {
-         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl, useHttps);
+
+    private Configuration(int port, String secretKey, String pepper, String keystorePassword, String keystoreLocation, String dbUrl, Period tombstoneTtl, boolean useHttps, Duration sessionTtl) {
+         this(port, secretKey.getBytes(StandardCharsets.UTF_8), pepper.getBytes(StandardCharsets.UTF_8), keystorePassword, keystoreLocation, dbUrl, tombstoneTtl, useHttps, sessionTtl);
     }
 
 
@@ -44,7 +74,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
             env = Configuration.loadEnv(envPath);
         } catch (IOException e) {
             Log.w(TAG, "Failed to load configuration from .env file, using defaults", e);
-            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION, DEFAULT_DB_URL, DEFAULT_TOMBSTONE_TTL, DEFAULT_USE_HTTPS);
+            return new Configuration(DEFAULT_PORT, DEFAULT_SECRET_KEY, DEFAULT_PEPPER, DEFAULT_KEYSTORE_PASSWORD, DEFAULT_KEYSTORE_LOCATION, DEFAULT_DB_URL, DEFAULT_TOMBSTONE_TTL, DEFAULT_USE_HTTPS, DEFAULT_SESSION_TTL);
         }
         ensureEnv(env, "PORT", String.valueOf(DEFAULT_PORT));
         ensureEnv(env, "SECRET_KEY", DEFAULT_SECRET_KEY);
@@ -53,6 +83,7 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
         ensureEnv(env, "KEYSTORE_LOCATION", DEFAULT_KEYSTORE_LOCATION);
         ensureEnv(env, "DB_URL", DEFAULT_DB_URL);
         ensureEnv(env, "TOMBSTONE_TTL", String.valueOf(DEFAULT_TOMBSTONE_TTL.get(ChronoUnit.DAYS)));
+        ensureEnv(env, "SESSION_TTL", String.valueOf(DEFAULT_SESSION_TTL.toDays()));
         ensureEnv(env, "USE_HTTPS", String.valueOf(DEFAULT_USE_HTTPS));
         return new Configuration(
                 Integer.parseInt(env.get("PORT")),
@@ -62,7 +93,8 @@ public record Configuration(int PORT, byte[] SECRET_KEY, byte[] PEPPER, String K
                 env.get("KEYSTORE_LOCATION"),
                 env.get("DB_URL"),
                 Period.ofDays(Integer.parseInt(env.get("TOMBSTONE_TTL"))),
-                Boolean.parseBoolean(env.get("USE_HTTPS"))
+                Boolean.parseBoolean(env.get("USE_HTTPS")),
+                Duration.ofDays(Long.parseLong(env.get("SESSION_TTL")))
         );
     }
 

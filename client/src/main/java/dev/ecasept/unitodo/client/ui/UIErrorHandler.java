@@ -2,26 +2,43 @@ package dev.ecasept.unitodo.client.ui;
 
 import dev.ecasept.unitodo.client.api.exception.ApiException;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
-import dev.ecasept.unitodo.shared.utils.Log;
+import dev.ecasept.unitodo.shared.models.api.ErrorCode;
 
-import javax.swing.JOptionPane;
-import javax.swing.SwingUtilities;
+import javax.swing.*;
+import java.awt.*;
 import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
 public class UIErrorHandler {
+    private final AtomicBoolean reloginPromptOpen = new AtomicBoolean();
+    private final Consumer<Component> onSessionExpired;
 
-    /**
-     * Handles errors from async operations by giving user feedback
-     *
-     * @param t          The exception thrown by the CompletableFuture.
-     * @param actionName The name of the action (e.g., "Löschen des Accounts").
-     * @param errorTitle The title for the JOptionPane (e.g., "Account löschen fehlgeschlagen").
-     */
-    public static void handleAsyncError(Throwable t, String actionName, String errorTitle) {
-        Throwable cause = (t instanceof CompletionException) ? t.getCause() : t;
+    public UIErrorHandler(Consumer<Component> onSessionExpired) {
+        this.onSessionExpired = onSessionExpired;
+    }
+
+    /** Handles async operation errors on the Swing event thread. */
+    public void handleAsyncError(Throwable t, String actionName, String errorTitle,
+                                        Component parent) {
+        Throwable cause = t;
+        while (cause instanceof CompletionException && cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        if (cause instanceof ApiException api && api.getErrorCode() == ErrorCode.AUTH_TOKEN_EXPIRED) {
+            // Claim the prompt before queuing it so concurrent failures show only one dialog.
+            if (reloginPromptOpen.compareAndSet(false, true)) {
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        onSessionExpired.accept(parent);
+                    } finally {
+                        reloginPromptOpen.set(false);
+                    }
+                });
+            }
+            return;
+        }
         String message;
-
-        // Determine the specific error message
         if (cause instanceof ApiException c) {
             message = "Netzwerk Fehler beim " + actionName + ". Bitte versuchen Sie es erneut. Fehler: " + c.getErrorCode().getMessage();
         } else if (cause instanceof DatabaseException) {
@@ -29,9 +46,7 @@ public class UIErrorHandler {
         } else {
             message = "Unbekannter Fehler beim " + actionName + ". Bitte versuchen Sie es erneut.";
         }
-
-        SwingUtilities.invokeLater(() -> {
-            JOptionPane.showMessageDialog(null, message, errorTitle, JOptionPane.ERROR_MESSAGE);
-        });
+        SwingUtilities.invokeLater(() -> JOptionPane.showMessageDialog(parent, message, errorTitle, JOptionPane.ERROR_MESSAGE));
     }
+
 }

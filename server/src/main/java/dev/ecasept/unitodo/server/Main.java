@@ -1,5 +1,6 @@
 package dev.ecasept.unitodo.server;
 
+import dev.ecasept.unitodo.server.api.Auth;
 import dev.ecasept.unitodo.server.api.SyncService;
 import dev.ecasept.unitodo.server.db.ServerDatabaseRepository;
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
@@ -18,12 +19,14 @@ import dev.ecasept.unitodo.shared.sync.Synchronizer;
 import dev.ecasept.unitodo.shared.utils.Log;
 
 import java.io.IOException;
+import java.time.Clock;
 
 public class Main {
     private static final String TAG = "Main";
     public static void main(String[] args) {
         var config = Configuration.load();
         var tokenService = new SignedTokenService();
+        var auth = new Auth(tokenService, config, Clock.systemUTC());
         var passwordHasherService = new PasswordHasherService(config);
         var classLoader = Main.class.getClassLoader();
         DatabaseController databaseController;
@@ -36,9 +39,9 @@ public class Main {
         try {
             var queryBuilder = new QueryBuilder(databaseController);
             var databaseRepository = new ServerDatabaseRepository(queryBuilder);
-            var authService = new AuthService(databaseRepository, passwordHasherService, tokenService, config);
+            var authService = new AuthService(databaseRepository, passwordHasherService, auth);
             var synchronizer = new Synchronizer();
-            var syncService = new SyncService(databaseRepository, synchronizer, tokenService, config);
+            var syncService = new SyncService(databaseRepository, synchronizer, auth, config);
 
             var server = new SimpleServer(config.KEYSTORE_PASSWORD(), config.KEYSTORE_LOCATION(), config.USE_HTTPS());
             server.addRoute("/", "GET", new StoreType<Void>() {}, new StoreType<RawData>() {}, (r, headers) -> new Response<>(200, RawData.fromString("Hello, world!")));

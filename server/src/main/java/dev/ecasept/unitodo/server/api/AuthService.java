@@ -1,7 +1,6 @@
 package dev.ecasept.unitodo.server.api;
 
 import com.sun.net.httpserver.Headers;
-import dev.ecasept.unitodo.server.Configuration;
 import dev.ecasept.unitodo.server.db.ServerDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.models.api.ApiResponse;
@@ -9,21 +8,18 @@ import dev.ecasept.unitodo.shared.models.api.ErrorCode;
 import dev.ecasept.unitodo.shared.models.api.Password;
 import dev.ecasept.unitodo.shared.models.api.UsernameAndPassword;
 import dev.ecasept.unitodo.server.security.PasswordHasherService;
-import dev.ecasept.unitodo.server.security.SignedTokenService;
 import dev.ecasept.unitodo.server.serverlib.Response;
 
 
 public class AuthService {
     private final ServerDatabaseRepository db;
     private final PasswordHasherService passwordHasherService;
-    private final SignedTokenService tokenService;
-    private final Configuration config;
+    private final Auth auth;
 
-    public AuthService(ServerDatabaseRepository db, PasswordHasherService passwordHasherService, SignedTokenService tokenService, Configuration config) {
+    public AuthService(ServerDatabaseRepository db, PasswordHasherService passwordHasherService, Auth auth) {
         this.db = db;
         this.passwordHasherService = passwordHasherService;
-        this.tokenService = tokenService;
-        this.config = config;
+        this.auth = auth;
     }
 
     public Response<ApiResponse<String>> loginRequest(UsernameAndPassword req, Headers headers) throws DatabaseException {
@@ -37,7 +33,7 @@ public class AuthService {
             }
             boolean passwordValid = passwordHasherService.verifyPassword(password, user.get().passwordHash());
             if (passwordValid) {
-                var token = tokenService.generateToken(user.get().userId().toString(), config.SECRET_KEY());
+                var token = auth.issueToken(user.get().userId());
                 return new Response<>(200, ApiResponse.success(token));
             } else {
                 return new Response<>(401, ApiResponse.error("Unauthorized: Invalid username or credentials", ErrorCode.AUTH_INVALID_CREDENTIALS));
@@ -58,17 +54,17 @@ public class AuthService {
             passwordHash = passwordHasherService.hashPassword(password);
             var userId = db.createUser(req.username(), passwordHash);
 
-            var token = tokenService.generateToken(userId.toString(), config.SECRET_KEY());
+            var token = auth.issueToken(userId);
             return new Response<>(200, ApiResponse.success(token));
         }
     }
     public Response<ApiResponse<Void>> deleteAccountRequest(Password pw, Headers headers) throws DatabaseException {
         try (pw) {
-            var userIdOptional = Auth.verifyAuth(headers, tokenService, config.SECRET_KEY());
-            if (userIdOptional.isEmpty()) {
-                return new Response<>(401, ApiResponse.error("Unauthorized: Invalid session token", ErrorCode.AUTH_TOKEN_INVALID));
+            var authResult = auth.verifyAuth(headers);
+            if (!authResult.isValid()) {
+                return new Response<>(401, ApiResponse.error("Unauthorized: " + authResult.errorCode().getMessage(), authResult.errorCode()));
             }
-            var userId = userIdOptional.get();
+            var userId = authResult.userId();
 
             var user = db.getUser(userId);
             if (user.isEmpty()) {

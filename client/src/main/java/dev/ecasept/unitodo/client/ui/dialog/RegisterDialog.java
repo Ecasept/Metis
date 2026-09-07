@@ -21,17 +21,20 @@ public class RegisterDialog extends JDialog {
     private JTextField usernameField;
     private JPasswordField passwordField;
     private DataManager dataManager;
+    private final UIErrorHandler errorHandler;
 
     /**
      * Creates an new dialog box for registering a new user.
      *
      * @param x the parent frame.
      * @param modal true if the dialog should be modal, false otherwise.
+     * @param errorHandler the shared error handler for the main window
      * @param dataManager the DataManager-Object which manages the account and login status.
      */
-    public RegisterDialog(Frame x, boolean modal, DataManager dataManager) {
+    public RegisterDialog(Frame x, boolean modal, DataManager dataManager, UIErrorHandler errorHandler) {
         super(x, "Registrieren", modal);
         this.dataManager = dataManager;
+        this.errorHandler = errorHandler;
         this.setLocation(550, 320);
 
         JPanel usernamePanel = new JPanel();
@@ -101,7 +104,7 @@ public class RegisterDialog extends JDialog {
                     password.shred();
 
                     if (t != null) {
-                        UIErrorHandler.handleAsyncError(t, "Registrieren", "Registrierung fehlgeschlagen");
+                        errorHandler.handleAsyncError(t, "Registrieren", "Registrierung fehlgeschlagen", RegisterDialog.this);
                     } else {
                         SwingUtilities.invokeLater(() -> {
                             dispose();

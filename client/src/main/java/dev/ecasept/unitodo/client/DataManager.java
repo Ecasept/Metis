@@ -6,6 +6,7 @@ import dev.ecasept.unitodo.client.db.ClientDatabaseRepository;
 import dev.ecasept.unitodo.shared.db.DatabaseException;
 import dev.ecasept.unitodo.shared.db.querybuilder.SortOrder;
 import dev.ecasept.unitodo.shared.models.api.Password;
+import dev.ecasept.unitodo.shared.models.api.ErrorCode;
 import dev.ecasept.unitodo.shared.models.db.ClientTask;
 import dev.ecasept.unitodo.shared.models.db.TaskState;
 import dev.ecasept.unitodo.shared.utils.Log;
@@ -150,6 +151,10 @@ public class DataManager {
 
          return CompletableFuture.supplyAsync(() -> {
             try {
+                if (!isLoggedIn()) {
+                    restoreSync.run();
+                    return false;
+                }
                 var lastSyncTime = full ? Optional.of(LOWEST_SYNC_TIME) : getLastSyncTime();
                 try {
                     boolean changed = syncService.synchronize(unsyncedSnapshot.values().toArray(new ClientTask[0]), lastSyncTime, syncStart);
@@ -163,6 +168,9 @@ public class DataManager {
                 } catch (ApiException e) {
                     Log.w(TAG, "Failed to synchronize tasks, will retry on next sync", e);
                     restoreSync.run();
+                    if (e.getErrorCode() == ErrorCode.AUTH_TOKEN_EXPIRED) {
+                        throw new CompletionException(e);
+                    }
                     return false;
                 }
             } catch (DatabaseException e) {
