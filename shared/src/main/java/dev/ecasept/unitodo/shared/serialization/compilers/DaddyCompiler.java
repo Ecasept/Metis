@@ -83,8 +83,8 @@ public class DaddyCompiler {
                 return recordCompiler.compileToSchema(nullableType);
             }
             // normal class
-            // arrays have the abstract bit set
-            if (Modifier.isAbstract(rawClass.getModifiers()) && !rawClass.isArray()) {
+            // arrays and primitives have the abstract bit set
+            if (Modifier.isAbstract(rawClass.getModifiers()) && !rawClass.isArray() && !rawClass.isPrimitive()) {
                 if (!rawClass.isSealed()) {
                     throw new IllegalArgumentException("Cannot compile non-sealed abstract class type " + type.getTypeName() + " without adapter");
                 }
